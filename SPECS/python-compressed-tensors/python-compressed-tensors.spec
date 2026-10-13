@@ -8,12 +8,12 @@
 %global pypi_name compressed_tensors
 
 Name:           python-%{srcname}
-Version:        0.15.0.1
+Version:        0.18.0
 Release:        %autorelease
 Summary:        Library for utilization of compressed safetensors of neural network models
 License:        Apache-2.0
 URL:            https://github.com/vllm-project/compressed-tensors
-#!RemoteAsset:  sha256:a8e93054e8a5ec49c980b09ed36c4c1249b4a8ee167920a8e461c4da26e78d99
+#!RemoteAsset:  sha256:56b90295637cd4027b52041676f6c4e6cb933e1ca10f114b345fddde00c16b8b
 Source0:        https://files.pythonhosted.org/packages/source/c/%{srcname}/%{pypi_name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    pyproject

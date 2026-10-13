@@ -26,12 +26,12 @@ Name:           python-%{srcname}-rocm
 %else
 Name:           python-%{srcname}
 %endif
-Version:        0.28.0
+Version:        0.29.0
 Release:        %autorelease
 Summary:        Image and video datasets for torch deep learning
 License:        BSD-3-Clause AND BSD-2-Clause AND MIT
 URL:            https://github.com/pytorch/vision
-#!RemoteAsset:  sha256:ecc4451241c8eeadc0c88213bd65c7932c9622d1d0034254b938f25362283ee9
+#!RemoteAsset:  sha256:24be57d922927d8a2ac2e8f076f07c3447ddf8f1d25ddbb7b65578f36c9ab8e3
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
 BuildSystem:    pyproject
 
@@ -74,24 +74,24 @@ BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
 BuildRequires:  hipcc
 BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
-BuildRequires:  python-torch-rocm-devel
+BuildRequires:  python-torch-rocm-devel >= 2.14.0
 BuildRequires:  rocm-device-libs
 BuildRequires:  rocm-llvm-macros
 %else
 BuildRequires:  gcc-c++
-BuildRequires:  python-torch-devel
+BuildRequires:  python-torch-devel >= 2.14.0
 %endif
 
 Requires:       python3dist(numpy)
 Requires:       python3dist(pillow)
 Requires:       python3dist(requests)
 %if %{with rocm}
-Requires:       python-torch-rocm
+Requires:       python-torch-rocm >= 2.14.0
 Provides:       python3-%{srcname}-rocm = %{version}-%{release}
 Provides:       python3-%{srcname}-rocm%{?_isa} = %{version}-%{release}
 Conflicts:      python-%{srcname}
 %else
-Requires:       python-torch
+Requires:       python-torch >= 2.14.0
 Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
