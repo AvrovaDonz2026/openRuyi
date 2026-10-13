@@ -152,6 +152,9 @@ Summary:        The core gallium driver file
 # Open code to allow any version of drirc, for mixing gallium part and
 # vulkan part from different Mesa releases if needed
 Requires:       %{name}-drirc
+# Recommend Vulkan drivers for Zink operation (newer Nouveau and PowerVR
+# are Vulkan only and use Zink as their gallium driver)
+Recommends:     %{name}-vulkan-drivers
 
 %description    gallium
 This package contains a shared library that holds all core code for gallium
