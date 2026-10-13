@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: Gui-Yue <xiangwei.riscv@isrc.iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
@@ -7,13 +8,13 @@
 %global srcname transformers
 
 Name:           python-transformers
-Version:        5.12.1
+Version:        5.16.0
 Release:        %autorelease
 Summary:        Model-definition framework for state-of-the-art machine learning
 License:        Apache-2.0
 URL:            https://pypi.org/project/transformers/
 VCS:            git:https://github.com/huggingface/transformers
-#!RemoteAsset:  sha256:679ee731c8225347889ad4fb3b2c926a62e9da3b7d284e9d12c791da7272466b
+#!RemoteAsset:  sha256:ef551c6d12e8c5c82b976720d8c1e6ed597fbed2c0f46c63be73a73ae80b9102
 Source0:        https://files.pythonhosted.org/packages/source/t/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    pyproject

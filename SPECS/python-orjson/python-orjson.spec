@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: purofle <yuguo.or@isrc.iscas.ac.cn>
 # SPDX-FileContributor: yyjeqhc <jialin.oerv@isrc.iscas.ac.cn>
 #
@@ -55,13 +56,13 @@ BuildRequires:  crate(xxhash-rust-0.8/xxh3) >= 0.8.0
 BuildRequires:  crate(zmij-1/default) >= 1.0.0
 BuildRequires:  crate(version-check-0.9/default) >= 0.9.0
 
-%prep -a
-%rust_setup_registry
-rm -f Cargo.lock
-
 Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
+
+%prep -a
+%rust_setup_registry
+rm -f Cargo.lock
 
 %description
 orjson is a fast, correct JSON library for Python. It benchmarks as

@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: Yifan Xu <xuyifan@iscas.ac.cn>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
 #
@@ -8,7 +9,7 @@
 %global srcname triton
 
 # Triton pins an exact, in-development LLVM *commit*
-%global llvm_commit 1f126a6dea50d185c0781743a667390037ae88bd
+%global llvm_commit 5f07f818b51b786b0a87b4e514882600ecba112f
 
 %global bootstrap_llvm_maj_ver 22
 %global bootstrap_llvm_bindir %{_libdir}/llvm%{bootstrap_llvm_maj_ver}/bin
@@ -19,7 +20,7 @@
 %define _find_debuginfo_dwz_opts %{nil}
 
 Name:           python-%{srcname}
-Version:        3.7.1
+Version:        3.8.0
 Release:        %autorelease
 Summary:        Language and compiler for custom deep-learning primitives
 # Triton itself is MIT.  The statically bundled LLVM/MLIR/LLD is
@@ -27,10 +28,11 @@ Summary:        Language and compiler for custom deep-learning primitives
 License:        MIT AND (Apache-2.0 WITH LLVM-exception OR NCSA) AND BSD-3-Clause
 URL:            https://triton-lang.org/main/index.html
 VCS:            git:https://github.com/triton-lang/triton.git
-#!RemoteAsset:  sha256:21cab714d4fc9579b728f4d597660c9598fbbd52c1154896c71d2d42f9b61626
+#!RemoteAsset:  sha256:451b07863426eb7804fc8fc59ca046a3e2e7312ded97124686a5a1d15fe9521f
 Source0:        https://github.com/triton-lang/triton/releases/download/v%{version}/%{srcname}-%{version}.tar.gz
-#!RemoteAsset:  sha256:b6aa9fbc954895bbd69374529593bbcdc4342b0812d8884698bbfd3d92d3426d
-Source1:        https://codeload.github.com/llvm/llvm-project/tar.gz/%{llvm_commit}#/llvm-project-%{llvm_commit}.tar.gz
+#!RemoteAsset:  git+https://github.com/llvm/llvm-project.git#%{llvm_commit}
+#!CreateArchive
+Source1:        llvm-project-%{llvm_commit}.tar.gz
 BuildSystem:    pyproject
 
 BuildOption(install):  -l %{srcname}
@@ -65,10 +67,8 @@ BuildRequires:  python3dist(wheel)
 2001-Add-riscv64-host-codegen-libraries.patch
 # Use system-provided build tools instead of vendored copies.
 2002-use-system-build-tools.patch
-# Disable the NVIDIA backend (not relevant for the RISC-V target).
+# Build shared NVIDIA dialect libraries without the NVIDIA backend plugin.
 2003-disable-nvidia-backend.patch
-# Keep pure-Python descriptor types used by common specialization code.
-2004-Retain-NVIDIA-Gluon-descriptor-types.patch
 
 %description
 Triton is a language and compiler for writing highly efficient custom
@@ -133,10 +133,17 @@ export PYBIND11_CMAKE_DIR="%{_datadir}/cmake/pybind11"
 export MAX_JOBS=$compile_jobs
 export TRITON_PARALLEL_LINK_JOBS=$link_jobs
 export TRITON_BUILD_WITH_CLANG_LLD=ON
+%ifarch riscv64
 export TRITON_BUILD_PROTON=OFF
+export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=OFF
 export TRITON_CODEGEN_BACKENDS=amd
+%else
+export TRITON_BUILD_PROTON=ON
+export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=ON
+export TRITON_CODEGEN_BACKENDS="nvidia;amd"
+%endif
 export TRITON_OFFLINE_BUILD=1
-export TRITON_APPEND_CMAKE_ARGS="-DTRITON_BUILD_EXAMPLES=OFF -DTRITON_BUILD_TOOLS=OFF"
+export TRITON_BUILD_TOOLS=OFF
 
 %files -f %{pyproject_files}
 %doc README.md

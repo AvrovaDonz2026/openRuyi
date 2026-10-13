@@ -1,11 +1,15 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname torchvision
 %global llvm_maj_ver 22
+%ifarch riscv64
+%global toolchain clang
+%endif
 
 %global flavor @BUILD_FLAVOR@%{nil}
 %if "%{flavor}" == "rocm"
@@ -80,6 +84,13 @@ BuildRequires:  rocm-llvm-macros
 %else
 BuildRequires:  gcc-c++
 BuildRequires:  python-torch-devel >= 2.14.0
+%ifarch riscv64
+BuildRequires:  clang
+BuildRequires:  clang(major) = %{llvm_maj_ver}
+BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
+BuildRequires:  lld(major) = %{llvm_maj_ver}
+BuildRequires:  llvm(major) = %{llvm_maj_ver}
+%endif
 %endif
 
 Requires:       python3dist(numpy)
@@ -115,6 +126,18 @@ sed -i -e 's@extra_compile_args["cxx"].append("-g0")@extra_compile_args["cxx"].a
 
 %build -p
 export TORCHVISION_USE_WEBP=1
+%if %{without rocm}
+%ifarch riscv64
+export CC=clang
+export CXX=clang++
+export LD=ld.lld
+export AR=llvm-ar
+export RANLIB=llvm-ranlib
+export CFLAGS="%{build_cflags} --target=%{_target_platform}"
+export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
+export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+%endif
+%endif
 %if %{with rocm}
 export FORCE_CUDA=1
 export ROCM_HOME=%{_prefix}
@@ -134,6 +157,16 @@ done
 %check -a
 %if %{with test}
 %pytest
+%else
+PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}" \
+%{python3} - <<'PY'
+import torch
+import torchvision
+
+boxes = torch.tensor([[0, 0, 10, 10], [1, 1, 11, 11]], dtype=torch.float32)
+scores = torch.tensor([0.9, 0.8])
+assert torchvision.ops.nms(boxes, scores, 0.5).tolist() == [0]
+PY
 %endif
 
 %files -f %{pyproject_files}

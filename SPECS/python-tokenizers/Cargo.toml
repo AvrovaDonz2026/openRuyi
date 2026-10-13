@@ -2,7 +2,7 @@
 authors = ["Anthony MOI <m.anthony.moi@gmail.com>", "Nicolas Patry <patry.nicolas@protonmail.com>"]
 edition = "2018"
 name = "tokenizers"
-version = "0.22.2"
+version = "0.23.2"
 homepage = "https://github.com/huggingface/tokenizers"
 repository = "https://github.com/huggingface/tokenizers"
 documentation = "https://docs.rs/tokenizers/"
@@ -64,10 +64,11 @@ derive_builder = "0.20"
 spm_precompiled = "0.1.3"
 hf-hub = { version = "0.4.1", features = ["ureq"], default-features = false, optional = true }
 aho-corasick = "1.1"
+daachorse = "3.0.0"
 paste = "1.0.14"
 macro_rules_attribute = "0.2.0"
 thiserror = "2"
-fancy-regex = { version = "0.14", optional = true}
+fancy-regex = { version = "0.17", optional = true}
 getrandom = { version = "0.3" }
 esaxx-rs = { version = "0.1.10", default-features = false, features=[]}
 monostate = "0.1.12"
@@ -82,6 +83,7 @@ progressbar = ["indicatif"]
 http = ["hf-hub"]
 unstable_wasm = ["fancy-regex", "getrandom/wasm_js"]
 rustls-tls = ["hf-hub?/rustls-tls"]
+parity-aware-bpe = []
 
 [profile.release]
 lto = "fat"

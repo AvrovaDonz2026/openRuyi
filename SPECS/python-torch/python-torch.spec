@@ -1,12 +1,9 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
-#
-# Originally extracted from Fedora Project
-# Authors: The Fedora Project Contributors
-
 %global srcname torch
 
 # PyTorch upstream use clang as default toolchain
@@ -55,7 +52,7 @@ Name:           python-%{srcname}-rocm
 %else
 Name:           python-%{srcname}
 %endif
-Version:        2.13.0
+Version:        2.14.0
 Release:        %autorelease
 Summary:        PyTorch AI/ML framework
 # From pyproject.toml
@@ -65,15 +62,15 @@ VCS:            git:https://github.com/pytorch/pytorch.git
 # The PyPI package is wheels-only(binary package)
 # The GitHub tag archive excludes submodules
 # The official release asset includes the third_party C++ sources needed for a distro source build
-#!RemoteAsset:  sha256:66614a19060f69cfd63cd0295f65a1241bd15df2fa65c60ae51066c11c2ce812
+#!RemoteAsset:  sha256:e4bc64b802db095a8a53e216e5aba168eba629b99dd397cfa44e72d9c84e7657
 Source0:        https://github.com/pytorch/pytorch/releases/download/v%{version}/pytorch-v%{version}.tar.gz
 # Functional smoke test for the just-built torch, run by the check phase.
 Source1:        pytorch-smoke-test.py
 BuildSystem:    pyproject
 
 BuildOption(prep):  -n pytorch-v%{version}
-# packages: torch, torchgen, functorch, torchrun
-BuildOption(install):  -l '*torch*'
+# packages: torch, torchgen, functorch; torchrun is installed separately below.
+BuildOption(install):  -l '*torch*' functorch
 # torch.lib.lib*: C++ shared libs
 # torchgen.static_runtime.gen_static_runtime_ops: imports non-opensource Meta-internal libfb;
 # torch.utils.tensorboard*: needs tensorboard, not yet packaged in openRuyi.
@@ -111,6 +108,7 @@ BuildRequires:  pocketfft-devel
 BuildRequires:  pthreadpool-devel
 BuildRequires:  psimd-devel
 BuildRequires:  pyproject-rpm-macros
+BuildRequires:  python3dist(scikit-build-core) >= 1.0
 BuildRequires:  python3dist(filelock)
 BuildRequires:  python3dist(fsspec)
 BuildRequires:  python3dist(jinja2)
@@ -120,9 +118,10 @@ BuildRequires:  python3dist(packaging)
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(pybind11)
 BuildRequires:  python3dist(pyyaml)
-BuildRequires:  python3dist(setuptools)
+BuildRequires:  python3dist(setuptools) >= 77.0.3
+BuildRequires:  python3dist(six)
 BuildRequires:  python3dist(sympy)
-BuildRequires:  python3dist(typing-extensions)
+BuildRequires:  python3dist(typing-extensions) >= 4.10.0
 
 %if %{with system_httplib}
 BuildRequires:  cmake(httplib)
@@ -174,7 +173,14 @@ BuildRequires:  roctracer-devel
 
 Requires:       libomp
 Requires:       python3dist(dill)
+Requires:       python3dist(filelock)
+Requires:       python3dist(fsspec) >= 0.8.5
+Requires:       python3dist(jinja2)
+Requires:       python3dist(networkx) >= 2.5.1
 Requires:       python3dist(pyyaml)
+Requires:       python3dist(setuptools) >= 77.0.3
+Requires:       python3dist(sympy) >= 1.13.3
+Requires:       python3dist(typing-extensions) >= 4.10.0
 %if %{with rocm}
 Requires:       amdsmi
 %endif
@@ -213,10 +219,8 @@ validation of %{name}. This is not the complete upstream Python test suite.
 %patchlist
 # Clang fails on a -Wc2y-extensions diagnostic from benchmark's __COUNTER__ preprocessor check.
 1000-benchmark-silence-c2y-counter-warning.patch
-# Add gfx1100/gfx1101/gfx1151 to getHipblasltPreferredArchs()
-# On gfx1100 rocBLAS fp16 GEMM has no Tensile solution for some shapes and fails with
-# HIPBLAS_STATUS_INTERNAL_ERROR; default to hipBLASLt there
-# https://github.com/pytorch/pytorch/commit/10a5f2ff7c90d8c84938b0e789ab2f4145f90b5d
+# Add gfx1100/gfx1101/gfx1151 to getHipblasltPreferredArchs().
+# ROCm 7.2.4 still needs hipBLASLt for these architectures.
 1001-default-to-hipblaslt-on-gfx110x.patch
 # In pytorch-smoke-test.py, torch.dot()/torch.vdot() on complex tensors return 0
 # because ATen's BLAS ABI probe misdetects OpenBLAS's cblas_*dot*_sub interface
@@ -227,7 +231,6 @@ validation of %{name}. This is not the complete upstream Python test suite.
 2001-force-cblas-complex-dot-for-openblas.patch
 2002-use-system-googletest.patch
 2003-use-system-fmt.patch
-2004-use-system-pyproject-build-dependencies.patch
 2005-use-system-cmake-dependencies.patch
 # Remove git submodule checks
 2006-skip-unused-submodule-prebuild-checks.patch

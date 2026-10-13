@@ -1,0 +1,14 @@
+[package]
+name = "lru"
+version = "0.10.1"
+edition = "2021"
+license = "MIT"
+description = "A LRU cache implementation"
+repository = "https://github.com/jeromefroe/lru-rs"
+
+[dependencies.hashbrown]
+version = "0.13"
+optional = true
+
+[features]
+default = ["hashbrown"]

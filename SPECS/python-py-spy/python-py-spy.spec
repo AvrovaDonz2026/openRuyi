@@ -1,10 +1,15 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname py-spy
 %global pypi_name py_spy
+%ifarch riscv64
+%global llvm_maj_ver 22
+%global toolchain clang
+%endif
 
 Name:           python-%{srcname}
 Version:        0.4.1
@@ -54,6 +59,13 @@ BuildRequires:  crate(rand-distr-0.4/default) >= 0.4.0
 BuildRequires:  crate(remoteprocess-0.5/default) >= 0.5.1
 BuildRequires:  crate(chrono-0.4/default) >= 0.4.26
 BuildRequires:  crate(termios-0.3/default) >= 0.3.3
+%ifarch riscv64
+BuildRequires:  clang
+BuildRequires:  clang(major) = %{llvm_maj_ver}
+BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
+BuildRequires:  lld(major) = %{llvm_maj_ver}
+BuildRequires:  llvm(major) = %{llvm_maj_ver}
+%endif
 
 Provides:       python3dist(py-spy) = %{version}-%{release}
 
@@ -65,7 +77,12 @@ running Python process without requiring changes to the profiled program.
 %rust_setup_registry
 rm -f Cargo.lock
 
+%generate_buildrequires
+export CARGO_NET_OFFLINE=true
+%pyproject_buildrequires
+
 %build -p
+export CARGO_NET_OFFLINE=true
 %ifarch riscv64
 export CC="${CC:-clang}"
 export CXX="${CXX:-clang++}"

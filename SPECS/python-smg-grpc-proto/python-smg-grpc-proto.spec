@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -22,6 +23,11 @@ BuildOption(install):  -l %{srcname}
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
+BuildRequires:  python3dist(grpcio) >= 1.81.1
+BuildRequires:  python3dist(protobuf) >= 5.26.0
+
+Requires:       python3dist(grpcio) >= 1.81.1
+Requires:       python3dist(protobuf) >= 5.26.0
 
 Provides:       python3-%{pypi_name} = %{version}-%{release}
 %python_provide python3-%{pypi_name}

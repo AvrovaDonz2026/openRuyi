@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -60,16 +61,27 @@ with the system FFmpeg libraries.
 # bundling an FFmpeg build.  TorchCodec asks downstream distributors to make
 # this licensing decision explicitly when producing a wheel.
 export I_CONFIRM_THIS_IS_NOT_A_LICENSE_VIOLATION=1
+export ENABLE_CUDA=0
 export TORCHCODEC_DISABLE_COMPILE_WARNING_AS_ERROR=ON
 %ifarch riscv64
 export CC=clang
 export CXX=clang++
+export LD=ld.lld
 export AR=llvm-ar
 export RANLIB=llvm-ranlib
-export CFLAGS="%{build_cflags} --target=riscv64-openruyi-linux"
-export CXXFLAGS="%{build_cxxflags} --target=riscv64-openruyi-linux"
+export CFLAGS="%{build_cflags} --target=%{_target_platform}"
+export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
 export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
 %endif
+
+%check -a
+PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}" \
+%{python3} - <<'PY'
+from torchcodec._core import get_ffmpeg_library_versions
+
+versions = get_ffmpeg_library_versions()
+assert versions["ffmpeg_version"]
+PY
 
 %files -f %{pyproject_files}
 %doc README.md

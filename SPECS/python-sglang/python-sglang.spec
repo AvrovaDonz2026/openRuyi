@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -62,6 +63,7 @@ BuildRequires:  python3dist(torch) = 2.14.0
 BuildRequires:  python3dist(torchaudio) = 2.11.0
 BuildRequires:  python3dist(torchvision) = 0.29.0
 BuildRequires:  python3dist(triton) = 3.8.0
+BuildRequires:  python3dist(mistral_common) >= 1.11.5
 %endif
 
 %if %{without cuda}
@@ -69,6 +71,8 @@ Requires:       python3dist(torch) = 2.14.0
 Requires:       python3dist(torchaudio) = 2.11.0
 Requires:       python3dist(torchvision) = 0.29.0
 Requires:       python3dist(triton) = 3.8.0
+# SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
+Requires:       python3dist(mistral_common) >= 1.11.5
 %endif
 
 %description
@@ -79,6 +83,13 @@ build flavor.
 %prep -a
 %if %{without cuda}
 cp python/pyproject_cpu.toml python/pyproject.toml
+# Use the API-compatible versions packaged by openRuyi; v0.5.21 pins older
+# releases that do not provide the APIs exercised by %check.
+sed -i \
+    -e 's/"openai==2.6.1"/"openai>=2.40.0"/' \
+    -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8"/' \
+    -e 's/"timm==1.0.16"/"timm>=1.0.28"/' \
+    python/pyproject.toml
 %endif
 grep -qF 'dynamic = ["version"]' python/pyproject.toml
 sed -i 's/dynamic = \["version"\]/version = "%{version}"/' \
@@ -119,6 +130,39 @@ cd python
 %else
 %{python3} -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
 %endif
+%{python3} - <<'PY'
+import importlib.metadata
+import openai
+import timm
+from openai.types.responses import ResponseOutputMessage, ResponseOutputText
+from openai_harmony import Message, Role, StreamableParser
+from packaging.version import Version
+
+assert Version(importlib.metadata.version("openai")) >= Version("2.40.0")
+assert Version(importlib.metadata.version("openai-harmony")) >= Version("0.0.8")
+assert Version(importlib.metadata.version("timm")) >= Version("1.0.28")
+
+client = openai.OpenAI(api_key="compatibility-check", base_url="http://localhost")
+assert client.base_url.host == "localhost"
+message = Message.from_role_and_content(Role.USER, "compatibility check")
+assert message.author.role == Role.USER
+assert Message.from_role_and_content(Role.ASSISTANT, "ok").with_channel("final")
+assert StreamableParser
+output = ResponseOutputMessage(
+    id="msg_compatibility",
+    content=[
+        ResponseOutputText(
+            text="ok", annotations=[], type="output_text", logprobs=None
+        )
+    ],
+    role="assistant",
+    status="completed",
+    type="message",
+    phase="final_answer",
+)
+assert output.content[0].text == "ok"
+assert timm.is_model("vit_so400m_patch14_siglip_384.webli")
+PY
 
 %files -f %{pyproject_files}
 %doc README.md
