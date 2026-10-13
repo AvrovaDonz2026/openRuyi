@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+#
+# SPDX-License-Identifier: MulanPSL-2.0
+
+Use the distribution CMake executable instead of the Python cmake wheel. The
+native extension's CMakeLists.txt invokes the `cmake` executable directly.
+Downstream-only: openRuyi supplies CMake as a system build dependency.
+
+Upstream: https://github.com/iree-org/wave/tree/1cdf9e30be9961b48e846441d942811de98b8971
+Status: downstream
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools", "wheel", "cmake", "nanobind", "setuptools-rust"]
++requires = ["setuptools", "wheel", "nanobind", "setuptools-rust"]
+ build-backend = "setuptools.build_meta"
+
+ [pytest]

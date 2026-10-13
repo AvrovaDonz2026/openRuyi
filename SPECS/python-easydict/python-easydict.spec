@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -28,8 +29,8 @@ Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}
 
 %description
-EasyDict allows access to dictionary values as attributes, including recursively
-nested dictionaries.
+EasyDict allows access to dictionary values as attributes, including
+recursively nested dictionaries.
 
 %generate_buildrequires
 %pyproject_buildrequires

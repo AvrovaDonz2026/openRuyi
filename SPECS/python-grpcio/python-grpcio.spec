@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -14,6 +15,7 @@ URL:            https://grpc.io/
 VCS:            git:https://github.com/grpc/grpc
 #!RemoteAsset:  sha256:19aaf172fc2edbefccce3f6e92c5150975dbe56c45744e9e87cf72ebdf85bfbe
 Source0:        https://files.pythonhosted.org/packages/source/g/%{srcname}/%{srcname}-%{version}.tar.gz
+Patch0:         2000-relax-cython-build-requirement.patch
 BuildSystem:    pyproject
 
 BuildOption(install):  -l grpc
@@ -50,8 +52,8 @@ export CC=clang
 export CXX=clang++
 export AR=llvm-ar
 export RANLIB=llvm-ranlib
-export CFLAGS="%{build_cflags} --target=%{_target_platform}"
-export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
+export CFLAGS="%{build_cflags}"
+export CXXFLAGS="%{build_cxxflags}"
 export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
 %endif
 

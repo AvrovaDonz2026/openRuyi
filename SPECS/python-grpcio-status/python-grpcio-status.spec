@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: zhangjinqiang <jinqiang.oerv@isrc.iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
@@ -27,12 +28,14 @@ BuildRequires:  python3dist(googleapis-common-protos) >= 1.5.5
 BuildRequires:  python3dist(grpcio) >= %{version}
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(protobuf) >= 6.33.5
+BuildRequires:  python3dist(protobuf) < 8.0.0
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
 
 Requires:       python3dist(googleapis-common-protos) >= 1.5.5
 Requires:       python3dist(grpcio) >= %{version}
 Requires:       python3dist(protobuf) >= 6.33.5
+Requires:       python3dist(protobuf) < 8.0.0
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}

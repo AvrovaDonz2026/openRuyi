@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -23,6 +24,10 @@ BuildRequires:  pkgconfig(python3)
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}
+
+%prep
+%autosetup -n %{srcname}-%{version}
+sed -i '1{/^#!/d;}' airportsdata/__init__.py
 
 %description
 airportsdata provides extensive location and timezone data for operational

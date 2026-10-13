@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+#
+# SPDX-License-Identifier: MulanPSL-2.0
+
+From: A. Donz <Avrova@Donz.si>
+Date: Tue, 13 Oct 2026 00:00:00 +0000
+Subject: [PATCH] runtime: allow using the packaged nanobind source
+
+Upstream-Status: Downstream (openRuyi packaging; avoids network access during build)
+Reference: https://github.com/iree-org/iree/blob/v3.8.0/runtime/setup.py
+
+The runtime build obtains nanobind through CMake FetchContent. Let the source
+RPM provide the exact pinned nanobind source tree instead.
+
+--- a/runtime/setup.py
++++ b/runtime/setup.py
+@@ -325,5 +325,11 @@
+             get_env_cmake_list("IREE_EXTERNAL_HAL_DRIVERS", ""),
+             get_env_cmake_option("IREE_ENABLE_CPUINFO", "ON"),
+         ] + list(extra_cmake_args)
++        nanobind_source_dir = os.getenv("IREE_NANOBIND_SOURCE_DIR")
++        if nanobind_source_dir:
++            cmake_args.append(
++                f"-DFETCHCONTENT_SOURCE_DIR_NANOBIND={nanobind_source_dir}"
++            )
++        cmake_args.append("-DBENCHMARK_ENABLE_TESTING=OFF")
+         add_env_cmake_setting(cmake_args, "IREE_TRACING_PROVIDER")
+         add_env_cmake_setting(cmake_args, "IREE_TRACING_PROVIDER_H")

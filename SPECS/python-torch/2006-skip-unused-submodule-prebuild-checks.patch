@@ -1,4 +1,4 @@
-PyTorch 2.13 runs cmake/PreBuildSteps.cmake before later CMake option handling.
+PyTorch 2.14 runs cmake/PreBuildSteps.cmake before later CMake option handling.
 When building from the release asset without .gitmodules, its fallback
 submodule sanity list still checks cpuinfo, onnx, fbgemm, and cutlass even when
 the distro build uses system cpuinfo/onnx, disables fbgemm, and has CUDA off.

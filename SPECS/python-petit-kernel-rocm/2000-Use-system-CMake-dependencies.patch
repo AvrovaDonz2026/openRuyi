@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+#
+# SPDX-License-Identifier: MulanPSL-2.0
+
+From: openRuyi Project Contributors
+Subject: [PATCH] Use system CMake dependencies
+
+The package build must use dependencies provided by the build environment and
+must not download Hunter or its packages during the build.
+
+Upstream reference: https://github.com/causalflow-ai/petit-kernel/tree/v0.0.2
+Status: downstream-only packaging patch
+
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -5,12 +5,4 @@
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+-set(HUNTER_PACKAGES gflags GTest abseil fmt spdlog RapidJSON)
+-set(HUNTER_FILEPATH_CONFIG ${CMAKE_SOURCE_DIR}/cmake/hunter_config.cmake)
+-
+-include(FetchContent)
+-set(FETCHCONTENT_BASE_DIR "${CMAKE_BINARY_DIR}/_deps")
+-
+-FetchContent_Declare(SetupHunter GIT_REPOSITORY https://github.com/cpp-pm/gate)
+-FetchContent_MakeAvailable(SetupHunter)
+
+ project(petit_kernel LANGUAGES CXX)
