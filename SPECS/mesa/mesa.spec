@@ -26,6 +26,8 @@ BuildSystem:    meson
 Patch1:         mesa-26.2.1-zink-kmsro-for-img-blob.patch
 # Patches to fix CTS failures and advertise BXM-4-64 as conformant
 Patch2:         mesa-26.2.1-pvr-conformance.patch
+# Patches backport from Mesa main for pvr driver
+Patch3:         mesa-26.2.4-pvr-backport.patch
 
 BuildOption(conf):  -Dgallium-drivers=llvmpipe,softpipe,r300,r600,radeonsi,nouveau,virgl,iris,etnaviv,zink,crocus
 BuildOption(conf):  -Dvulkan-drivers=amd,intel,swrast,imagination,virtio,gfxstream,intel_hasvk,nouveau
