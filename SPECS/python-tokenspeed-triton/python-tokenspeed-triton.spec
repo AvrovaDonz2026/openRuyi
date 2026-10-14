@@ -63,10 +63,6 @@ export TRITON_BUILD_PROTON=OFF
 export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=ON
 export TRITON_CODEGEN_BACKENDS=nvidia
 export TRITON_BUILD_TOOLS=OFF
-%pyproject_wheel
-
-%install -p
-%pyproject_install
 
 %check -a
 # GPU code-generation tests require a CUDA device unavailable on build hosts.

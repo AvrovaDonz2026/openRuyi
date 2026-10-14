@@ -19,8 +19,10 @@ Source0:        https://files.pythonhosted.org/packages/source/d/%{srcname}/%{sr
 BuildArch:      noarch
 BuildSystem:    pyproject
 
-BuildOption(install):  -l %{srcname} +auto
-BuildOption(check):  -e datasets.io.spark -e 'datasets.packaged_modules.spark*'
+BuildOption(install):  -l %{srcname}
+BuildOption(install):  +auto
+BuildOption(check):  -e datasets.io.spark
+BuildOption(check):  -e 'datasets.packaged_modules.spark*'
 
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
@@ -51,6 +53,7 @@ BuildRequires:  python3dist(xxhash)
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}
+Conflicts:      python-datasets-4
 
 %description
 Datasets is a library for easily accessing and sharing datasets for machine

@@ -35,12 +35,6 @@ provides fast DLPack conversion through the DLPack v1.2 C exchange API.
 %generate_buildrequires
 %pyproject_buildrequires
 
-%build -p
-%pyproject_wheel
-
-%install -p
-%pyproject_install
-
 %check -a
 # Importing the extension requires a matching PyTorch ABI at runtime.
 %pyproject_check_import torch_c_dlpack_ext

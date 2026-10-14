@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+#
+# SPDX-License-Identifier: MulanPSL-2.0
+
+Subject: [PATCH] TestSocket: use an unbuffered binary stream
+
+Upstream-Status: Downstream (binary socket command buffering)
+Upstream-Reference: https://github.com/ionelmc/python-process-tests
+
+Line buffering does not flush writes to a binary socket makefile.
+TestSocket clients then wait for commands to reach the debugger.
+Use an unbuffered stream so writes are sent immediately.
+
+diff --git a/src/process_tests.py b/src/process_tests.py
+--- a/src/process_tests.py
++++ b/src/process_tests.py
+@@ -211,7 +211,7 @@ class TestSocket(PipeBuffer if fcntl else ThreadedBuffer):
+
+     def __init__(self, sock):
+         self.sock = sock
+-        self.fh = sock.makefile('rbw', buffering=1)
++        self.fh = sock.makefile('rbw', buffering=0)
+
+         if fcntl:
+             sock.setblocking(0)
+--
+2.53.0

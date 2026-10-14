@@ -25,6 +25,9 @@ BuildRequires:  pkgconfig(python3)
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}
 
+%patchlist
+2000-TestSocket-use-unbuffered-binary-stream.patch
+
 %description
 Tools for testing processes.
 

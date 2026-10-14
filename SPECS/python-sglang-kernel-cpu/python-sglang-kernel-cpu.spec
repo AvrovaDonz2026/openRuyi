@@ -16,7 +16,7 @@ Version:        0.4.7
 Release:        %autorelease
 Summary:        CPU kernel library for SGLang
 License:        Apache-2.0
-URL:            https://github.com/sgl-project/sglang/tree/main/python/sglang/kernels/aot
+URL:            https://github.com/sgl-project/sglang/tree/v0.5.21/python/sglang/kernels/aot
 VCS:            git:https://github.com/sgl-project/sglang.git
 #!RemoteAsset:  sha256:c44951b7871dac61262fc04e9fca628175758a97fa5f603c522b31dc31b94249
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version_upstream}.tar.gz#/sglang-%{version_upstream}.tar.gz
@@ -44,17 +44,17 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
-%patchlist
-# RISC-V source selection and explicit cross-target ISA handling.
-2000-riscv64-cpu-target-selection.patch
-# Portable scalar shared-memory collectives and acquire/release state hand-off.
-2001-riscv64-port-cpu-shm-collectives.patch
-
 Requires:       python3dist(torch) = 2.14.0
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
+
+%patchlist
+# RISC-V source selection and explicit cross-target ISA handling.
+2000-riscv64-cpu-target-selection.patch
+# Portable scalar shared-memory collectives and acquire/release state hand-off.
+2001-riscv64-port-cpu-shm-collectives.patch
 
 %description
 SGLang Kernel CPU provides the CPU AOT extension used by the SGLang inference
