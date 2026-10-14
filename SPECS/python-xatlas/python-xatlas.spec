@@ -21,7 +21,7 @@ VCS:            git:https://github.com/mworchel/xatlas-python.git
 Source0:        https://files.pythonhosted.org/packages/source/x/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 
-BuildOption(install):  -l %{srcname}
+BuildOption(install):  -L %{srcname}
 
 BuildRequires:  cmake
 BuildRequires:  clang
@@ -48,11 +48,17 @@ Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 xatlas provides Python bindings for xatlas, a library that generates texture
 coordinates for triangle meshes.
 
+%prep -a
+cp -p LICENSE LICENSE.xatlas-python
+cp -p extern/xatlas/LICENSE LICENSE.xatlas
+cp -p extern/pybind11/LICENSE LICENSE.pybind11
+
 %generate_buildrequires
 %pyproject_buildrequires
 
 %check -a
-python3 - <<'PY'
+export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
+%{python3} - <<'PY'
 import numpy as np
 import xatlas
 
@@ -67,7 +73,7 @@ PY
 
 %files -f %{pyproject_files}
 %doc README.md
-%license LICENSE extern/xatlas/LICENSE extern/pybind11/LICENSE
+%license LICENSE.xatlas-python LICENSE.xatlas LICENSE.pybind11
 
 %changelog
 %autochangelog
