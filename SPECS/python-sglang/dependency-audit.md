@@ -140,3 +140,22 @@ the complete dependency closure resolves. The generated requirements from an
 RPM build remain necessary to verify the transitive closure in the target build
 environment. Optional extras are reported separately because they are not
 installed by the default CPU extra selection.
+
+## Validation status
+
+The RISC-V CPU recipe includes downstream target-selection, shared-memory
+collective, and runtime fallback patches. The patches apply to the pinned source
+with zero fuzz and the Python changes pass syntax checks. LLVM compiled a RISC-V
+shared-memory header probe; full AOT extension linking remains unverified.
+
+The isolated target tests passed for Addict, Remote PDB, Proglog, MoviePy's
+in-memory ColorClip path, Trimesh's unit-box geometry, xatlas's UV generation,
+and the LaTeX/math verifier chain with ANTLR 4.9.3. These are wheel-level tests;
+they do not establish production OBS RPM build equivalence. Standard target RPM
+macro assembly and dependency-checked installation passed for pybase64 and
+msgspec using local prebuilt-wheel adapters.
+
+Optional sgl-eval retains datasets<5, pandas<3, and Pillow<12, which conflict
+with the current repository providers. MoviePy also retains Pillow<12. These
+bounds have not been relaxed. Full SGLang startup and inference with PyTorch
+2.14.0, and CUDA/ROCm device execution, remain unverified.
