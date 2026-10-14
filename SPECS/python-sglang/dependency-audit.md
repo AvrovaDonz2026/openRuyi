@@ -18,7 +18,7 @@ on 2026-10-14. PEP 508 markers were evaluated for Linux, `riscv64`, and CPython
 | --- | --- | ---: | --- |
 | `aiohttp` | `python-aiohttp` | 3.14.1 | Satisfied |
 | `anthropic>=0.20.0` | `python-anthropic` | 0.105.2 | Satisfied |
-| `blobfile==3.0.0` | `python-blobfile` | 3.2.0 | Exact pin mismatch |
+| `blobfile==3.0.0` | `python-blobfile` | 3.2.0 | Downstream bounded compatibility: `>=3.2.0,<4`; Azure connector checks passed |
 | `build` | `python-build` | 1.3.0 | Satisfied |
 | `compressed-tensors` | `python-compressed-tensors` | 0.18.0 | Satisfied |
 | `datasets` | `python-datasets` | 5.0.1 | Satisfied |
@@ -35,8 +35,8 @@ on 2026-10-14. PEP 508 markers were evaluated for Linux, `riscv64`, and CPython
 | `msgspec` | `python-msgspec` | 0.19.0 | Satisfied |
 | `ninja` | `python-ninja` | 1.13.2 | Satisfied |
 | `numpy` | `python-numpy` | 2.5.4 | Satisfied |
-| `openai==2.6.1` | `python-openai` | 2.40.0 | Exact pin mismatch |
-| `openai-harmony==0.0.4` | `python-openai-harmony` | 0.0.8 | Exact pin mismatch |
+| `openai==2.6.1` | `python-openai` | 2.40.0 | Downstream bounded compatibility: `>=2.40.0,<3`; backend request/retry checks passed |
+| `openai-harmony==0.0.4` | `python-openai-harmony` | 0.0.8 | Downstream bounded compatibility: `>=0.0.8,<0.1` |
 | `orjson` | `python-orjson` | 3.11.7 | Satisfied |
 | `outlines` | `python-outlines` | 1.2.13 | Satisfied |
 | `packaging` | `python-packaging` | 25.0 | Satisfied |
@@ -59,13 +59,13 @@ on 2026-10-14. PEP 508 markers were evaluated for Linux, `riscv64`, and CPython
 | `soundfile==0.13.1` | `python-soundfile` | 0.13.1 | Satisfied |
 | `tabulate` | `python-tabulate` | 0.10.0 | Satisfied |
 | `tiktoken` | `python-tiktoken` | 0.12.0 | Satisfied |
-| `timm==1.0.16` | `python-timm` | 1.0.28 | Exact pin mismatch |
+| `timm==1.0.16` | `python-timm` | 1.0.28 | Downstream bounded compatibility: `>=1.0.28,<2`; model registry check passed |
 | `torch==2.14.0` | `python-torch` | 2.14.0 | Satisfied |
 | `torchaudio==2.11.0` | `python-torchaudio` | 2.11.0 | Satisfied |
 | `torchcodec==0.12.0` with the upstream Linux architecture marker | `python-torchcodec` | 0.12.0 | Active and satisfied on `riscv64` |
 | `torchvision==0.29.0` | `python-torchvision` | 0.29.0 | Satisfied |
 | `tqdm` | `python-tqdm` | 4.67.3 | Satisfied |
-| `transformers==5.12.1` | `python-transformers` | 5.16.0 | Exact pin mismatch |
+| `transformers==5.12.1` | `python-transformers` | 5.16.0 | Downstream bounded compatibility: `>=5.16.0,<6`; import check is part of SGLang `%check` |
 | `triton==3.8.0` | `python-triton` | 3.8.0 | Satisfied |
 | `uvicorn` | `python-uvicorn` | 0.46.0 | Satisfied |
 | `uvloop` | `python-uvloop` | 0.22.1 | Satisfied |
@@ -73,13 +73,12 @@ on 2026-10-14. PEP 508 markers were evaluated for Linux, `riscv64`, and CPython
 | `xgrammar==0.2.7` | `python-xgrammar` | 0.2.7 | Satisfied |
 | `zstandard` | `python-zstandard` | 0.25.0 | Satisfied |
 
-The current CPU SPEC rewrites the `openai`, `openai-harmony`, and `timm`
-constraints before dependency generation to accept the repository versions.
-The SPEC's API smoke checks exercise those newer versions. These checks have
-not established compatibility of SGLang's complete inference path.
-The source metadata's `blobfile==3.0.0` and `transformers==5.12.1` pins also do
-not match the repository's packaged versions; the current SPEC does not rewrite
-those constraints. The framework requirements for torch, torchaudio,
+The current CPU SPEC rewrites the five incompatible exact pins before dependency
+generation, using bounded downstream ranges tied to the repository versions.
+The SPEC's API smoke checks exercise the packaged blobfile, OpenAI, Harmony,
+timm, and Transformers imports plus representative call sites. These checks have
+not established compatibility of SGLang's complete inference path. The framework
+requirements for torch, torchaudio,
 torchvision, triton, and `mistral_common` are also written explicitly in the
 SPEC for both build and runtime dependencies. Runtime requirements must also
 be available during the build because the SPEC imports them in `%check`.
@@ -126,9 +125,9 @@ Linux `riscv64` and CPython 3.13.
 
 | Extra | Upstream requirements | Repository comparison |
 | --- | --- | --- |
-| `diffusion` | `addict==2.4.0`, `av==16.1.0`, `cache-dit==1.3.0`, `cloudpickle==3.1.2`, `diffusers==0.37.0`, `imageio==2.36.0`, `imageio-ffmpeg==0.5.1`, `moviepy>=2.0.0`, `opencv-python-headless==4.10.0.84`, `PyYAML==6.0.1`, `remote-pdb==2.1.0`, `runai_model_streamer>=0.15.5`, `scikit-image==0.25.2`, `st_attn==0.0.7` (active), `trimesh>=4.0.0`, `vsa==0.0.4` (active), `xatlas` | No repository SPEC found for `addict`, `cache-dit`, `moviepy`, `opencv-python-headless`, `remote-pdb`, `runai_model_streamer`, `st_attn`, `trimesh`, `vsa`, or `xatlas`. Repository versions also differ from exact pins for `av` (17.0.1), `diffusers` (0.38.0), `imageio` (2.37.3), `imageio-ffmpeg` (0.6.0), `PyYAML` (6.0.3), and `scikit-image` (0.26.0). `cloudpickle` 3.1.2 satisfies its pin. |
+| `diffusion` | `addict==2.4.0`, `av==16.1.0`, `cache-dit==1.3.0`, `cloudpickle==3.1.2`, `diffusers==0.37.0`, `imageio==2.36.0`, `imageio-ffmpeg==0.5.1`, `moviepy>=2.0.0`, `opencv-python-headless==4.10.0.84`, `PyYAML==6.0.1`, `remote-pdb==2.1.0`, `runai_model_streamer>=0.15.5`, `scikit-image==0.25.2`, `st_attn==0.0.7` (active), `trimesh>=4.0.0`, `vsa==0.0.4` (active), `xatlas` | Recipes now exist for addict, cache-dit, moviepy, remote-pdb, st-attn, trimesh, vsa, xatlas, and the OpenCV headless flavor. RunAI Model Streamer remains follow-up work. Remote-PDB's upstream tests expose a Python 3.13 binary-socket flush incompatibility; no package was claimed until that is resolved. QEMU isolated checks passed for MoviePy, Trimesh, and xatlas. |
 | `tracing` | `opentelemetry-api`, `opentelemetry-exporter-otlp`, `opentelemetry-exporter-otlp-proto-grpc`, `opentelemetry-sdk` | All four repository packages exist at 1.42.1. |
-| `test` | `accelerate`, `pymupdf`, `expecttest`, `jsonlines`, `matplotlib`, `pandas`, `peft>=0.18.0`, `sentence_transformers`, `sgl-eval==0.1.2` | Repository packages satisfy all listed available requirements (`accelerate` 1.13.0, `pymupdf` 1.27.2, `expecttest` 0.3.0, `jsonlines` 4.0.0, `matplotlib` 3.11.0, `pandas` 3.0.1, `peft` 0.19.1, `sentence-transformers` 5.4.1); no SPEC was found for `sgl-eval`. |
+| `test` | `accelerate`, `pymupdf`, `expecttest`, `jsonlines`, `matplotlib`, `pandas`, `peft>=0.18.0`, `sentence_transformers`, `sgl-eval==0.1.2` | Repository packages satisfy the listed available requirements; `python-sgl-eval` 0.1.2 is packaged with its upstream version bounds. |
 | `all` | No requirements | Empty. |
 | `dev` | `sglang[test]` | Self-reference to the test extra; this is not an additional standalone package requirement. |
 
@@ -145,10 +144,14 @@ installed by the default CPU extra selection.
 
 The RISC-V CPU recipe includes downstream target-selection, shared-memory
 collective, and runtime fallback patches. The patches apply to the pinned source
-with zero fuzz and the Python changes pass syntax checks. LLVM compiled a RISC-V
-shared-memory header probe; full AOT extension linking remains unverified.
+with zero fuzz and the Python changes pass syntax checks. Host LLVM compiled the
+full selected CPU AOT sources and linked a RISC-V shared object. In QEMU with
+the corrected Torch 2.14 runtime, direct `torch.ops.sgl_kernel.rmsnorm_cpu`,
+`silu_and_mul_cpu`, and TP1 `shm_allreduce` checks passed. The upstream Python
+wrapper still names GPU-only unsuffixed operators, so those generic wrappers
+are not claimed as a CPU API.
 
-The isolated target tests passed for Addict, Remote PDB, Proglog, MoviePy's
+The isolated target tests passed for Addict, Proglog, MoviePy's
 in-memory ColorClip path, Trimesh's unit-box geometry, xatlas's UV generation,
 and the LaTeX/math verifier chain with ANTLR 4.9.3. These are wheel-level tests;
 they do not establish production OBS RPM build equivalence. Standard target RPM
@@ -157,5 +160,9 @@ msgspec using local prebuilt-wheel adapters.
 
 Optional sgl-eval retains datasets<5, pandas<3, and Pillow<12, which conflict
 with the current repository providers. MoviePy also retains Pillow<12. These
-bounds have not been relaxed. Full SGLang startup and inference with PyTorch
-2.14.0, and CUDA/ROCm device execution, remain unverified.
+bounds have not been relaxed. PyTorch 2.14.0 import and CPU matmul, torchaudio
+2.11.0 CPU operator loading, torchvision 0.29.0 NMS/image extension loading,
+xgrammar 0.2.7 grammar masking, and llguidance 1.7.6 JSON grammar matching
+passed in QEMU scratch environments. Full SGLang startup/inference remains
+blocked at the unbuilt Triton 3.8.0 runtime package; CUDA/ROCm device execution
+remains unverified.
