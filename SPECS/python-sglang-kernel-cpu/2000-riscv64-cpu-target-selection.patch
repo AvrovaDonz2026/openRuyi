@@ -1,0 +1,41 @@
+From: A. Donz <Avrova@Donz.si>
+Subject: [PATCH] cpu: select RISC-V sources and explicit target ISA
+
+Upstream reference: https://github.com/sgl-project/sglang/tree/v0.5.21/python/sglang/kernels/aot/csrc/cpu/CMakeLists.txt
+Upstream-Status: Downstream (RISC-V target selection and source exclusion)
+
+--- a/python/sglang/kernels/aot/csrc/cpu/CMakeLists.txt
++++ b/python/sglang/kernels/aot/csrc/cpu/CMakeLists.txt
+@@ -3,0 +4,7 @@
++# Cross builds must select the target CPU explicitly; -march=native is invalid
++# when the compiler host and target differ.
++set(SGLANG_CPU_TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}" CACHE STRING
++    "CPU architecture used to select platform-specific sources")
++set(SGLANG_CPU_MARCH "" CACHE STRING
++    "Optional target ISA passed as -march=<value>")
++
+@@ -39 +46 @@
+-if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
++if(SGLANG_CPU_TARGET_ARCH MATCHES "x86_64|AMD64")
+@@ -42 +49 @@
+-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
++elseif(SGLANG_CPU_TARGET_ARCH MATCHES "aarch64|arm64")
+@@ -45 +52 @@
+-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "ppc64le|ppc64")
++elseif(SGLANG_CPU_TARGET_ARCH MATCHES "ppc64le|ppc64")
+@@ -49 +56 @@
+-    set(PLAT_LIB_DIR "/usr/lib/${CMAKE_SYSTEM_PROCESSOR}-linux-gnu")
++    set(PLAT_LIB_DIR "/usr/lib/${SGLANG_CPU_TARGET_ARCH}-linux-gnu")
+@@ -105,2 +112,4 @@
+-if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+-    add_compile_definitions(SGLANG_CPU_ARM64_SKIP_X86_ONLY_OPS)
++if(SGLANG_CPU_TARGET_ARCH MATCHES "aarch64|arm64|riscv64")
++    if(SGLANG_CPU_TARGET_ARCH MATCHES "aarch64|arm64")
++        add_compile_definitions(SGLANG_CPU_ARM64_SKIP_X86_ONLY_OPS)
++    endif()
+@@ -135 +143,0 @@
+-        -march=native
+@@ -137,0 +146,3 @@
++    if(SGLANG_CPU_MARCH)
++        add_compile_options("-march=${SGLANG_CPU_MARCH}")
++    endif()

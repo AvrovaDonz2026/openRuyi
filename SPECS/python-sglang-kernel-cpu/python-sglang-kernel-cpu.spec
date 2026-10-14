@@ -22,7 +22,7 @@ VCS:            git:https://github.com/sgl-project/sglang.git
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version_upstream}.tar.gz#/sglang-%{version_upstream}.tar.gz
 BuildSystem:    pyproject
 
-BuildOption(prep):  -n sglang-%{version_upstream}/python/sglang/kernels/aot
+BuildOption(prep):  -n sglang-%{version_upstream}
 BuildOption(install):  -l sgl_kernel
 
 BuildRequires:  cmake >= 3.18
@@ -44,6 +44,12 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
+%patchlist
+# RISC-V source selection and explicit cross-target ISA handling.
+2000-riscv64-cpu-target-selection.patch
+# Portable scalar shared-memory collectives and acquire/release state hand-off.
+2001-riscv64-port-cpu-shm-collectives.patch
+
 Requires:       python3dist(torch) = 2.14.0
 
 Provides:       python3-%{srcname} = %{version}-%{release}
@@ -55,25 +61,33 @@ SGLang Kernel CPU provides the CPU AOT extension used by the SGLang inference
 engine. It uses the upstream CPU build configuration from SGLang 0.5.21.
 
 %prep -a
+cd python/sglang/kernels/aot
 cp pyproject_cpu.toml pyproject.toml
 
 %generate_buildrequires
+cd python/sglang/kernels/aot
 %pyproject_buildrequires
 
 %build -p
+cd python/sglang/kernels/aot
 %ifarch riscv64
-# Upstream shm.cpp rejects RISC-V; the CPU kernel still requires a target port.
 export CC=clang
 export CXX=clang++
 export LD=ld.lld
 export AR=llvm-ar
 export RANLIB=llvm-ranlib
+export CMAKE_ARGS="-DSGLANG_CPU_TARGET_ARCH=riscv64 -DSGLANG_CPU_MARCH=rv64gc"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
 export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
 %endif
 
+%install -p
+cd python/sglang/kernels/aot
+
 %check -a
+export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
+cd %{buildroot}
 %pyproject_check_import sgl_kernel
 
 %files -f %{pyproject_files}

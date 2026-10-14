@@ -1,0 +1,37 @@
+From: A. Donz <Avrova@Donz.si>
+Subject: [PATCH] cpu: add portable RISC-V shared-memory collectives
+
+Upstream reference: https://github.com/sgl-project/sglang/tree/v0.5.21/python/sglang/kernels/aot/csrc/cpu
+Upstream-Status: Downstream (no upstream RISC-V port or fix found)
+
+--- a/python/sglang/kernels/aot/csrc/cpu/shm.cpp
++++ b/python/sglang/kernels/aot/csrc/cpu/shm.cpp
+@@ -5,0 +6,2 @@
++#elif defined(__riscv)
++#include "riscv64/shm.h"
+@@ -124 +126 @@
+-  volatile enum coll_state* state_ptr = &(workspace[index]->states[state_group]);
++  enum coll_state* state_ptr = &(workspace[index]->states[state_group]);
+@@ -127 +129 @@
+-    volatile enum coll_state cur_state = *state_ptr;
++    enum coll_state cur_state = __atomic_load_n(state_ptr, __ATOMIC_ACQUIRE);
+@@ -129,0 +132,4 @@
++}
++
++static inline void publish_buffer_state(enum coll_state* state_ptr, enum coll_state state) {
++  __atomic_store_n(state_ptr, state, __ATOMIC_RELEASE);
+@@ -278 +284 @@
+-  workspace[world_rank]->states[state_group] = copy_current;
++  publish_buffer_state(&workspace[world_rank]->states[state_group], copy_current);
+@@ -327 +333 @@
+-  workspace[world_rank]->states[state_group] = copy_current;
++  publish_buffer_state(&workspace[world_rank]->states[state_group], copy_current);
+@@ -343 +349 @@
+-  workspace[world_rank]->states[state_group] = reduce_current;
++  publish_buffer_state(&workspace[world_rank]->states[state_group], reduce_current);
+@@ -414 +420 @@
+-  workspace[world_rank]->states[STATE_GROUP] = copy_current;
++  publish_buffer_state(&workspace[world_rank]->states[STATE_GROUP], copy_current);
+@@ -488 +494 @@
+-  workspace[world_rank]->states[state_group] = copy_current;
++  publish_buffer_state(&workspace[world_rank]->states[state_group], copy_current);

@@ -35,6 +35,10 @@ VCS:            git:https://github.com/sgl-project/sglang.git
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version}.tar.gz#/%{upstream_name}-%{version}.tar.gz
 BuildSystem:    pyproject
 
+%patchlist
+# RISC-V torch-native runtime fallback and capability-gated unsupported AOT operators.
+2002-riscv64-cpu-runtime-fallback.patch
+
 BuildOption(prep):  -n %{upstream_name}-%{version}
 BuildOption(install):  -l sglang
 
