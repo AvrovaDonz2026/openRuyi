@@ -4,15 +4,14 @@
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
-%global srcname sglang
+%global upstream_name sglang
 %global flavor @BUILD_FLAVOR@%{nil}
 %ifarch riscv64
 %global llvm_maj_ver 22
 %global toolchain clang
 %endif
 
-# The CPU flavor is the only flavor currently buildable in openRuyi.  The
-# CUDA flavor keeps the upstream metadata for a future CUDA-enabled build host.
+# Select the upstream platform metadata for each build flavor.
 %if "%{flavor}" == "cuda"
 %bcond cuda 1
 %else
@@ -20,9 +19,11 @@
 %endif
 
 %if %{with cuda}
+%global srcname sglang
 Name:           python-%{srcname}-cuda
 %else
-Name:           python-%{srcname}-cpu
+%global srcname sglang-cpu
+Name:           python-sglang
 %endif
 Version:        0.5.21
 Release:        %autorelease
@@ -31,10 +32,10 @@ License:        Apache-2.0
 URL:            https://github.com/sgl-project/sglang
 VCS:            git:https://github.com/sgl-project/sglang.git
 #!RemoteAsset:  sha256:c44951b7871dac61262fc04e9fca628175758a97fa5f603c522b31dc31b94249
-Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version}.tar.gz#/%{srcname}-%{version}.tar.gz
+Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version}.tar.gz#/%{upstream_name}-%{version}.tar.gz
 BuildSystem:    pyproject
 
-BuildOption(prep):  -n %{srcname}-%{version}
+BuildOption(prep):  -n %{upstream_name}-%{version}
 BuildOption(install):  -l sglang
 
 BuildRequires:  pkgconfig(python3)
@@ -71,8 +72,21 @@ Requires:       python3dist(torch) = 2.14.0
 Requires:       python3dist(torchaudio) = 2.11.0
 Requires:       python3dist(torchvision) = 0.29.0
 Requires:       python3dist(triton) = 3.8.0
+# The upstream CPU installation also builds the separate AOT kernel project.
+Requires:       python3dist(sglang-kernel-cpu) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
 Requires:       python3dist(mistral_common) >= 1.11.5
+%endif
+
+Provides:       python3-%{srcname} = %{version}-%{release}
+Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
+%python_provide python3-%{srcname}
+
+# Both flavors install the sglang namespace and command.
+%if %{with cuda}
+Conflicts:      python-sglang
+%else
+Conflicts:      python-sglang-cuda
 %endif
 
 %description
@@ -81,10 +95,11 @@ models.  This package provides the openRuyi CPU or CUDA flavor selected by the
 build flavor.
 
 %prep -a
+cp README.md LICENSE python/
 %if %{without cuda}
 cp python/pyproject_cpu.toml python/pyproject.toml
-# Use the API-compatible versions packaged by openRuyi; v0.5.21 pins older
-# releases that do not provide the APIs exercised by %check.
+# Match the packaged dependency versions and check the exercised API surfaces.
+# Full inference compatibility with these versions still requires validation.
 sed -i \
     -e 's/"openai==2.6.1"/"openai>=2.40.0"/' \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8"/' \
@@ -97,7 +112,10 @@ sed -i 's/dynamic = \["version"\]/version = "%{version}"/' \
 
 %generate_buildrequires
 cd python
-%pyproject_buildrequires -R
+%if %{without cuda}
+export SGLANG_BUILD_RUST_EXTS=none
+%endif
+%pyproject_buildrequires
 
 %build -p
 cd python
@@ -108,8 +126,7 @@ export SETUPTOOLS_SCM_PRETEND_VERSION='%{version}'
 export SGLANG_BUILD_RUST_EXTS=none
 %endif
 %ifarch riscv64
-# Cross compilation uses the distribution LLVM toolchain.  The target sysroot
-# and ABI flags are supplied by the openRuyi riscv64 build environment.
+# Select LLVM for native extensions. Cross-build sysroots are supplied externally.
 export CC=clang
 export CXX=clang++
 export LD=ld.lld
@@ -124,12 +141,15 @@ export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
 cd python
 
 %check -a
-cd python
+export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
+cd %{buildroot}
 %if %{with cuda}
 %{python3} -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'
 %else
+export SGLANG_USE_CPU_ENGINE=1
 %{python3} -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
 %endif
+%if %{without cuda}
 %{python3} - <<'PY'
 import importlib.metadata
 import openai
@@ -163,6 +183,7 @@ output = ResponseOutputMessage(
 assert output.content[0].text == "ok"
 assert timm.is_model("vit_so400m_patch14_siglip_384.webli")
 PY
+%endif
 
 %files -f %{pyproject_files}
 %doc README.md
