@@ -42,6 +42,7 @@ Remote PDB provides a Python debugger that can be accessed over TCP sockets.
 
 %files -f %{pyproject_files}
 %doc README.rst CHANGELOG.rst
+%license LICENSE
 
 %changelog
 %autochangelog

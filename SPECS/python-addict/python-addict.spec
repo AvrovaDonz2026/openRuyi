@@ -40,6 +40,7 @@ using either attribute or item syntax.
 
 %files -f %{pyproject_files}
 %doc README.md
+%license LICENSE
 
 %changelog
 %autochangelog
