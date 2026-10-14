@@ -58,6 +58,7 @@ MoviePy provides Python tools for video editing, compositing, and processing.
 
 %files -f %{pyproject_files}
 %doc README.md
+%license LICENCE.txt
 
 %changelog
 %autochangelog

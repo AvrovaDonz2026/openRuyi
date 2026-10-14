@@ -43,6 +43,7 @@ Proglog provides a progress logging system for Python libraries.
 
 %files -f %{pyproject_files}
 %doc README.rst
+%license LICENSE
 
 %changelog
 %autochangelog
