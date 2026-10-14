@@ -227,6 +227,9 @@ The latest post-Triton QEMU check imported Triton 3.8.0, `triton.cdiv`,
 'starlette'`; see `workspace/sglang-packaging/sglang-cpu-final-wheel-validation/logs/post-triton-import.txt`.
 This was a focused import check only: no complete SGLang startup or inference
 run was performed, and the temporary Triton staging was removed afterward.
+The missing `starlette` is covered by the repository's RPM dependency chain
+from `python-fastapi` to `python-starlette`; it came from the manually staged
+QEMU wheel assembly and does not justify adding a manual SGLang `Requires`.
 The remaining blocker is the unverified production RPM/dependency closure: the
 staged QEMU runtime still lacks `torchaudio==2.11.0`, `torchvision==0.29.0`,
 Transformers, `mistral_common`, and several pure Python requirements, while the
