@@ -35,3 +35,58 @@ Upstream-Status: Downstream (no upstream RISC-V port or fix found)
 @@ -488 +494 @@
 -  workspace[world_rank]->states[state_group] = copy_current;
 +  publish_buffer_state(&workspace[world_rank]->states[state_group], copy_current);
+
+--- /dev/null
++++ b/python/sglang/kernels/aot/csrc/cpu/riscv64/shm.h
+@@ -0,0 +1,51 @@
++// SPDX-FileCopyrightText: (C) 2026 A.Donz <avrova.minix@donz.si>
++// SPDX-License-Identifier: Apache-2.0
++
++#pragma once
++
++#include <ATen/ATen.h>
++#include <stddef.h>
++
++#define SGLANG_RISCV_REDUCE(TYPE, VALUE)       \
++  do {                                         \
++    float value = static_cast<float>(VALUE);   \
++    for (int j = 1; j < world_size; ++j)       \
++      value += static_cast<float>(*(TYPE*)(buffers[j] + i)); \
++    *(TYPE*)(to_buffer + i) = value;           \
++  } while (0)
++
++inline void reduce_bf16_buffers(
++    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
++  const int element_size = 2;
++  for (int i = start_elements * element_size;
++       i < (start_elements + num_elements) * element_size;
++       i += element_size) {
++    SGLANG_RISCV_REDUCE(at::BFloat16, *(at::BFloat16*)(buffers[0] + i));
++  }
++}
++
++inline void reduce_fp16_buffers(
++    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
++  const int element_size = 2;
++  for (int i = start_elements * element_size;
++       i < (start_elements + num_elements) * element_size;
++       i += element_size) {
++    SGLANG_RISCV_REDUCE(at::Half, *(at::Half*)(buffers[0] + i));
++  }
++}
++
++inline void reduce_fp32_buffers(
++    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
++  const int element_size = 4;
++  for (int i = start_elements * element_size;
++       i < (start_elements + num_elements) * element_size;
++       i += element_size) {
++    SGLANG_RISCV_REDUCE(float, *(float*)(buffers[0] + i));
++  }
++}
++
++inline void parallel_memcpy(void* to, void* from, size_t n_bytes) {
++  __builtin_memcpy(to, from, n_bytes);
++}
++
++#undef SGLANG_RISCV_REDUCE
