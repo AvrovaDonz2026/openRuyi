@@ -33,7 +33,8 @@ Source4:        https://codeload.github.com/wjakob/nanobind/tar.gz/%{nanobind_co
 Source5:        https://codeload.github.com/Tessil/robin-map/tar.gz/%{robin_map_commit}#/robin-map-%{robin_map_commit}.tar.gz
 #!RemoteAsset:  sha256:90885324d98c85dbbabafc4ab997fc41988006f34f994d742d7aa902b000e9ab
 Source6:        https://codeload.github.com/google/benchmark/tar.gz/%{benchmark_commit}#/benchmark-%{benchmark_commit}.tar.gz
-Patch0:         0001-Use-packaged-nanobind-source.patch
+# Downstream openRuyi patch prevents CMake FetchContent from accessing the network.
+Patch0:         2000-Use-packaged-nanobind-source.patch
 BuildSystem:    pyproject
 
 BuildOption(prep):  -n %{srcname}-%{version}
@@ -80,11 +81,9 @@ cd runtime
 cd runtime
 export IREE_NANOBIND_SOURCE_DIR="%{_builddir}/%{srcname}-%{version}/nanobind-source"
 export IREE_HAL_DRIVER_VULKAN=ON
-%pyproject_wheel
 
 %install -p
 cd runtime
-%pyproject_install
 install -Dpm 0644 ../LICENSE %{buildroot}%{_licensedir}/%{name}/LICENSE
 install -Dpm 0644 ../README.md %{buildroot}%{_docdir}/%{name}/README.md
 

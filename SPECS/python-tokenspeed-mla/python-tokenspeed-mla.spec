@@ -20,6 +20,8 @@ BuildArch:      noarch
 BuildSystem:    pyproject
 
 BuildOption(prep):  -n %{srcname}-%{commit}/tokenspeed-mla
+BuildOption(install):  -l tokenspeed_mla
+BuildOption(install):  +auto
 
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
@@ -42,12 +44,6 @@ compatible NVIDIA GPU and CUDA stack.
 
 %generate_buildrequires
 %pyproject_buildrequires
-
-%build -p
-%pyproject_wheel
-
-%install -p
-%pyproject_install
 
 %check -a
 # Runtime kernel tests require NVIDIA Blackwell hardware and are unavailable

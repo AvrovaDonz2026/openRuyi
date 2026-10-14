@@ -24,6 +24,8 @@ BuildSystem:    pyproject
 ExclusiveArch:  x86_64 aarch64
 
 BuildOption(prep):  -n %{srcname}-%{version}
+BuildOption(install):  -l deep_gemm
+BuildOption(install):  +auto
 
 BuildRequires:  cuda-toolkit
 BuildRequires:  elfutils-libelf-devel
@@ -60,10 +62,6 @@ tar -xf %{SOURCE2} --strip-components=1 -C third-party/deep_jit
 
 %build -p
 export DG_USE_LOCAL_VERSION=0
-%pyproject_wheel
-
-%install -p
-%pyproject_install
 
 %check -a
 # Numerical and sanitizer tests require CUDA SM90/SM100 hardware.

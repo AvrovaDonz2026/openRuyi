@@ -20,7 +20,7 @@
 
 %if %{with cuda}
 %global srcname sglang
-Name:           python-%{srcname}-cuda
+Name:           python-sglang-cuda
 %else
 %global srcname sglang-cpu
 Name:           python-sglang
@@ -38,10 +38,6 @@ BuildSystem:    pyproject
 # CUDA toolkit currently provides Linux host support for these architectures.
 ExclusiveArch:  x86_64 aarch64
 %endif
-
-%patchlist
-# RISC-V torch-native runtime fallback and capability-gated unsupported AOT operators.
-2002-riscv64-cpu-runtime-fallback.patch
 
 BuildOption(prep):  -n %{upstream_name}-%{version}
 BuildOption(install):  -l sglang
@@ -95,10 +91,18 @@ Conflicts:      python-sglang
 Conflicts:      python-sglang-cuda
 %endif
 
+%patchlist
+# RISC-V torch-native runtime fallback and capability-gated unsupported AOT operators.
+2002-riscv64-cpu-runtime-fallback.patch
+
 %description
 SGLang is a fast serving framework for large language models and vision-language
-models.  This package provides the openRuyi CPU or CUDA flavor selected by the
-build flavor.
+models.
+%if %{with cuda}
+This package provides the CUDA backend.
+%else
+This package provides the CPU backend.
+%endif
 
 %prep -a
 cp README.md LICENSE python/

@@ -22,6 +22,8 @@ BuildSystem:    pyproject
 ExclusiveArch:  x86_64 aarch64
 
 BuildOption(prep):  -n %{srcname}-%{version}
+BuildOption(install):  -l deep_ep
+BuildOption(install):  +auto
 
 BuildRequires:  cuda-toolkit
 BuildRequires:  gcc-c++
@@ -57,10 +59,6 @@ tar -xf %{SOURCE1} --strip-components=1 -C third-party/fmt
 %build -p
 export TORCH_CUDA_ARCH_LIST="9.0"
 export EP_NUM_TOPK_IDX_BITS=32
-%pyproject_wheel
-
-%install -p
-%pyproject_install
 
 %check -a
 # DeepEP tests require NVIDIA GPUs, NCCL communicators and NVSHMEM transports.

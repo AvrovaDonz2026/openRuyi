@@ -24,6 +24,7 @@ BuildOption(install):  -l %{srcname}
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  python3dist(grpcio) >= 1.81.1
+BuildRequires:  python3dist(grpcio-tools) >= 1.81.1
 BuildRequires:  python3dist(protobuf) >= 5.26.0
 
 Requires:       python3dist(grpcio) >= 1.81.1

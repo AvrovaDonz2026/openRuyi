@@ -33,6 +33,7 @@ Source7:        https://github.com/NVIDIA/cutlass/archive/147f5673d0c1c3dcf66f78
 BuildSystem:    pyproject
 
 BuildOption(prep):  -n %{srcname}-0.5.21/python/sglang/kernels/aot
+BuildOption(install):  -l sgl_kernel
 
 BuildRequires:  cuda-toolkit
 BuildRequires:  cmake >= 3.31
@@ -84,12 +85,6 @@ tar -xf %{SOURCE7} --strip-components=1 -C third-party/flashmla/csrc/cutlass
 
 %generate_buildrequires
 %pyproject_buildrequires
-
-%build -p
-%pyproject_wheel
-
-%install -p
-%pyproject_install
 
 %check -a
 %pyproject_check_import sgl_kernel
