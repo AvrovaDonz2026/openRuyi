@@ -219,7 +219,7 @@ validation of %{name}. This is not the complete upstream Python test suite.
 %patchlist
 # Clang fails on a -Wc2y-extensions diagnostic from benchmark's __COUNTER__ preprocessor check.
 1000-benchmark-silence-c2y-counter-warning.patch
-# Add gfx1100/gfx1101/gfx1151 to getHipblasltPreferredArchs().
+# Lower the getHipblasltPreferredArchs() gate for gfx1100/gfx1101/gfx1151.
 # ROCm 7.2.4 still needs hipBLASLt for these architectures.
 1001-default-to-hipblaslt-on-gfx110x.patch
 # In pytorch-smoke-test.py, torch.dot()/torch.vdot() on complex tensors return 0
