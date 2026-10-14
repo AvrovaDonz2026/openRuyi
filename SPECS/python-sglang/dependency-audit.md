@@ -66,7 +66,7 @@ on 2026-10-14. PEP 508 markers were evaluated for Linux, `riscv64`, and CPython
 | `torchvision==0.29.0` | `python-torchvision` | 0.29.0 | NMS passes in a scratch wheel environment |
 | `tqdm` | `python-tqdm` | 4.67.3 | Satisfied |
 | `transformers==5.12.1` | `python-transformers` | 5.16.0 | Downstream bounded compatibility: `>=5.16.0,<6`; import check is part of SGLang `%check` |
-| `triton==3.8.0` | `python-triton` | 3.8.0 | Host-LLVM cross-built `libtriton.so` imports in QEMU (SHA-256 `77f0874e88507ad4bb7ffd4af9d3532641fd3ecb023d53a746b5619397bd89f7`); production RPM build remains unverified and the CPU driver reports no active GPU backend |
+| `triton==3.8.0` | `python-triton` | 3.8.0 | Durable host-LLVM scratch artifact imports in QEMU (SHA-256 `77f0874e88507ad4bb7ffd4af9d3532641fd3ecb023d53a746b5619397bd89f7`); `triton.cdiv`, `triton.language`, and `triton.compiler` pass, but the driver probe reports `0 active drivers`; production RPM build and kernel execution remain unverified |
 | `uvicorn` | `python-uvicorn` | 0.46.0 | Satisfied |
 | `uvloop` | `python-uvloop` | 0.22.1 | Satisfied |
 | `xxhash` | `python-xxhash` | 3.6.0 | Satisfied |
@@ -194,9 +194,14 @@ temporary metadata, and upstream file/tag findings; this is validation evidence,
 not a clean production QA result.
 
 The GenSON source is version 1.4.0 (source SHA-256
-`bc7f1c1bae87a21ca44d81149aec95a3f4468d676de9b8b08caa064f3c50b3da`). Its
-local source-RPM test run is scratch evidence and is not a claim of clean
-standard build QA. RunAI Model Streamer 0.16.1 lacks an
+`bc7f1c1bae87a21ca44d81149aec95a3f4468d676de9b8b08caa064f3c50b3da`). The
+source RPM `%check` ran 111 tests successfully in 13.31 seconds; the resulting
+RPM SHA-256 is
+`c7435bbceb43e86991fd38b4b9bd4c53dde408afb649c815284736e972c5a8f8` and the
+SRPM SHA-256 is
+`b51c89300394cba7c2e44e04288666a5a3ab2b958fd4dc236e79cbbfecf87dbd`.
+Scratch rpmlint findings remain, so this is not a clean OBS QA result. RunAI
+Model Streamer 0.16.1 lacks an
 sdist and a RISC-V Bazel toolchain; its libstreamer and cloud C++ SDK offline
 closure remains unfulfilled.
 
@@ -215,3 +220,15 @@ complete SGLang RPM installation, startup, and inference path remain unproven.
 CUDA/ROCm device execution also remains unverified. Target evidence was collected with QEMU 11.1.1 (`riscv-virtio`,
 QEMU kernel 7.1.2-533.1.or), Python 3.13.8, RPM 6.0.1, OpenSBI 1.8.1, and
 EDK2 2.7.
+
+The latest post-Triton QEMU check imported Triton 3.8.0, `triton.cdiv`,
+`triton.language`, and `triton.compiler` successfully, then reached
+`import sglang` and failed with `ModuleNotFoundError: No module named
+'starlette'`; see `workspace/sglang-packaging/sglang-cpu-final-wheel-validation/logs/post-triton-import.txt`.
+This was a focused import check only: no complete SGLang startup or inference
+run was performed, and the temporary Triton staging was removed afterward.
+The remaining blocker is the unverified production RPM/dependency closure: the
+staged QEMU runtime still lacks `torchaudio==2.11.0`, `torchvision==0.29.0`,
+Transformers, `mistral_common`, and several pure Python requirements, while the
+available Torch is `2.14.0a0` and does not satisfy the exact `2.14.0`
+requirement.
