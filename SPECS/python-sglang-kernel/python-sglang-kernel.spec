@@ -31,6 +31,9 @@ Source6:        https://github.com/sgl-project/FlashMLA/archive/3e18517fb055a6c9
 #!RemoteAsset:  sha256:9f6c53320a85b4a570975e557918cde65168cd311f081920446c238437347dc6
 Source7:        https://github.com/NVIDIA/cutlass/archive/147f5673d0c1c3dcf66f78d677fd647e4a020219.tar.gz#/cutlass-147f567.tar.gz
 BuildSystem:    pyproject
+# The AOT extension requires NVIDIA's CUDA toolkit; no supported RISC-V CUDA
+# toolkit is available in the build environment.
+ExclusiveArch:  x86_64 aarch64
 
 BuildOption(prep):  -n %{srcname}-0.5.21/python/sglang/kernels/aot
 BuildOption(install):  -l sgl_kernel
