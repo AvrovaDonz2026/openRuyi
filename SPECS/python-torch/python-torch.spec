@@ -69,6 +69,9 @@ Source1:        pytorch-smoke-test.py
 BuildSystem:    pyproject
 
 BuildOption(prep):  -n pytorch-v%{version}
+# Native builds use the upstream CMake cache definition; cross builds use the
+# upstream PYTORCH_BLAS_USE_CBLAS_DOT environment override below.
+BuildOption(build):  -Ccmake.define.BLAS_USE_CBLAS_DOT:BOOL=ON
 # packages: torch, torchgen, functorch; torchrun is installed separately below.
 BuildOption(install):  -l '*torch*' functorch
 # torch.lib.lib*: C++ shared libs
@@ -222,13 +225,6 @@ validation of %{name}. This is not the complete upstream Python test suite.
 # Lower the getHipblasltPreferredArchs() gate for gfx1100/gfx1101/gfx1151.
 # ROCm 7.2.4 still needs hipBLASLt for these architectures.
 1001-default-to-hipblaslt-on-gfx110x.patch
-# In pytorch-smoke-test.py, torch.dot()/torch.vdot() on complex tensors return 0
-# because ATen's BLAS ABI probe misdetects OpenBLAS's cblas_*dot*_sub interface
-# force the CBLAS complex-dot path
-# There is similar solution in downstream:
-# https://github.com/conda-forge/pytorch-cpu-feedstock/issues/180
-# https://github.com/conda-forge/pytorch-cpu-feedstock/blob/main/recipe/patches/0004-Use-BLAS_USE_CBLAS_DOT-for-OpenBLAS-builds.patch
-2001-force-cblas-complex-dot-for-openblas.patch
 2002-use-system-googletest.patch
 2003-use-system-fmt.patch
 2005-use-system-cmake-dependencies.patch
@@ -465,7 +461,8 @@ export LDFLAGS="-fuse-ld=lld %{build_ldflags}"
 export CMAKE_LIBRARY_PATH=%{_libdir}
 export CMAKE_PREFIX_PATH="%{_prefix}:%{_libdir}/cmake:%{python3_sitearch}"
 
-# See 2001-force-cblas-complex-dot-for-openblas.patch
+# The upstream cross-compiling branch reads this environment override instead
+# of the BLAS_USE_CBLAS_DOT CMake cache definition.
 export PYTORCH_BLAS_USE_CBLAS_DOT=ON
 
 %install -p
