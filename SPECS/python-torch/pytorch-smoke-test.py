@@ -1,13 +1,12 @@
 # SPDX-FileCopyrightText: 2026 CHEN Xuan <chenxuan@iscas.ac.cn>
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-License-Identifier: MIT
 #
 # Functional smoke test for the built python-torch, run in the %check phase
 # against the just-built tree in the buildroot.  Unlike the import check (which
 # only proves modules load), this exercises real kernels: matmul, autograd, a
 # training step, and -- crucially -- a guard that complex torch.dot / torch.vdot
-# do not collapse to 0.  That guard covers the CBLAS complex-dot path selected
-# by the BLAS_USE_CBLAS_DOT CMake definition: the references use
+# do not collapse to 0.  That guard covers the CBLAS complex-dot path forced on
+# by 2001-force-cblas-complex-dot-for-openblas.patch: the references use
 # elementwise mul + sum, which do not go through the BLAS dot routine, so they
 # stay valid regardless of that path.
 import torch, torch.nn as nn

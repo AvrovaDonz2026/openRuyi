@@ -16,6 +16,8 @@ URL:            http://python-pillow.github.io/
 #!RemoteAsset:  sha256:3828ee7586cd0b2091b6209e5ad53e20d0649bbe87164a459d0676e035e8f523
 Source0:        https://files.pythonhosted.org/packages/source/p/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
+BuildRequires:  sglang-rpm-macros
+%sglang_python_compat extras
 
 BuildOption(install):  -l PIL
 
@@ -26,20 +28,14 @@ BuildRequires:  pkgconfig(libtiff-4)
 BuildRequires:  pkgconfig(libwebp)
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pkgconfig(zlib)
+BuildRequires:  file
+BuildRequires:  patchelf
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(pybind11)
 BuildRequires:  python3dist(pytest)
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
-
-Provides:       python3-%{srcname} = %{version}-%{release}
-Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
-Provides:       python3-imaging = %{version}-%{release}
-Provides:       python3-imaging%{?_isa} = %{version}-%{release}
-Provides:       python3dist(%{srcname}) = %{version}
-%python_provide python3-%{srcname}-11
-Conflicts:      python-pillow
 
 %description
 Version 11 of Pillow, provided for applications whose declared dependency
@@ -54,14 +50,15 @@ This package provides the Imaging headers for developing applications that
 use the Pillow 11 compatibility build.
 
 %generate_buildrequires
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
 
 %install -a
-install -d %{buildroot}/%{_includedir}/python%{python3_version}/Imaging
-install -m 644 src/libImaging/*.h %{buildroot}/%{_includedir}/python%{python3_version}/Imaging
+install -d %{buildroot}%{_sglang_private_root}/include/Imaging
+install -m 644 src/libImaging/*.h %{buildroot}%{_sglang_private_root}/include/Imaging
+%sglang_private_rpath
 
 %check
-PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}" %{python3} - <<'PY'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} - <<'PY'
 import io
 
 from PIL import Image, __version__, features
@@ -89,7 +86,7 @@ PY
 
 %files devel
 %license docs/COPYING
-%{_includedir}/python%{python3_version}/Imaging/
+%{_sglang_private_root}/include/Imaging/
 
 %changelog
 %autochangelog

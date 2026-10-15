@@ -7,12 +7,12 @@
 %global srcname llguidance
 
 Name:           python-%{srcname}
-Version:        1.7.6
+Version:        1.7.5
 Release:        %autorelease
 Summary:        Low-level guidance Rust library bindings for Python
 License:        MIT
 URL:            https://github.com/microsoft/llguidance
-#!RemoteAsset:  sha256:db7febbe412ed2015501904646750071d7e00e6df7f85c4b956ad4f206fd2df7
+#!RemoteAsset:  sha256:afaa8f979708cd546c762f06a4fe4748e5ef7f06ed45875dabe7db8f07b73645
 Source0:        https://files.pythonhosted.org/packages/source/l/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 

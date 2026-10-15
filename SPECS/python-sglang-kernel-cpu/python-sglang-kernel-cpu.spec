@@ -13,6 +13,8 @@
 %endif
 
 Name:           python-%{srcname}
+BuildRequires:  sglang-rpm-macros
+%sglang_python_compat core
 Version:        0.4.7
 Release:        %autorelease
 Summary:        CPU kernel library for SGLang
@@ -29,15 +31,17 @@ BuildOption(install):  -l sgl_kernel
 
 BuildRequires:  cmake >= 3.18
 BuildRequires:  clang
+BuildRequires:  file
+BuildRequires:  patchelf
 BuildRequires:  libomp-devel
 BuildRequires:  pkgconfig(numa)
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
 BuildRequires:  python3dist(scikit-build-core) >= 0.10
-BuildRequires:  python3dist(torch) = 2.14.0
+BuildRequires:  sglang(python3dist(torch)) = 2.14.0
 BuildRequires:  python3dist(wheel)
-BuildRequires:  python-torch-devel = 2.14.0
+BuildRequires:  python-sglang-torch-2.14-devel = 2.14.0
 
 %ifarch riscv64
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -46,11 +50,7 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
-Requires:       python3dist(torch) = 2.14.0
-
-Provides:       python3-%{srcname} = %{version}-%{release}
-Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
-%python_provide python3-%{srcname}
+Requires:       sglang(python3dist(torch)) = 2.14.0
 
 %patchlist
 # RISC-V source selection and explicit cross-target ISA handling.
@@ -68,7 +68,7 @@ cp pyproject_cpu.toml pyproject.toml
 
 %generate_buildrequires
 cd python/sglang/kernels/aot
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
 
 %build -p
 cd python/sglang/kernels/aot
@@ -84,13 +84,14 @@ export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
 export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
 %endif
 
-%install -p
+%install -a
 cd python/sglang/kernels/aot
+%sglang_private_rpath
 
 %check -a
-export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
+export PYTHONPATH="%{buildroot}%{_sglang_private_sitearch}"
 cd %{buildroot}
-%pyproject_check_import sgl_kernel
+%sglang_pyproject_check_import sgl_kernel
 %ifarch riscv64
 # Check the built extension with the Torch build dependency.
 # The smoke script validates registration, two-rank reduction, and

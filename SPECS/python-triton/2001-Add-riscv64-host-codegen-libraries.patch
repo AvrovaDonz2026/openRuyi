@@ -3,9 +3,6 @@ From: CHEN Xuan <chenxuan@iscas.ac.cn>
 Date: Fri, 21 Aug 2026 17:43:00 +0800
 Subject: [PATCH] Add riscv64 host-codegen libraries
 
-Upstream: Not submitted
-Status: Downstream
-
 Link X86 codegen libraries on riscv64 because llvm::InitializeAllTargets()
 references them, preventing undefined LLVMInitializeX86Target at import time.
 ---

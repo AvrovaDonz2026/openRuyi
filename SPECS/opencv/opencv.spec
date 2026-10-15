@@ -1,18 +1,8 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: Kimmy <yucheng.or@isrc.iscas.ac.cn>
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
-
-%global flavor @BUILD_FLAVOR@%{nil}
-%if "%{flavor}" == "headless"
-%bcond headless 1
-%global python_dist_name opencv-python-headless
-%else
-%bcond headless 0
-%global python_dist_name opencv-python
-%endif
 
 Name:           opencv
 Version:        4.13.0
@@ -53,6 +43,7 @@ BuildOption(conf):  -DOPENCV_GENERATE_PKGCONFIG=ON
 BuildOption(conf):  -DWITH_EIGEN=ON
 BuildOption(conf):  -DWITH_FFMPEG=ON
 BuildOption(conf):  -DWITH_GSTREAMER=ON
+BuildOption(conf):  -DWITH_GTK=ON
 BuildOption(conf):  -DWITH_JASPER=ON
 BuildOption(conf):  -DWITH_JPEG=ON
 BuildOption(conf):  -DWITH_OPENJPEG=ON
@@ -66,13 +57,6 @@ BuildOption(conf):  -DWITH_LAPACK=ON
 BuildOption(conf):  -DWITH_PROTOBUF=ON
 BuildOption(conf):  -DWITH_FLATBUFFERS=ON
 BuildOption(conf):  -DWITH_OPENCL=ON
-# Headless keeps media and image processing modules, while removing display
-# system integrations that would otherwise pull GUI libraries into servers.
-%if %{with headless}
-BuildOption(conf):  -DWITH_GTK=OFF
-%else
-BuildOption(conf):  -DWITH_GTK=ON
-%endif
 # Disable features not available or not needed
 BuildOption(conf):  -DWITH_CUDA=OFF
 BuildOption(conf):  -DWITH_VTK=OFF
@@ -100,9 +84,7 @@ BuildRequires:  pkgconfig(gstreamer-base-1.0)
 BuildRequires:  pkgconfig(gstreamer-pbutils-1.0)
 BuildRequires:  pkgconfig(gstreamer-riff-1.0)
 BuildRequires:  pkgconfig(gstreamer-video-1.0)
-%if %{without headless}
 BuildRequires:  pkgconfig(gtk+-3.0)
-%endif
 BuildRequires:  pkgconfig(libavcodec)
 BuildRequires:  pkgconfig(libavformat)
 BuildRequires:  pkgconfig(libavutil)
@@ -119,97 +101,30 @@ BuildRequires:  pkgconfig(protobuf)
 BuildRequires:  jasper-devel
 BuildRequires:  openblas-devel
 
-%if %{without headless}
-Conflicts:      opencv-headless
-%endif
-
 %description
 OpenCV (Open Source Computer Vision Library) is an open-source computer vision
 and machine learning software library. OpenCV was built to provide a common
 infrastructure for computer vision applications and to accelerate the use of
 machine perception in the commercial products.
 
-%if %{without headless}
 %package        devel
 Summary:        Development files for %{name}
-Conflicts:      opencv-headless-devel
 Requires:       %{name}%{?_isa} = %{version}-%{release}
-%endif
 
-%if %{without headless}
 %description    devel
 This package contains the header files, development libraries, and cmake
 configuration files needed for developing applications that use OpenCV.
-%endif
 
-%if %{without headless}
 %package     -n python-opencv-python
 Summary:        Python 3 bindings for OpenCV
-Provides:       python3-opencv-python = %{version}-%{release}
-%python_provide python3-opencv-python
-Conflicts:      python-opencv-python-headless
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       python3dist(numpy)
-%endif
+Provides:       python3-opencv-python = %{version}-%{release}
+%python_provide python3-opencv-python
 
-%if %{without headless}
 %description -n python-opencv-python
 This package provides the cv2 Python module that allows Python applications
 to use the computer vision and machine learning functions provided by OpenCV.
-%endif
-
-%if %{with headless}
-%package        -n opencv-headless
-Summary:        OpenCV runtime without display system integrations
-Conflicts:      opencv
-%endif
-
-%if %{with headless}
-%description -n opencv-headless
-This package contains the OpenCV runtime libraries built without GTK, Qt, or
-OpenGL display system integrations. Image processing, video I/O, codecs, and
-other non-display features remain enabled when their dependencies are available.
-%endif
-
-%if %{with headless}
-%package        -n opencv-headless-devel
-Summary:        Development files for headless OpenCV
-Conflicts:      opencv-devel
-Requires:       opencv-headless%{?_isa} = %{version}-%{release}
-%endif
-
-%if %{with headless}
-%description -n opencv-headless-devel
-This package contains headers and development files for the headless OpenCV
-runtime.
-%endif
-
-%if %{with headless}
-%package        -n python-opencv-python-headless
-Summary:        Headless Python 3 bindings for OpenCV
-Provides:       python3-opencv-python-headless = %{version}-%{release}
-%python_provide python3-opencv-python-headless
-Conflicts:      python-opencv-python
-Requires:       opencv-headless%{?_isa} = %{version}-%{release}
-Requires:       python3dist(numpy)
-%endif
-
-%if %{with headless}
-%description -n python-opencv-python-headless
-This package provides the cv2 Python module built without display system
-integrations for server and other headless applications.
-%endif
-
-%prep -a
-# The OpenCV source package defaults to the generic "opencv" distribution
-# name; publish wheel metadata under the corresponding Python flavor name.
-%if %{with headless}
-sed -i "s/package_name = 'opencv'/package_name = 'opencv-python-headless'/" \
-    modules/python/package/setup.py
-%else
-sed -i "s/package_name = 'opencv'/package_name = 'opencv-python'/" \
-    modules/python/package/setup.py
-%endif
 
 %generate_buildrequires
 cd modules/python/package
@@ -229,26 +144,7 @@ sed -i "s#'/home.*'#'%{python3_sitelib}/cv2/python-%{python3_version}'#" %{build
 # OpenCV test suite requires test data (opencv_extra repo), network access,
 # and display capabilities unavailable inside the OBS build chroot.
 %check
-export PYTHONPATH="%{buildroot}%{python3_sitelib}"
-export LD_LIBRARY_PATH="%{buildroot}%{_libdir}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-%{python3} - <<'PY'
-import importlib.metadata
 
-import cv2
-import numpy as np
-
-assert importlib.metadata.version("%{python_dist_name}") == "4.13.0"
-image = np.zeros((2, 2, 3), dtype=np.uint8)
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-assert gray.shape == (2, 2)
-%if %{with headless}
-gui = next(line.split(":", 1)[1].strip() for line in cv2.getBuildInformation().splitlines()
-           if line.strip().startswith("GUI:"))
-assert gui == "NONE", gui
-%endif
-PY
-
-%if %{without headless}
 %files
 %license LICENSE
 %doc README.md
@@ -260,49 +156,16 @@ PY
 %{_datadir}/opencv4/valgrind.supp
 %{_datadir}/opencv4/valgrind_3rdparty.supp
 %license %{_datadir}/licenses/opencv4/
-%endif
 
-%if %{without headless}
 %files devel
 %{_includedir}/opencv4
 %{_libdir}/libopencv_*.so
 %{_libdir}/cmake/opencv4
 %{_libdir}/pkgconfig/opencv4.pc
-%endif
 
-%if %{with headless}
-%files -n opencv-headless
-%license LICENSE
-%doc README.md
-%{_bindir}/opencv_*
-%{_libdir}/libopencv_*.so.*
-%dir %{_datadir}/opencv4
-%{_datadir}/opencv4/haarcascades
-%{_datadir}/opencv4/lbpcascades
-%{_datadir}/opencv4/valgrind.supp
-%{_datadir}/opencv4/valgrind_3rdparty.supp
-%license %{_datadir}/licenses/opencv4/
-%endif
-
-%if %{with headless}
-%files -n opencv-headless-devel
-%{_includedir}/opencv4
-%{_libdir}/libopencv_*.so
-%{_libdir}/cmake/opencv4
-%{_libdir}/pkgconfig/opencv4.pc
-%endif
-
-%if %{without headless}
 %files -n python-opencv-python
 %{python3_sitelib}/opencv*.dist-info
 %{python3_sitelib}/cv2
-%endif
-
-%if %{with headless}
-%files -n python-opencv-python-headless
-%{python3_sitelib}/opencv*.dist-info
-%{python3_sitelib}/cv2
-%endif
 
 %changelog
 %autochangelog

@@ -7,12 +7,12 @@
 %global srcname xgrammar
 
 Name:           python-%{srcname}
-Version:        0.2.7
+Version:        0.2.1
 Release:        %autorelease
 Summary:        Fast, Flexible and Portable Structured Generation
 License:        Apache-2.0
 URL:            https://github.com/mlc-ai/xgrammar
-#!RemoteAsset:  sha256:7674afeee5e6eff9672627b62d5ab0aa2347ea51674f4d78a5c160029f92bc3e
+#!RemoteAsset:  sha256:4c48c251b75d211e9ffa7f4f4ac8b5b0164f89fd5f0d1883ad7ff4554922030d
 Source0:        https://files.pythonhosted.org/packages/source/x/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 
@@ -30,8 +30,6 @@ BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  cmake
 BuildRequires:  ninja
-BuildRequires:  python-apache-tvm-ffi >= 0.1.11
-BuildRequires:  python3dist(torch) >= 1.10
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}

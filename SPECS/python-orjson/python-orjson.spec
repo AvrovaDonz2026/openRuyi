@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: purofle <yuguo.or@isrc.iscas.ac.cn>
 # SPDX-FileContributor: yyjeqhc <jialin.oerv@isrc.iscas.ac.cn>
 #
@@ -29,40 +28,10 @@ BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
 BuildRequires:  cargo
 BuildRequires:  rust
-BuildRequires:  rust-rpm-macros
-BuildRequires:  crate(associative-cache-2/default) >= 2.0.0
-BuildRequires:  crate(bytes-1/default) >= 1.0.0
-BuildRequires:  crate(bytecount-0.6/runtime-dispatch-simd) >= 0.6.7
-BuildRequires:  crate(cc-1/default) >= 1.0.0
-BuildRequires:  crate(encoding-rs-0.8/default) >= 0.8.0
-BuildRequires:  crate(half-2/default) >= 2.0.0
-BuildRequires:  crate(itoa-1/default) >= 1.0.0
-BuildRequires:  crate(itoap-1/simd) >= 1.0.0
-BuildRequires:  crate(itoap-1/std) >= 1.0.0
-BuildRequires:  crate(jiff-0.2/default) >= 0.2.0
-BuildRequires:  crate(once-cell-1/alloc) >= 1.0.0
-BuildRequires:  crate(once-cell-1/race) >= 1.0.0
-BuildRequires:  crate(pyo3-ffi-0.28) >= 0.28.0
-BuildRequires:  crate(pyo3-build-config-0.28/default) >= 0.28.0
-BuildRequires:  crate(serde-1/default) >= 1.0.0
-BuildRequires:  crate(serde-json-1/std) >= 1.0.0
-BuildRequires:  crate(simdutf8-0.1/aarch64-neon) >= 0.1.0
-BuildRequires:  crate(simdutf8-0.1/public-imp) >= 0.1.0
-BuildRequires:  crate(simdutf8-0.1/std) >= 0.1.0
-BuildRequires:  crate(smallvec-1/union) >= 1.11.0
-BuildRequires:  crate(smallvec-1/write) >= 1.11.0
-BuildRequires:  crate(uuid-1/default) >= 1.0.0
-BuildRequires:  crate(xxhash-rust-0.8/xxh3) >= 0.8.0
-BuildRequires:  crate(zmij-1/default) >= 1.0.0
-BuildRequires:  crate(version-check-0.9/default) >= 0.9.0
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
-
-%prep -a
-%rust_setup_registry
-rm -f Cargo.lock
 
 %description
 orjson is a fast, correct JSON library for Python. It benchmarks as

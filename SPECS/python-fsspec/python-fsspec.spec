@@ -31,7 +31,6 @@ BuildRequires:  python3dist(hatchling) >= 1.27
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}
-Conflicts:      python-fsspec-2026-2
 
 %description
 Fsspec provides a unified Python interface for local, remote, and embedded

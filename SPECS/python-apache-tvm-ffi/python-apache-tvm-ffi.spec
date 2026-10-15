@@ -8,13 +8,13 @@
 %global pypi_name apache_tvm_ffi
 
 Name:           python-%{srcname}
-Version:        0.1.11
+Version:        0.1.10
 Release:        %autorelease
 Summary:        Open ABI and FFI for machine learning systems
 License:        Apache-2.0
 URL:            https://tvm.apache.org/ffi/
 VCS:            git:https://github.com/apache/tvm-ffi.git
-#!RemoteAsset:  sha256:153cd2c5a9717804cb0bcd9b2709f22a1e5f80ed05b5a490faf5949b136eedba
+#!RemoteAsset:  sha256:974c208766c304c780c17c6d405449e862f83b22c7b6b2b8c28b29d55a806ae3
 Source0:        https://files.pythonhosted.org/packages/source/a/%{srcname}/%{pypi_name}-%{version}.tar.gz
 BuildSystem:    pyproject
 

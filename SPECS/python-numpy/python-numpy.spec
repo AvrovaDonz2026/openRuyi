@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: (C) 2025 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2025 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: yyjeqhc <jialin.oerv@isrc.iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
@@ -8,12 +7,12 @@
 %global srcname numpy
 
 Name:           python-%{srcname}
-Version:        2.5.4
+Version:        2.4.6
 Release:        %autorelease
 Summary:        NumPy: array processing for numbers, strings, records, and objects
-License:        BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0
+License:        BSD-3-Clause
 URL:            https://github.com/numpy/numpy
-#!RemoteAsset:  sha256:9a94cf751c9ad8ebaa835bcd3d40dacf8534ad086b88c38029b65123c7999d2a
+#!RemoteAsset:  sha256:f3a3570c4a2a16746ac2c31a7c7c7b0c186b95ce902e33db6f28094ed7387dda
 Source:         https://files.pythonhosted.org/packages/source/n/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 
@@ -26,8 +25,8 @@ BuildRequires:  pkgconfig(python3)
 BuildRequires:  gcc-c++
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(wheel)
-BuildRequires:  python3dist(meson-python) >= 0.18.0
-BuildRequires:  python3dist(cython) >= 3.1.0
+BuildRequires:  python3dist(meson-python) >= 0.15.0
+BuildRequires:  python3dist(cython) >= 3.0.6
 BuildRequires:  pkgconfig
 BuildRequires:  openblas-devel
 BuildRequires:  python3dist(pytest)

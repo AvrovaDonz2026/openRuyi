@@ -37,7 +37,6 @@ Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
 Provides:       python3-imaging = %{version}-%{release}
 Provides:       python3-imaging%{?_isa} = %{version}-%{release}
-Conflicts:      python-pillow-11
 
 %description
 Python image processing library, fork of the Python Imaging Library (PIL).

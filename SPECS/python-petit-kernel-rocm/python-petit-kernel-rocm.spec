@@ -32,6 +32,8 @@ BuildRequires:  cmake(absl)
 BuildRequires:  cmake(fmt)
 BuildRequires:  cmake(gflags)
 BuildRequires:  cmake(GTest)
+BuildRequires:  cmake(RapidJSON)
+BuildRequires:  cmake(spdlog)
 BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
 BuildRequires:  hipcc
 BuildRequires:  lld(major) = %{llvm_maj_ver}
