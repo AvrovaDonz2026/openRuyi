@@ -27,7 +27,12 @@ BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
+# Transformers 5.16 requires the 0.23 API and is incompatible with 0.24.
+BuildRequires:  python3dist(tokenizers) >= 0.23.1
+BuildRequires:  python3dist(tokenizers) < 0.24
 
+Requires:       python3dist(tokenizers) >= 0.23.1
+Requires:       python3dist(tokenizers) < 0.24
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}
 

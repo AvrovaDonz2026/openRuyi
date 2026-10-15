@@ -15,7 +15,7 @@ Summary:        Extremely fast non-cryptographic hash algorithm
 License:        BSD-2-Clause AND GPL-2.0-only
 URL:            https://cyan4973.github.io/xxHash/
 VCS:            git:https://github.com/Cyan4973/xxHash
-#!RemoteAsset
+#!RemoteAsset:  sha256:aae608dfe8213dfd05d909a57718ef82f30722c392344583d3f39050c7f29a80
 Source0:        https://github.com/Cyan4973/xxHash/archive/v%{version}/%{name}-v%{version}.tar.gz
 BuildSystem:    autotools
 
@@ -69,4 +69,4 @@ rm -f %{buildroot}%{_libdir}/libxxhash.a
 %{_libdir}/pkgconfig/libxxhash.pc
 
 %changelog
-%{?autochangelog}
+%autochangelog

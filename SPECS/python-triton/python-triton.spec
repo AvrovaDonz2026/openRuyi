@@ -145,6 +145,18 @@ export TRITON_CODEGEN_BACKENDS="nvidia;amd"
 export TRITON_OFFLINE_BUILD=1
 export TRITON_BUILD_TOOLS=OFF
 
+%check -a
+export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
+cd %{buildroot}
+%{python3} - <<'PY'
+import triton
+import triton.compiler
+import triton.language
+
+assert triton.__version__ == "%{version}"
+assert triton.cdiv(7, 3) == 3
+PY
+
 %files -f %{pyproject_files}
 %doc README.md
 %license LICENSE

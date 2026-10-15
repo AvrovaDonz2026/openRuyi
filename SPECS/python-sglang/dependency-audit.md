@@ -30,7 +30,7 @@ on 2026-10-14. PEP 508 markers were evaluated for Linux, `riscv64`, and CPython
 | `interegular` | `python-interegular` | 0.3.3 | Satisfied |
 | `IPython` | `python-ipython` | 9.13.0 | Satisfied |
 | `llguidance>=1.7.6,<2.0.0` | `python-llguidance` | 1.7.6 | Satisfied |
-| `mistral_common>=1.11.5` | `python-mistral_common` | 1.11.5 | Satisfied |
+| `mistral_common>=1.11.5` | `python-mistral_common` | 1.12.0 | Satisfied |
 | `modelscope` | `python-modelscope` | 1.40.2 | Satisfied |
 | `msgspec` | `python-msgspec` | 0.19.0 | Satisfied |
 | `ninja` | `python-ninja` | 1.13.2 | Satisfied |
@@ -249,3 +249,51 @@ under `workspace/sglang-packaging/validation/cpu-runtime-20261015/guest-solver/`
 This confirms that the Starlette failure was an assembly omission while the
 remaining failure is an unresolved repository version and provider closure;
 SGLang startup and inference remain unverified.
+
+## Offline CPU startup smoke plan
+
+The smallest useful startup check must use a local Hugging Face-style model
+directory. `model_path=dummy` is useful for unit fixtures, but the normal
+`ModelConfig` path still needs a model configuration and therefore does not
+exercise local configuration or tokenizer loading. Instead, create a temporary
+directory containing only:
+
+* `config.json` for a one-layer `LlamaForCausalLM` (for example, hidden size
+  32, intermediate size 64, four attention heads, one key/value head,
+  vocabulary size matching the tokenizer, and context length 64);
+* a locally saved `tokenizer.json` plus `tokenizer_config.json` and
+  `special_tokens_map.json`, generated with the packaged `tokenizers` library
+  and a small WordLevel vocabulary; and
+* no weight files. `--load-format dummy` makes SGLang initialize random model
+  weights through `DummyModelLoader`, so this remains offline and deterministic
+  with respect to the input files.
+
+Once the complete target dependency closure is available in the guest, the
+candidate command is:
+
+```text
+SGLANG_USE_CPU_ENGINE=1 python -m sglang.launch_server \
+  --model-path /var/tmp/sglang-tiny \
+  --tokenizer-path /var/tmp/sglang-tiny \
+  --load-format dummy --device cpu --tensor-parallel-size 1 \
+  --context-length 64 --max-total-tokens 64 \
+  --max-running-requests 1 --port 30000
+```
+
+The smoke must first poll `GET /health`, then send one offline request to
+`POST /v1/completions` with prompt `hello` and `max_tokens=1`, and finally
+terminate the server while retaining its complete log. A successful HTTP
+response would establish a target startup and one-token request path only; it
+would not establish throughput, long-context behavior, speculative decoding,
+GPU execution, or compatibility with arbitrary model architectures.
+
+This smoke has not passed. The current guest cannot assemble the required
+versions: Base offers Torch 2.13.0, torchaudio 2.10.0, torchvision 0.28.0,
+Triton 3.7.1, and Transformers 5.12.1, while this CPU package requires the
+2.14.0/2.11.0/0.29.0/3.8.0 set and bounded Transformers >=5.16.0. The staged
+tokenizers 0.23.3 package also conflicts with Base Transformers' tokenizers
+0.22 provider. Before the smoke can run, the offline transaction must include
+the five direct providers absent from Base (`mistral-common`, `python-multipart`,
+`smg-grpc-servicer`, `outlines`, and `modelscope`) and their transitive
+providers (`cloudpickle`, `diskcache`, `genson`, `jsonpath-ng`, `outlines-core`,
+`modelscope-hub`, grpc health/reflection, and `smg-grpc-proto`).

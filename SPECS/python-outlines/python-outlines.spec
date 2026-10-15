@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -20,9 +21,31 @@ BuildOption(install):  -l %{srcname}
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
+BuildRequires:  python3dist(cloudpickle)
+BuildRequires:  python3dist(diskcache)
+BuildRequires:  python3dist(genson)
+BuildRequires:  python3dist(jinja2)
+BuildRequires:  python3dist(jsonpath-ng)
+BuildRequires:  python3dist(jsonschema)
+BuildRequires:  python3dist(outlines_core) = 0.2.14
+BuildRequires:  python3dist(pillow)
+BuildRequires:  python3dist(pydantic) >= 2
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
+BuildRequires:  python3dist(setuptools-scm) >= 6.2
+BuildRequires:  python3dist(typing-extensions)
 BuildRequires:  python3dist(wheel)
+
+Requires:       python3dist(cloudpickle)
+Requires:       python3dist(diskcache)
+Requires:       python3dist(genson)
+Requires:       python3dist(jinja2)
+Requires:       python3dist(jsonpath-ng)
+Requires:       python3dist(jsonschema)
+Requires:       python3dist(outlines_core) = 0.2.14
+Requires:       python3dist(pillow)
+Requires:       python3dist(pydantic) >= 2
+Requires:       python3dist(typing-extensions)
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}
@@ -33,6 +56,22 @@ expressions, JSON schemas, and context-free grammars.
 
 %generate_buildrequires
 %pyproject_buildrequires
+
+%check -a
+export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
+%{python3} - <<'PY'
+import importlib.metadata
+
+import outlines
+from outlines import grammars, types
+
+assert importlib.metadata.version("outlines") == "1.2.13"
+assert types.digit.matches("7")
+assert not types.digit.matches("x")
+assert "start" in grammars.json
+schema = types.json_schema('{"type": "string"}')
+assert schema.schema == '{"type": "string"}'
+PY
 
 %files -f %{pyproject_files}
 %doc README.md

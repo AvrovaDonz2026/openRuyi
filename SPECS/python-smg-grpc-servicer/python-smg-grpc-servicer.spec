@@ -44,6 +44,19 @@ including vLLM, MLX, TokenSpeed, and SGLang.
 %generate_buildrequires
 %pyproject_buildrequires
 
+%check -a
+PYTHONPATH="%{buildroot}%{python3_sitelib}" %{python3} - <<'PY'
+import importlib
+import importlib.metadata
+
+assert importlib.metadata.version("smg-grpc-servicer") == "%{version}"
+importlib.import_module("grpc")
+importlib.import_module("grpc_health.v1.health_pb2")
+importlib.import_module("grpc_reflection.v1alpha.reflection")
+importlib.import_module("smg_grpc_proto.generated.sglang_scheduler_pb2_grpc")
+importlib.import_module("smg_grpc_servicer")
+PY
+
 %files -f %{pyproject_files}
 %doc README.md
 %license LICENSE
