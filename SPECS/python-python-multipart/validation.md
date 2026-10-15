@@ -16,15 +16,27 @@ The SPEC includes an installation smoke check that imports `multipart` and
 constructs a parser for a minimal `multipart/form-data` body. The check runs
 after installation so it verifies the packaged import path.
 
-Offline validation status on 2026-10-15:
+Target source-build validation passed on 2026-10-15:
 
-* `python3 scripts/pre-commit-hooks/check_source_with_remoteasset.py SPECS/python-python-multipart/python-python-multipart.spec` passed.
-* `rpmspec --parse` could not parse the repository's custom `BuildSystem: pyproject`
-  directive with the host RPM 4.20 parser; this is a host-tool limitation.
-* The source archive was not present in the local offline cache, so a source RPM
-  could not be assembled without downloading the upstream archive.
-* `qemu-riscv64` is not installed on the host, and no target RPM is cached;
-  RISC-V RPM installation and guest import therefore remain unverified here.
+* The unmodified SPEC built a source RPM and binary RPM from the declared
+  archive, including its import and parser `%check`.
+* Local `rpmbuild` invocation defined `autorelease=1.local` and an empty
+  `autochangelog`, because the guest lacks the Git-based automatic release
+  preprocessing. The committed SPEC retains the required automatic macros.
+* DNF installed the binary RPM with every repository disabled and downloaded
+  zero bytes. The installed module parsed a multipart form field correctly.
+* The source, SPDX, and other applicable pre-commit checks passed.
 
-The source hash was checked against the PyPI 0.0.32 release metadata. No source
-checksum was changed.
+| Artifact | SHA-256 |
+| --- | --- |
+| `python-python-multipart-0.0.32-1.local.noarch.rpm` | `67d0412d4d42a9f5b212672c3a72ee509983c4ed4d33714b1883eb01d553f484` |
+| `python-python-multipart-0.0.32-1.local.src.rpm` | `1f18ba33d336847a439ec384c1964d29a5ad89098376209917fbd60b03228095` |
+
+The QEMU target uses Python 3.13.8, RPM 6.0.1, and Linux
+7.1.2-533.1.or with QEMU 11.1.1. No source checksum was changed.
+
+This is a local target source build, not an OBS acceptance result. The guest's
+rpmlint 2.8.0 default configuration reported 9 errors and 9 warnings, including
+missing signing/packager/changelog metadata, Group-tag expectations that conflict
+with repository policy, and unexpanded automatic macros when rereading the
+source SPEC. Clean production QA remains pending.
