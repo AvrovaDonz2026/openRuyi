@@ -234,4 +234,18 @@ The remaining blocker is the unverified production RPM/dependency closure: the
 staged QEMU runtime still lacks `torchaudio==2.11.0`, `torchvision==0.29.0`,
 Transformers, `mistral_common`, and several pure Python requirements, while the
 available Torch is `2.14.0a0` and does not satisfy the exact `2.14.0`
-requirement.
+requirement. A complete DNF transaction was then attempted in the same
+`riscv64` guest. It could not resolve because Base has no providers for
+`python-mistral-common`, `python-multipart`, `python-smg-grpc-servicer`,
+`python-outlines`, or `python-modelscope`; its available versions are also
+Torch 2.13.0, torchaudio 2.10.0, torchvision 0.28.0, Triton 3.7.1,
+Transformers 5.12.1, and Mistral Common 1.11.3. The transaction additionally
+conflicts with the staged tokenizers 0.23.3 package. A solver-compatible
+transaction installed 39 available packages, including FastAPI and Starlette,
+but the subsequent import still failed because the staged Triton artifact
+provided no `triton.language` module. The exact DNF transaction, provider
+versions, installed package list, runtime traceback, and checksums are archived
+under `workspace/sglang-packaging/validation/cpu-runtime-20261015/guest-solver/`.
+This confirms that the Starlette failure was an assembly omission while the
+remaining failure is an unresolved repository version and provider closure;
+SGLang startup and inference remain unverified.
