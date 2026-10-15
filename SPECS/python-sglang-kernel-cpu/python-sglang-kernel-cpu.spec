@@ -21,6 +21,7 @@ URL:            https://github.com/sgl-project/sglang/tree/v0.5.21/python/sglang
 VCS:            git:https://github.com/sgl-project/sglang.git
 #!RemoteAsset:  sha256:c44951b7871dac61262fc04e9fca628175758a97fa5f603c522b31dc31b94249
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version_upstream}.tar.gz#/sglang-%{version_upstream}.tar.gz
+Source1:        sglang-kernel-cpu-smoke.py
 BuildSystem:    pyproject
 
 BuildOption(prep):  -n sglang-%{version_upstream}
@@ -90,6 +91,13 @@ cd python/sglang/kernels/aot
 export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
 cd %{buildroot}
 %pyproject_check_import sgl_kernel
+%ifarch riscv64
+# Check the built extension with the Torch build dependency.
+# TP=1 validates registration and the shared-memory interface; it does not
+# exercise multi-rank reduction or synchronization.
+LOCAL_SIZE=1 MASTER_ADDR=127.0.0.1 MASTER_PORT=29599 \
+  %{python3} %{SOURCE1}
+%endif
 
 %files -f %{pyproject_files}
 %license LICENSE

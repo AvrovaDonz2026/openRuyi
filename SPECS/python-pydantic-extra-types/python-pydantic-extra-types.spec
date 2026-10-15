@@ -30,7 +30,8 @@ BuildRequires:  python3dist(pymongo)
 BuildRequires:  python3dist(phonenumbers)
 BuildRequires:  python3dist(semver)
 BuildRequires:  python3dist(python-ulid)
-BuildRequires:  python3dist(bson)
+# The bson module is shipped by the pymongo distribution; there is no separate
+# Python distribution named bson in the openRuyi RPM metadata.
 BuildRequires:  python3dist(jsonschema)
 
 Provides:       python3-%{srcname} = %{version}-%{release}

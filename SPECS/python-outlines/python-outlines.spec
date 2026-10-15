@@ -19,6 +19,10 @@ BuildArch:      noarch
 BuildSystem:    pyproject
 
 BuildOption(install):  -l %{srcname}
+# The countries module is an optional extra; check the top-level API and
+# exercise the supported default types below without making that extra a
+# runtime requirement.
+BuildOption(check):  -t
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)

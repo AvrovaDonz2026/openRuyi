@@ -10,7 +10,7 @@ SPDX-License-Identifier: MulanPSL-2.0
 
 This audit compares the direct project dependencies in `python/pyproject_cpu.toml`
 from the SGLang 0.5.21 source archive with package versions in this repository
-on 2026-10-14. PEP 508 markers were evaluated for Linux, `riscv64`, and CPython
+on 2026-10-15. PEP 508 markers were evaluated for Linux, `riscv64`, and CPython
 3.13. The audit also records the source archive's separate CPU AOT project.
 
 ## Direct CPU runtime dependencies
@@ -80,7 +80,7 @@ The SPEC's API smoke checks exercise the packaged blobfile, OpenAI, Harmony,
 timm, and Transformers imports plus representative call sites. These checks have
 not established compatibility of SGLang's complete inference path. The framework
 requirements for torch, torchaudio,
-torchvision, triton, and `mistral_common` are also written explicitly in the
+torchvision, triton, and `mistral-common` are also written explicitly in the
 SPEC for both build and runtime dependencies. Runtime requirements must also
 be available during the build because the SPEC imports them in `%check`.
 
@@ -99,7 +99,7 @@ The CPU SPEC also declares `pip`, `setuptools`, `setuptools-scm`, and `wheel`,
 the Python development capability, and the RPM pyproject macros. Its RISC-V
 conditional toolchain selects LLVM major version 22. The CPU SPEC declares the
 exact torch, torchaudio, torchvision, and triton versions and the
-`mistral_common` lower bound noted above. `%pyproject_buildrequires` reads
+`mistral-common` lower bound noted above. `%pyproject_buildrequires` reads
 the CPU pyproject metadata to generate build and runtime requirements for the
 build environment. Its `-R` option would skip runtime requirements and is not
 used here. Generating requirements does not establish that they resolve.
@@ -129,9 +129,9 @@ Linux `riscv64` and CPython 3.13.
 
 | Extra | Upstream requirements | Repository comparison |
 | --- | --- | --- |
-| `diffusion` | `addict==2.4.0`, `av==16.1.0`, `cache-dit==1.3.0`, `cloudpickle==3.1.2`, `diffusers==0.37.0`, `imageio==2.36.0`, `imageio-ffmpeg==0.5.1`, `moviepy>=2.0.0`, `opencv-python-headless==4.10.0.84`, `PyYAML==6.0.1`, `remote-pdb==2.1.0`, `runai_model_streamer>=0.15.5`, `scikit-image==0.25.2`, `st_attn==0.0.7` (active), `trimesh>=4.0.0`, `vsa==0.0.4` (active), `xatlas` | Recipes now exist for addict, cache-dit, moviepy, remote-pdb, st-attn, trimesh, vsa, xatlas, and the OpenCV headless flavor. RunAI Model Streamer remains follow-up work. On Python 3.13, the patched process-tests socket buffering makes socketpair unbuffered writes pass, but the remote-pdb `test_simple` QEMU check still fails after 10 seconds because the prompt is `-> set_trace(**kwargs)` instead of the expected `-> print('{b2}')`; see `workspace/sglang-packaging/remote-pdb/qemu-validation.log`. QEMU isolated checks passed for MoviePy, Trimesh, and xatlas. |
+| `diffusion` | `addict==2.4.0`, `av==16.1.0`, `cache-dit==1.3.0`, `cloudpickle==3.1.2`, `diffusers==0.37.0`, `imageio==2.36.0`, `imageio-ffmpeg==0.5.1`, `moviepy>=2.0.0`, `opencv-python-headless==4.10.0.84`, `PyYAML==6.0.1`, `remote-pdb==2.1.0`, `runai_model_streamer>=0.15.5`, `scikit-image==0.25.2`, `st_attn==0.0.7` (active), `trimesh>=4.0.0`, `vsa==0.0.4` (active), `xatlas` | Recipes exist for addict, cache-dit, moviepy, remote-pdb, st-attn, trimesh, vsa, xatlas, and the OpenCV headless flavor. RunAI Model Streamer and the strict upstream version constraints remain unresolved. |
 | `tracing` | `opentelemetry-api`, `opentelemetry-exporter-otlp`, `opentelemetry-exporter-otlp-proto-grpc`, `opentelemetry-sdk` | All four repository packages exist at 1.42.1. |
-| `test` | `accelerate`, `pymupdf`, `expecttest`, `jsonlines`, `matplotlib`, `pandas`, `peft>=0.18.0`, `sentence_transformers`, `sgl-eval==0.1.2` | Repository packages satisfy the listed available requirements; `python-sgl-eval` 0.1.2 is packaged with its upstream version bounds. |
+| `test` | `accelerate`, `pymupdf`, `expecttest`, `jsonlines`, `matplotlib`, `pandas`, `peft>=0.18.0`, `sentence_transformers`, `sgl-eval==0.1.2` | `python-sgl-eval` 0.1.2 is packaged, but its Datasets/Pandas/Pillow bounds still need a solvable compatibility transaction. |
 | `all` | No requirements | Empty. |
 | `dev` | `sglang[test]` | Self-reference to the test extra; this is not an additional standalone package requirement. |
 
@@ -144,116 +144,84 @@ RPM build remain necessary to verify the transitive closure in the target build
 environment. Optional extras are reported separately because they are not
 installed by the default CPU extra selection.
 
-## Validation status
+## Source changes
 
-The RISC-V CPU recipe includes downstream target-selection, shared-memory
-collective, and runtime fallback patches. The patches apply to the pinned source
-with zero fuzz and the Python changes pass syntax checks. Host LLVM compiled the
-full selected CPU AOT sources and linked a RISC-V shared object. In QEMU with
-the corrected Torch 2.14 runtime, direct `torch.ops.sgl_kernel.rmsnorm_cpu`,
-`silu_and_mul_cpu`, and TP1 `shm_allreduce` checks passed. The upstream Python
-wrapper still names GPU-only unsuffixed operators, so those generic wrappers
-are not claimed as a CPU API.
+The upstream CPU build is selected with `pyproject_cpu.toml` and
+`SGLANG_BUILD_RUST_EXTS=none`. The latter is an upstream build option.
+The upstream setuptools-scm version override supplies the release version
+without rewriting dynamic version metadata. PyTorch also uses upstream CMake
+and environment options for CBLAS selection instead of a source patch.
+Source changes in `%prep`, including dependency metadata substitutions, are
+still downstream modifications.
 
-The isolated target tests passed for Addict, Proglog, MoviePy's
-in-memory ColorClip path, Trimesh's unit-box geometry, xatlas's UV generation,
-and the LaTeX/math verifier chain with ANTLR 4.9.3. These are wheel-level tests;
-they do not establish production OBS RPM build equivalence. Standard target RPM
-macro assembly and dependency-checked installation passed for pybase64 and
-msgspec using local prebuilt-wheel adapters.
+| Change | Reason | Validation limit |
+| --- | --- | --- |
+| CPU AOT target selection | Upstream 0.5.21 has no RISC-V source selection and uses host-native ISA flags | Selected sources cross-compiled with LLVM; the production source RPM is unverified |
+| CPU AOT shared-memory collectives | Upstream has no RISC-V SHM implementation | TP1 checks passed; multi-process reduction correctness remains unverified |
+| Framework CPU runtime fallback | Upstream CPU detection and defaults cover x86 and ARM; some CPU imports require unavailable operators | Patch application and isolated imports do not establish complete engine support |
+| Five dependency pin substitutions | The repository contains newer blobfile, OpenAI, Harmony, timm, and Transformers versions | Representative APIs passed; end-to-end compatibility remains unverified |
 
-The optional compatibility recipes are now provided as `python-datasets-4`,
-`python-pandas-2`, and `python-pillow-11`, with suffixed package aliases. The
-upstream bounds from sgl-eval (`datasets<5`, `pandas<3`, and `Pillow<12`) and
-MoviePy's `Pillow<12` requirement still conflict with the unsuffixed current
-providers; the aliases do not remove those conflicts. The fsspec 2026.2
-compatibility provider is included for datasets 4's `<=2026.2.0` bound. Its
-source hash is verified. A Pandas 2.3.3 host-LLVM cross wheel
-(`cp313-cp313-linux_riscv64`) imported in QEMU Python 3.13.8 and passed
-`groupby` aggregation (`{'a': 4, 'b': 6}`); this is scratch wheel evidence.
+The three RISC-V patches cannot currently be removed without removing required
+architecture support. CPU features that require unimplemented AOT operators
+remain unavailable. No successful speculative-decoding, multi-rank, or complete
+inference result is claimed.
 
-PyTorch 2.14.0 import and CPU matmul passed in a QEMU scratch wheel
-environment. After relinking against the shared `libstdc++`, torchaudio 2.11.0
-guest import and resampling passed there as well; this is wheel-level evidence,
-not a complete OBS offline build. The previous TorchCodec crash is fixed for
-version querying and constructor use; its frame path returns the explicit
-FFmpeg `AVERROR_PATCHWELCOME` result. `torchvision` 0.29.0 NMS passed in the
-same scratch environment. A dynamically relinked TVM-FFI 0.1.11 artifact passed
-Torch-loaded RISC-V imports, returning `device("cpu")` as `cpu:0`; this is
-scratch wheel evidence. The earlier SIGSEGV came from an incomplete static C++
-build and is superseded.
+## Target validation
 
-The corrected grpcio 1.84 wheel has a Linux extension suffix and corrected
-`RECORD` and `WHEEL` metadata. Direct `pip --target --no-deps --no-index`
-installation and the health RPC passed in the scratch target environment. The
-fsspec compatibility wheel passed QEMU isolated MemoryFS write/read and HTTP
-extra metadata checks.
-The real Datasets 4.8.5 source built with that fsspec provider; its extracted
-RPM passed a two-row `Dataset.from_dict` and `filter` fixture. Binary and source
-RPM scratch checks reported 11 errors and 6 warnings from unsigned artifacts,
-temporary metadata, and upstream file/tag findings; this is validation evidence,
-not a clean production QA result.
+The target environment is QEMU 11.1.1, `riscv-virtio`, Linux
+7.1.2-533.1.or, OpenSBI 1.8.1, EDK2 2.7, Python 3.13.8, and RPM 6.0.1.
+Host LLVM was used for the large native extensions; QEMU was used for target
+installation and runtime checks.
 
-The GenSON source is version 1.4.0 (source SHA-256
-`bc7f1c1bae87a21ca44d81149aec95a3f4468d676de9b8b08caa064f3c50b3da`). The
-source RPM `%check` ran 111 tests successfully in 13.31 seconds; the resulting
-RPM SHA-256 is
-`c7435bbceb43e86991fd38b4b9bd4c53dde408afb649c815284736e972c5a8f8` and the
-SRPM SHA-256 is
-`b51c89300394cba7c2e44e04288666a5a3ab2b958fd4dc236e79cbbfecf87dbd`.
-Scratch rpmlint findings remain, so this is not a clean OBS QA result. RunAI
-Model Streamer 0.16.1 lacks an
-sdist and a RISC-V Bazel toolchain; its libstreamer and cloud C++ SDK offline
-closure remains unfulfilled.
+| Component | Observed result | Artifact scope |
+| --- | --- | --- |
+| Torch 2.14 source | Import and CPU matrix multiplication passed | Scratch cross-built wheel; runtime reported `2.14.0a0`, so the release pin remains unverified |
+| torchaudio 2.11.0 | Import and resampling passed with shared libstdc++ linkage | Scratch wheel |
+| torchvision 0.29.0 | NMS passed | Scratch wheel |
+| CPU AOT 0.4.7 | FP16/BF16 RMSNorm and SiLU passed against float32 references; TP1 SHM passed | Scratch artifact/RPM adapter with Torch `2.14.0a0`; the same script is included in `%check` |
+| Triton 3.8.0 | Import, language/compiler imports, and `cdiv` passed | Scratch LLVM artifact; no active driver or kernel execution |
+| Transformers 5.16.0 | Import, configuration/tokenizer loading, SGLang compatibility hooks, and image processor fixture passed | Scratch wheel |
+| grpcio 1.84.0 | Health RPC and generated SMG stub imports passed | Scratch wheels |
+| TVM-FFI 0.1.11 | Torch-loaded import and CPU device construction passed | Scratch dynamically linked artifact |
+| TorchCodec 0.12.0 | Version query and constructor passed; frame decoding returned `AVERROR_PATCHWELCOME` | Scratch artifact; decoding is not verified |
+| python-multipart 0.0.32 | Source build, `%check`, offline DNF install, and installed parser passed | Local source-built RPM; default rpmlint findings remain |
+| GenSON 1.4.0 | Source RPM check ran 111 passing tests | Scratch RPM with QA findings |
+| pybase64 and msgspec | Dependency-checked RPM install/import passed | Prebuilt-wheel RPM adapters |
+| Addict, Proglog, MoviePy, Trimesh, xatlas, math verifier chain | Isolated functional checks passed | Scratch wheels |
 
-The Torch scratch binary RPM was checked with rpmlint and required an
-invocation-only RPATH QA bypass; it retains original
-`CMakeLists.txt.orig` and development files, so this is not a production
-source-build pass. The final isolated AOT RPM smoke test passed RMSNorm, SiLU,
-and SHM checks with digest verification. Scratch rpmlint checks reported errors
-and warnings; source RPM QA remains pending.
+These checks do not establish a complete offline OBS source build. Scratch
+RPMs have outstanding rpmlint findings, including temporary metadata, development
+file ownership, and unstripped files. The Torch adapter also required an RPATH
+QA bypass; that bypass is not part of the production SPEC.
 
-The SGLang CPU metadata wheel contains 87 `Requires-Dist` entries. An earlier
-scratch runtime assembled before Triton was available failed its top-level
-import with `ModuleNotFoundError: triton` after 22 seconds, rather than timing
-out. The later host-LLVM Triton shared-library import passed in QEMU, but a
-complete SGLang RPM installation, startup, and inference path remain unproven.
-CUDA/ROCm device execution also remains unverified. Target evidence was collected with QEMU 11.1.1 (`riscv-virtio`,
-QEMU kernel 7.1.2-533.1.or), Python 3.13.8, RPM 6.0.1, OpenSBI 1.8.1, and
-EDK2 2.7.
+## Unresolved package closure
 
-The latest post-Triton QEMU check imported Triton 3.8.0, `triton.cdiv`,
-`triton.language`, and `triton.compiler` successfully, then reached
-`import sglang` and failed with `ModuleNotFoundError: No module named
-'starlette'`; see `workspace/sglang-packaging/sglang-cpu-final-wheel-validation/logs/post-triton-import.txt`.
-This was a focused import check only: no complete SGLang startup or inference
-run was performed, and the temporary Triton staging was removed afterward.
-The missing `starlette` is covered by the repository's RPM dependency chain
-from `python-fastapi` to `python-starlette`; it came from the manually staged
-QEMU wheel assembly and does not justify adding a manual SGLang `Requires`.
-The remaining blocker is the unverified production RPM/dependency closure: the
-staged QEMU runtime still lacks `torchaudio==2.11.0`, `torchvision==0.29.0`,
-Transformers, `mistral_common`, and several pure Python requirements, while the
-available Torch is `2.14.0a0` and does not satisfy the exact `2.14.0`
-requirement. A complete DNF transaction was then attempted in the same
-`riscv64` guest. It could not resolve because Base has no providers for
-`python-mistral-common`, `python-multipart`, `python-smg-grpc-servicer`,
-`python-outlines`, or `python-modelscope`; its available versions are also
-Torch 2.13.0, torchaudio 2.10.0, torchvision 0.28.0, Triton 3.7.1,
-Transformers 5.12.1, and Mistral Common 1.11.3. The transaction additionally
-conflicts with the staged tokenizers 0.23.3 package. A solver-compatible
-transaction installed 39 available packages, including FastAPI and Starlette,
-but the subsequent import still failed because the staged Triton artifact
-provided no `triton.language` module. The exact DNF transaction, provider
-versions, installed package list, runtime traceback, and checksums are archived
-under `workspace/sglang-packaging/validation/cpu-runtime-20261015/guest-solver/`.
-This confirms that the Starlette failure was an assembly omission while the
-remaining failure is an unresolved repository version and provider closure;
-SGLang startup and inference remain unverified.
+Recipes exist for the default CPU dependencies, but the target Base repository
+cannot yet supply a complete transaction. Missing Python distribution providers include
+`sglang-kernel-cpu`, `mistral-common`, `python-multipart`,
+`smg-grpc-servicer`, `outlines`, and `modelscope`; their RPM recipe names are
+listed in the dependency table above. Base provides older Torch
+2.13.0, torchaudio 2.10.0, torchvision 0.28.0, Triton 3.7.1, and Transformers
+5.12.1. Its Transformers constraint also conflicts with tokenizers 0.23.3.
+The corresponding updated production RPMs and their transitive requirements
+MUST be built and installed together before the closure can be accepted.
+
+Optional dependency constraints also remain unresolved. `sgl-eval` requires
+`datasets<5`, `pandas<3`, and `Pillow<12`; MoviePy requires `Pillow<12`.
+Compatibility recipes for Datasets 4.8.5, Pandas 2.3.3, Pillow 11.3.0, and
+fsspec 2026.2.0 exist, but their aliases alone do not solve conflicts with the
+current unsuffixed providers. RunAI Model Streamer still needs its native
+library, cloud SDK dependencies, and an offline RISC-V build toolchain.
+The remote-pdb source test also has an unresolved Python 3.13 prompt mismatch.
+
+A successful complete SGLang CPU RPM installation, server startup, and inference
+request have not been demonstrated. CUDA and ROCm device execution are also
+unverified. CUDA recipes requiring NVIDIA's toolkit currently cannot be built
+for RISC-V with the available supported host toolchain.
 
 ## Offline CPU startup smoke plan
 
-The smallest useful startup check must use a local Hugging Face-style model
+The smallest useful startup check uses a local Hugging Face-style model
 directory. `model_path=dummy` is useful for unit fixtures, but the normal
 `ModelConfig` path still needs a model configuration and therefore does not
 exercise local configuration or tokenizer loading. Instead, create a temporary
@@ -281,20 +249,13 @@ SGLANG_USE_CPU_ENGINE=1 python -m sglang.launch_server \
   --max-running-requests 1 --port 30000
 ```
 
-The smoke must first poll `GET /health`, then send one offline request to
+The smoke MUST first poll `GET /health`, then send one offline request to
 `POST /v1/completions` with prompt `hello` and `max_tokens=1`, and finally
 terminate the server while retaining its complete log. A successful HTTP
 response would establish a target startup and one-token request path only; it
 would not establish throughput, long-context behavior, speculative decoding,
 GPU execution, or compatibility with arbitrary model architectures.
 
-This smoke has not passed. The current guest cannot assemble the required
-versions: Base offers Torch 2.13.0, torchaudio 2.10.0, torchvision 0.28.0,
-Triton 3.7.1, and Transformers 5.12.1, while this CPU package requires the
-2.14.0/2.11.0/0.29.0/3.8.0 set and bounded Transformers >=5.16.0. The staged
-tokenizers 0.23.3 package also conflicts with Base Transformers' tokenizers
-0.22 provider. Before the smoke can run, the offline transaction must include
-the five direct providers absent from Base (`mistral-common`, `python-multipart`,
-`smg-grpc-servicer`, `outlines`, and `modelscope`) and their transitive
-providers (`cloudpickle`, `diskcache`, `genson`, `jsonpath-ng`, `outlines-core`,
-`modelscope-hub`, grpc health/reflection, and `smg-grpc-proto`).
+This smoke has not passed. It MUST run with real target dependencies and
+without substitute operator or Triton stubs. A successful scratch run MUST be
+followed by the same check against dependency-checked production RPMs.
