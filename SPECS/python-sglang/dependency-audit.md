@@ -118,7 +118,7 @@ project; it is not a direct dependency listed by SGLang's CPU
 upstream CPU installation builds both projects. Host-LLVM cross-build and QEMU
 checks were performed in scratch environments; they do not establish an OBS
 RPM build or production package result. The isolated checks covered import,
-RMSNorm, SiLU, and TP1 shared-memory operations after installing the AOT
+RMSNorm, SiLU, and two-rank shared-memory operations after installing the AOT
 artifact with Torch 2.14. The RPM digest check passed for that local artifact.
 
 ## Optional extras
@@ -157,7 +157,7 @@ still downstream modifications.
 | Change | Reason | Validation limit |
 | --- | --- | --- |
 | CPU AOT target selection | Upstream 0.5.21 has no RISC-V source selection and uses host-native ISA flags | Selected sources cross-compiled with LLVM; the production source RPM is unverified |
-| CPU AOT shared-memory collectives | Upstream has no RISC-V SHM implementation | TP1 checks passed; multi-process reduction correctness remains unverified |
+| CPU AOT shared-memory collectives | Upstream has no RISC-V SHM implementation | QEMU TP2 checks passed for FP32/FP16/BF16 across chunk-boundary and tail sizes; larger process counts remain unverified |
 | Framework CPU runtime fallback | Upstream CPU detection and defaults cover x86 and ARM; some CPU imports require unavailable operators | Patch application and isolated imports do not establish complete engine support |
 | Five dependency pin substitutions | The repository contains newer blobfile, OpenAI, Harmony, timm, and Transformers versions | Representative APIs passed; end-to-end compatibility remains unverified |
 
@@ -178,7 +178,7 @@ installation and runtime checks.
 | Torch 2.14 source | Import and CPU matrix multiplication passed | Scratch cross-built wheel; runtime reported `2.14.0a0`, so the release pin remains unverified |
 | torchaudio 2.11.0 | Import and resampling passed with shared libstdc++ linkage | Scratch wheel |
 | torchvision 0.29.0 | NMS passed | Scratch wheel |
-| CPU AOT 0.4.7 | FP16/BF16 RMSNorm and SiLU passed against float32 references; TP1 SHM passed | Scratch artifact/RPM adapter with Torch `2.14.0a0`; the same script is included in `%check` |
+| CPU AOT 0.4.7 | FP16/BF16 RMSNorm and SiLU passed against float32 references; TP2 FP32/FP16/BF16 SHM passed | Scratch artifact/RPM adapter with Torch `2.14.0a0`; the same script is included in `%check` |
 | Triton 3.8.0 | Import, language/compiler imports, and `cdiv` passed | Scratch LLVM artifact; no active driver or kernel execution |
 | Transformers 5.16.0 | Import, configuration/tokenizer loading, SGLang compatibility hooks, and image processor fixture passed | Scratch wheel |
 | grpcio 1.84.0 | Health RPC and generated SMG stub imports passed | Scratch wheels |
