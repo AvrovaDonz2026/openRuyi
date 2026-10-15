@@ -17,6 +17,9 @@ VCS:            git:https://github.com/vllm-project/humming.git
 #!RemoteAsset:  sha256:a5356a63c4adf6c16c46f541749dec90fc2d49cf29ebc33ac05e23c744731809
 Source0:        https://files.pythonhosted.org/packages/70/d2/e286acb9f594f998bbc2d99617966a4f01a603c699d829793a86a42c2440/%{pypi_name}-%{version}.tar.gz
 BuildSystem:    pyproject
+# Upstream requires NVCC and targets NVIDIA SM75+ GPUs; no RISC-V CUDA
+# toolkit target is supported by this CUDA-only package.
+ExclusiveArch:  x86_64 aarch64
 
 BuildOption(install):  humming +auto
 

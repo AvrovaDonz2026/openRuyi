@@ -16,6 +16,9 @@ VCS:            git:https://github.com/Dao-AILab/quack.git
 #!RemoteAsset:  sha256:dd9405a4a6fa35fc3a5a18fe35b46a14b0bf7e3ad9fe2451903e355047ac471d
 Source0:        https://files.pythonhosted.org/packages/5f/18/6c2a20d00dff254f154fb3b951f4e5a0377a60122c17385e5f08d5f5b5e1/%{pypi_name}-%{version}.tar.gz
 BuildSystem:    pyproject
+# Upstream requires CUDA toolkit 12.9+ and NVIDIA H100, B200/B300, or RTX 50
+# GPUs; no RISC-V CUDA toolkit target is supported by this CUDA-only package.
+ExclusiveArch:  x86_64 aarch64
 
 BuildOption(install):  quack +auto
 
