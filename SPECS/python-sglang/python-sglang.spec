@@ -69,7 +69,7 @@ BuildRequires:  python3dist(torchaudio) = 2.11.0
 BuildRequires:  python3dist(torchvision) = 0.29.0
 BuildRequires:  python3dist(triton) = 3.8.0
 BuildRequires:  python3dist(sglang-kernel-cpu) = 0.4.7
-BuildRequires:  python3dist(mistral_common) >= 1.11.5
+BuildRequires:  python3dist(mistral-common) >= 1.11.5
 %endif
 
 %if %{without cuda}
@@ -80,7 +80,7 @@ Requires:       python3dist(triton) = 3.8.0
 # The upstream CPU installation also builds the separate AOT kernel project.
 Requires:       python3dist(sglang-kernel-cpu) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
-Requires:       python3dist(mistral_common) >= 1.11.5
+Requires:       python3dist(mistral-common) >= 1.11.5
 %endif
 
 Provides:       python3-%{srcname} = %{version}-%{release}
