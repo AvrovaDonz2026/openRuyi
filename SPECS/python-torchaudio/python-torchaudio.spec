@@ -22,6 +22,7 @@ URL:            https://github.com/pytorch/audio
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
 BuildSystem:    pyproject
 
+BuildOption(prep):  -n audio-%{version}
 BuildOption(install):  %{srcname}
 # libtorchaudio is a shared library loaded by torchaudio, not a Python module.
 BuildOption(check):  -e %{srcname}.lib.libtorchaudio
@@ -35,10 +36,10 @@ BuildRequires:  pkgconfig(protobuf)
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(torch) >= 2.11
+BuildRequires:  python3dist(torch) = 2.14.0
 BuildRequires:  python3dist(wheel)
 # Could not find a package configuration file provided by "Torch"
-BuildRequires:  python-torch-devel
+BuildRequires:  python-torch-devel = 2.14.0
 %ifarch riscv64
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -51,7 +52,7 @@ Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
 
-Requires:       python3dist(torch) >= 2.11
+Requires:       python3dist(torch) = 2.14.0
 
 %description
 TorchAudio is an audio package for PyTorch providing signal processing

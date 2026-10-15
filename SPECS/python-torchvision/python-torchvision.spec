@@ -78,12 +78,12 @@ BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
 BuildRequires:  hipcc
 BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
-BuildRequires:  python-torch-rocm-devel >= 2.14.0
+BuildRequires:  python-torch-rocm-devel = 2.14.0
 BuildRequires:  rocm-device-libs
 BuildRequires:  rocm-llvm-macros
 %else
 BuildRequires:  gcc-c++
-BuildRequires:  python-torch-devel >= 2.14.0
+BuildRequires:  python-torch-devel = 2.14.0
 %ifarch riscv64
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -97,12 +97,12 @@ Requires:       python3dist(numpy)
 Requires:       python3dist(pillow)
 Requires:       python3dist(requests)
 %if %{with rocm}
-Requires:       python-torch-rocm >= 2.14.0
+Requires:       python-torch-rocm = 2.14.0
 Provides:       python3-%{srcname}-rocm = %{version}-%{release}
 Provides:       python3-%{srcname}-rocm%{?_isa} = %{version}-%{release}
 Conflicts:      python-%{srcname}
 %else
-Requires:       python-torch >= 2.14.0
+Requires:       python-torch = 2.14.0
 Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
@@ -125,6 +125,7 @@ sed -i -e 's@extra_compile_args["cxx"].append("-g0")@extra_compile_args["cxx"].a
 %pyproject_buildrequires
 
 %build -p
+export BUILD_VERSION=%{version}
 export TORCHVISION_USE_WEBP=1
 %if %{without rocm}
 %ifarch riscv64
