@@ -12,6 +12,8 @@
 %endif
 
 Name:           python-%{srcname}
+BuildRequires:  sglang-rpm-macros
+%sglang_python_compat core
 Version:        0.12.0
 Release:        %autorelease
 Summary:        PyTorch video decoding and encoding library
@@ -25,6 +27,7 @@ BuildSystem:    pyproject
 BuildOption(install):  -l %{srcname}
 
 BuildRequires:  cmake
+BuildRequires:  patchelf
 %ifarch riscv64
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -37,25 +40,23 @@ BuildRequires:  gcc-c++
 BuildRequires:  ffmpeg-devel
 BuildRequires:  pkgconfig
 BuildRequires:  pkgconfig(python3)
+BuildRequires:  file
 BuildRequires:  pkgconfig(pybind11)
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python-torch-devel >= 2.11
+BuildRequires:  python-sglang-torch-2.14-devel = 2.14.0
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
 
 Requires:       ffmpeg
-Requires:       python-torch >= 2.11
-Provides:       python3-%{srcname} = %{version}-%{release}
-Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
-%python_provide python3-%{srcname}
+Requires:       sglang(python3dist(torch)) = 2.14.0
 
 %description
 TorchCodec provides PyTorch bindings for decoding and encoding audio and video
 with the system FFmpeg libraries.
 
 %generate_buildrequires
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
 
 %build -p
 # The build links to the system FFmpeg package instead of downloading or
@@ -75,8 +76,11 @@ export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
 export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
 %endif
 
+%install -a
+%sglang_private_rpath
+
 %check -a
-PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}" \
+PYTHONPATH="%{buildroot}%{_sglang_private_sitearch}" \
 %{python3} - <<'PY'
 from torchcodec._core import get_ffmpeg_library_versions
 

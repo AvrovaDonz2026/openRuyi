@@ -9,6 +9,8 @@
 %global kernel_version 0.4.7
 
 Name:           python-sglang-kernel
+BuildRequires:  sglang-rpm-macros
+%sglang_python_compat core
 Version:        %{kernel_version}
 Release:        %autorelease
 Summary:        CUDA kernel library for SGLang
@@ -41,16 +43,18 @@ BuildOption(install):  -l sgl_kernel
 
 BuildRequires:  cuda-toolkit
 BuildRequires:  cmake >= 3.31
+BuildRequires:  file
 BuildRequires:  gcc-c++
 BuildRequires:  ninja
+BuildRequires:  patchelf
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
 BuildRequires:  python3dist(scikit-build-core) >= 0.10
-BuildRequires:  python3dist(torch) = 2.14.0
+BuildRequires:  sglang(python3dist(torch)) = 2.14.0
 BuildRequires:  python3dist(wheel)
 
-Requires:       python3dist(torch) = 2.14.0
+Requires:       sglang(python3dist(torch)) = 2.14.0
 
 %description
 SGLang Kernel provides optimized CUDA compute primitives used by the SGLang
@@ -88,10 +92,17 @@ tar -xf %{SOURCE6} --strip-components=1 -C third-party/flashmla
 tar -xf %{SOURCE7} --strip-components=1 -C third-party/flashmla/csrc/cutlass
 
 %generate_buildrequires
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
+
+%build -p
+export PYTHONPATH="%{_sglang_private_sitelib}${PYTHONPATH:+:$PYTHONPATH}"
+export CMAKE_PREFIX_PATH="%{_sglang_private_sitelib}/torch/share/cmake${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
+
+%install -a
+%sglang_private_rpath
 
 %check -a
-%pyproject_check_import sgl_kernel
+%sglang_pyproject_check_import sgl_kernel
 
 %files -f %{pyproject_files}
 %license LICENSE

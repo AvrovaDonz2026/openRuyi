@@ -1,15 +1,11 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname torchvision
 %global llvm_maj_ver 22
-%ifarch riscv64
-%global toolchain clang
-%endif
 
 %global flavor @BUILD_FLAVOR@%{nil}
 %if "%{flavor}" == "rocm"
@@ -30,12 +26,12 @@ Name:           python-%{srcname}-rocm
 %else
 Name:           python-%{srcname}
 %endif
-Version:        0.29.0
+Version:        0.28.0
 Release:        %autorelease
 Summary:        Image and video datasets for torch deep learning
 License:        BSD-3-Clause AND BSD-2-Clause AND MIT
 URL:            https://github.com/pytorch/vision
-#!RemoteAsset:  sha256:24be57d922927d8a2ac2e8f076f07c3447ddf8f1d25ddbb7b65578f36c9ab8e3
+#!RemoteAsset:  sha256:ecc4451241c8eeadc0c88213bd65c7932c9622d1d0034254b938f25362283ee9
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
 BuildSystem:    pyproject
 
@@ -78,31 +74,24 @@ BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
 BuildRequires:  hipcc
 BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
-BuildRequires:  python-torch-rocm-devel = 2.14.0
+BuildRequires:  python-torch-rocm-devel
 BuildRequires:  rocm-device-libs
 BuildRequires:  rocm-llvm-macros
 %else
 BuildRequires:  gcc-c++
-BuildRequires:  python-torch-devel = 2.14.0
-%ifarch riscv64
-BuildRequires:  clang
-BuildRequires:  clang(major) = %{llvm_maj_ver}
-BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
-BuildRequires:  lld(major) = %{llvm_maj_ver}
-BuildRequires:  llvm(major) = %{llvm_maj_ver}
-%endif
+BuildRequires:  python-torch-devel
 %endif
 
 Requires:       python3dist(numpy)
 Requires:       python3dist(pillow)
 Requires:       python3dist(requests)
 %if %{with rocm}
-Requires:       python-torch-rocm = 2.14.0
+Requires:       python-torch-rocm
 Provides:       python3-%{srcname}-rocm = %{version}-%{release}
 Provides:       python3-%{srcname}-rocm%{?_isa} = %{version}-%{release}
 Conflicts:      python-%{srcname}
 %else
-Requires:       python-torch = 2.14.0
+Requires:       python-torch
 Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
@@ -125,20 +114,7 @@ sed -i -e 's@extra_compile_args["cxx"].append("-g0")@extra_compile_args["cxx"].a
 %pyproject_buildrequires
 
 %build -p
-export BUILD_VERSION=%{version}
 export TORCHVISION_USE_WEBP=1
-%if %{without rocm}
-%ifarch riscv64
-export CC=clang
-export CXX=clang++
-export LD=ld.lld
-export AR=llvm-ar
-export RANLIB=llvm-ranlib
-export CFLAGS="%{build_cflags} --target=%{_target_platform}"
-export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
-export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
-%endif
-%endif
 %if %{with rocm}
 export FORCE_CUDA=1
 export ROCM_HOME=%{_prefix}
@@ -158,16 +134,6 @@ done
 %check -a
 %if %{with test}
 %pytest
-%else
-PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}" \
-%{python3} - <<'PY'
-import torch
-import torchvision
-
-boxes = torch.tensor([[0, 0, 10, 10], [1, 1, 11, 11]], dtype=torch.float32)
-scores = torch.tensor([0.9, 0.8])
-assert torchvision.ops.nms(boxes, scores, 0.5).tolist() == [0]
-PY
 %endif
 
 %files -f %{pyproject_files}

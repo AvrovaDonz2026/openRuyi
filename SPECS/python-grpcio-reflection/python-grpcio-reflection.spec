@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: Li Guan <guanli.oerv@isrc.iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
@@ -9,13 +8,13 @@
 %global pypi_name grpcio_reflection
 
 Name:           python-%{srcname}
-Version:        1.84.0
+Version:        1.82.1
 Release:        %autorelease
 Summary:        Standard Protobuf Reflection Service for gRPC
 License:        Apache-2.0
 URL:            https://grpc.io/
 VCS:            git:https://github.com/grpc/grpc
-#!RemoteAsset:  sha256:06bf3d7d8cef9afbcc721ee52191652b4483831774255e174404b0e0551741bc
+#!RemoteAsset:  sha256:2ec943ead3e17b43f8e0747a5cb417b3a64357fe3d9b4a7bdc39a4c33ea9800d
 Source0:        https://files.pythonhosted.org/packages/source/g/%{srcname}/%{pypi_name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    pyproject
@@ -24,13 +23,6 @@ BuildOption(install):  -l grpc_reflection
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(grpcio) >= %{version}
-BuildRequires:  python3dist(protobuf) >= 7.35.1
-BuildRequires:  python3dist(protobuf) < 8.0.0
-
-Requires:       python3dist(grpcio) >= %{version}
-Requires:       python3dist(protobuf) >= 7.35.1
-Requires:       python3dist(protobuf) < 8.0.0
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}

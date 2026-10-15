@@ -34,7 +34,6 @@ BuildRequires:  python3dist(jinja2)
 Provides:       python3-%{srcname} = %{version}-%{release}
 Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
-Conflicts:      python-pandas-2
 
 %description
 Pandas is a Python package providing data structures designed for

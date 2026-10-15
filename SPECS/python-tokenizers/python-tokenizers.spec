@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: Gui-Yue <xiangwei.riscv@isrc.iscas.ac.cn>
 # SPDX-FileContributor: yyjeqhc <jialin.oerv@isrc.iscas.ac.cn>
 #
@@ -9,13 +8,13 @@
 %global srcname tokenizers
 
 Name:           python-%{srcname}
-Version:        0.23.3
+Version:        0.22.2
 Release:        %autorelease
 Summary:        Fast, state-of-the-art tokenizers optimized for research and production
 License:        Apache-2.0
 URL:            https://pypi.org/project/tokenizers/
 VCS:            git:https://github.com/huggingface/tokenizers
-#!RemoteAsset:  sha256:cded33237c77caeef62944d32aa9a7ef42bdce2b3497e18d137e072a8c4be438
+#!RemoteAsset:  sha256:473b83b915e547aa366d1eee11806deaf419e17be16310ac0a14077f1e28f917
 Source0:        https://files.pythonhosted.org/packages/source/t/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 
@@ -39,13 +38,12 @@ BuildRequires:  crate(aho-corasick-1) >= 1.1
 BuildRequires:  crate(aho-corasick-1/default)
 BuildRequires:  crate(compact-str-0.9/default)
 BuildRequires:  crate(compact-str-0.9/serde)
-BuildRequires:  crate(daachorse-3/default) >= 3.0.0
 BuildRequires:  crate(dary-heap-0.3/default)
 BuildRequires:  crate(dary-heap-0.3/serde)
 BuildRequires:  crate(derive-builder-0.20/default)
 BuildRequires:  crate(env-logger-0.11/default)
 BuildRequires:  crate(esaxx-rs-0.1/cpp)
-BuildRequires:  crate(fancy-regex-0.17/default) >= 0.17.0
+BuildRequires:  crate(fancy-regex-0.14/default)
 BuildRequires:  crate(getrandom-0.3/default)
 BuildRequires:  crate(hf-hub-0.4/ureq)
 BuildRequires:  crate(indicatif-0.18/default)
@@ -55,21 +53,17 @@ BuildRequires:  crate(log-0.4/default)
 BuildRequires:  crate(macro-rules-attribute-0.2/default)
 BuildRequires:  crate(monostate-0.1/default)
 BuildRequires:  crate(ndarray-0.16/default)
-BuildRequires:  crate(numpy-0.29/default) >= 0.29.0
+BuildRequires:  crate(numpy-0.26/default)
 BuildRequires:  crate(onig-6/default)
 BuildRequires:  crate(once-cell-1/default)
 BuildRequires:  crate(paste-1/default)
-BuildRequires:  crate(pyo3-0.29/abi3) >= 0.29.0
-BuildRequires:  crate(pyo3-0.29/abi3-py310) >= 0.29.0
-BuildRequires:  crate(pyo3-0.29/default) >= 0.29.0
-BuildRequires:  crate(pyo3-0.29/experimental-inspect) >= 0.29.0
-BuildRequires:  crate(pyo3-0.29/extension-module) >= 0.29.0
-BuildRequires:  crate(pyo3-0.29/py-clone) >= 0.29.0
-BuildRequires:  crate(pyo3-async-runtimes-0.29) >= 0.29.0
-BuildRequires:  crate(pyo3-async-runtimes-0.29/default) >= 0.29.0
-BuildRequires:  crate(pyo3-async-runtimes-0.29/tokio-runtime) >= 0.29.0
-BuildRequires:  crate(pyo3-build-config-0.29/default) >= 0.29.0
-BuildRequires:  crate(pyo3-ffi-0.29/default) >= 0.29.0
+BuildRequires:  crate(pyo3-0.26/abi3)
+BuildRequires:  crate(pyo3-0.26/abi3-py39)
+BuildRequires:  crate(pyo3-0.26/default)
+BuildRequires:  crate(pyo3-0.26/py-clone)
+BuildRequires:  crate(pyo3-async-runtimes-0.26) >= 0.26
+BuildRequires:  crate(pyo3-async-runtimes-0.26/default)
+BuildRequires:  crate(pyo3-async-runtimes-0.26/tokio-runtime)
 BuildRequires:  crate(pkg-config-0.3/default) >= 0.3.33
 BuildRequires:  crate(rand-0.9/default)
 BuildRequires:  crate(rayon-1/default)

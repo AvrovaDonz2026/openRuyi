@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+# SPDX-License-Identifier: MulanPSL-2.0
+
+%__sglang_extras_elf_provides %{_rpmconfigdir}/sglang-elfdeps.py --profile extras --namespace sglang-extras --provides --multifile
+%__sglang_extras_elf_requires %{_rpmconfigdir}/sglang-elfdeps.py --profile extras --namespace sglang-extras --requires --multifile
+%__sglang_extras_elf_magic ^(setuid,? )?(setgid,? )?(sticky )?ELF (32|64)-bit.*$
+%__sglang_extras_elf_protocol multifile
+%__sglang_extras_elf_path ^/usr/lib(64)?/sglang/extras/(python[3-9]\\.[[:digit:]]+/site-packages/.*\\.so(\\.[[:digit:]]+)*|lib/.*\\.so(\\.[[:digit:]]+)*)$

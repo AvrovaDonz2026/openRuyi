@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+#
+# SPDX-License-Identifier: MulanPSL-2.0
+
+From: A. Donz <Avrova@Donz.si>
+Date: Tue, 13 Oct 2026 00:00:00 +0000
+Subject: [PATCH] compiler: allow using the packaged nanobind source
+
+Upstream-Status: Downstream (openRuyi packaging; avoids network access during build)
+Upstream-Reference: https://github.com/iree-org/iree/blob/v3.8.0/compiler/setup.py
+
+The compiler build obtains nanobind through CMake FetchContent. Let the source
+RPM provide the exact pinned nanobind source tree instead.
+
+--- a/compiler/setup.py
++++ b/compiler/setup.py
+@@ -271,6 +271,12 @@
+             get_env_cmake_option("IREE_TARGET_BACKEND_CUDA", "OFF"),
+             get_env_cmake_option("IREE_ENABLE_LLD", "OFF"),
++            get_env_cmake_option("IREE_BUILD_BUNDLED_LLVM", "OFF"),
+         ]
++        nanobind_source_dir = os.getenv("IREE_NANOBIND_SOURCE_DIR")
++        if nanobind_source_dir:
++            cmake_args.append(
++                f"-DFETCHCONTENT_SOURCE_DIR_NANOBIND={nanobind_source_dir}"
++            )
+         cmake_args.extend(get_cmake_version_info_args())

@@ -1,0 +1,29 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+#
+# SPDX-License-Identifier: MulanPSL-2.0
+
+From: openRuyi Project Contributors
+Subject: [PATCH] build: allow newer Cython releases
+
+The openRuyi build environment provides Cython 3.2.4, which is newer than
+the upstream build floor and remains compatible with grpcio's generated code.
+
+Upstream reference: grpc/grpc v1.84.0 pyproject.toml and setup.py
+Status: downstream-only portability adjustment
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -16,5 +16,5 @@
+     "setuptools>=77.0.1",
+     "wheel",
+-    "cython==3.1.1"
++    "cython>=3.1.1"
+ ]
+ build-backend = "setuptools.build_meta"
+--- a/setup.py
++++ b/setup.py
+@@ -582 +582 @@
+-        SETUP_REQUIRES += ("cython==3.1.1",)
++        SETUP_REQUIRES += ("cython>=3.1.1",)

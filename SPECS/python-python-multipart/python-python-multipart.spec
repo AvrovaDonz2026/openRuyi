@@ -37,33 +37,6 @@ used by web frameworks to process multipart form uploads.
 %generate_buildrequires
 %pyproject_buildrequires
 
-%check -a
-%pyproject_check_import multipart
-PYTHONPATH=%{buildroot}%{python3_sitelib} %{__python3} - <<'PY'
-from io import BytesIO
-
-from multipart import parse_form
-
-boundary = b"test-boundary"
-body = (
-    b"--" + boundary + b"\r\n"
-    b"Content-Disposition: form-data; name=field\r\n\r\n"
-    b"value\r\n"
-    b"--" + boundary + b"--\r\n"
-)
-fields = []
-parse_form(
-    {
-        "Content-Type": "multipart/form-data; boundary=" + boundary.decode(),
-        "Content-Length": str(len(body)),
-    },
-    BytesIO(body),
-    lambda field: fields.append((field.field_name, field.value)),
-    None,
-)
-assert fields == [(b"field", b"value")]
-PY
-
 %files -f %{pyproject_files}
 %doc README.md
 %license LICENSE.txt

@@ -29,6 +29,13 @@ Requires:       crate(log-0.4/default) >= 0.4.0
 Requires:       crate(proc-maps-0.4/default) >= 0.4.0
 Requires:       crate(read-process-memory-0.1/default) >= 0.1.6
 Requires:       crate(regex-1/default) >= 1.8.3
+Requires:       crate(addr2line-0.25/default) >= 0.25.0
+Requires:       crate(lazy-static-1/default) >= 1.5.0
+Requires:       crate(memmap2-0.9/default) >= 0.9.7
+Requires:       crate(nix-0.26/ptrace) >= 0.26.0
+Requires:       crate(nix-0.26/sched) >= 0.26.0
+Requires:       crate(nix-0.26/signal) >= 0.26.0
+Requires:       crate(object-0.37/default) >= 0.37.0
 Provides:       crate(%{pkgname}) = %{version}
 Provides:       crate(%{pkgname}/default) = %{version}
 

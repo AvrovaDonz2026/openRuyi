@@ -26,6 +26,8 @@ Name:           python-sglang-cuda
 %global srcname sglang-cpu
 Name:           python-sglang
 %endif
+
+%sglang_python_compat core
 Version:        0.5.21
 Release:        %autorelease
 Summary:        Fast serving framework for large language and vision-language models
@@ -34,6 +36,9 @@ URL:            https://github.com/sgl-project/sglang
 VCS:            git:https://github.com/sgl-project/sglang.git
 #!RemoteAsset:  sha256:c44951b7871dac61262fc04e9fca628175758a97fa5f603c522b31dc31b94249
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version}.tar.gz#/%{upstream_name}-%{version}.tar.gz
+Source1:        sglang-launcher
+Source2:        sglang-python-launcher
+Source3:        sglang-extras-python
 BuildSystem:    pyproject
 %if %{with cuda}
 # CUDA toolkit currently provides Linux host support for these architectures.
@@ -44,6 +49,9 @@ BuildOption(prep):  -n %{upstream_name}-%{version}
 BuildOption(install):  -l sglang
 
 BuildRequires:  pkgconfig(python3)
+BuildRequires:  file
+BuildRequires:  patchelf
+BuildRequires:  sglang-rpm-macros
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
 BuildRequires:  python3dist(pip)
@@ -62,34 +70,25 @@ BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %if %{with cuda}
 # The CUDA flavor retains the upstream CUDA dependency versions.
 BuildRequires:  python3dist(setuptools-rust)
-BuildRequires:  python3dist(torch)
+BuildRequires:  sglang(python3dist(torch))
 %else
-BuildRequires:  python3dist(torch) = 2.14.0
-BuildRequires:  python3dist(torchaudio) = 2.11.0
-BuildRequires:  python3dist(torchvision) = 0.29.0
-BuildRequires:  python3dist(triton) = 3.8.0
-BuildRequires:  python3dist(sglang-kernel-cpu) = 0.4.7
-BuildRequires:  python3dist(mistral-common) >= 1.11.5
+BuildRequires:  sglang(python3dist(torch)) = 2.14.0
+BuildRequires:  sglang(python3dist(torchaudio)) = 2.11.0
+BuildRequires:  sglang(python3dist(torchvision)) = 0.29.0
+BuildRequires:  sglang(python3dist(triton)) = 3.8.0
+BuildRequires:  sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
+BuildRequires:  sglang(python3dist(mistral-common)) >= 1.11.5
 %endif
 
 %if %{without cuda}
-Requires:       python3dist(torch) = 2.14.0
-Requires:       python3dist(torchaudio) = 2.11.0
-Requires:       python3dist(torchvision) = 0.29.0
-Requires:       python3dist(triton) = 3.8.0
+Requires:       sglang(python3dist(torch)) = 2.14.0
+Requires:       sglang(python3dist(torchaudio)) = 2.11.0
+Requires:       sglang(python3dist(torchvision)) = 0.29.0
+Requires:       sglang(python3dist(triton)) = 3.8.0
 # The upstream CPU installation also builds the separate AOT kernel project.
-Requires:       python3dist(sglang-kernel-cpu) = 0.4.7
+Requires:       sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
-Requires:       python3dist(mistral-common) >= 1.11.5
-%endif
-
-Provides:       python3-%{srcname} = %{version}-%{release}
-Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
-%python_provide python3-%{srcname}
-%if %{with cuda}
-Conflicts:      python-sglang
-%else
-Conflicts:      python-sglang-cuda
+Requires:       sglang(python3dist(mistral-common)) >= 1.11.5
 %endif
 
 %patchlist
@@ -109,14 +108,11 @@ This package provides the CPU backend.
 cp README.md LICENSE python/
 %if %{without cuda}
 cp python/pyproject_cpu.toml python/pyproject.toml
-# Match the packaged dependency versions and check the exercised API surfaces.
-# Full inference compatibility with these versions still requires validation.
 sed -i \
     -e 's/"blobfile==3.0.0"/"blobfile>=3.2.0,<4"/' \
     -e 's/"openai==2.6.1"/"openai>=2.40.0,<3"/' \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8,<0.1"/' \
     -e 's/"timm==1.0.16"/"timm>=1.0.28,<2"/' \
-    -e 's/"transformers==5.12.1"/"transformers>=5.16.0,<6"/' \
     python/pyproject.toml
 %endif
 
@@ -126,7 +122,7 @@ export SETUPTOOLS_SCM_PRETEND_VERSION='%{version}'
 %if %{without cuda}
 export SGLANG_BUILD_RUST_EXTS=none
 %endif
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
 
 %build -p
 cd python
@@ -151,22 +147,35 @@ export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
 %install -p
 cd python
 
+%install -a
+%sglang_private_rpath
+
+install -Dpm0755 %{SOURCE1} %{buildroot}%{_bindir}/sglang
+install -Dpm0755 %{SOURCE2} %{buildroot}%{_bindir}/sglang-python
+install -Dpm0755 %{SOURCE3} %{buildroot}%{_bindir}/sglang-extras-python
+sed -i \
+  -e 's|@PRIVATE_SITELIB@|%{_sglang_private_sitelib}|g' \
+  -e 's|@PRIVATE_LIBEXEC@|%{_sglang_private_libexec}|g' \
+  %{buildroot}%{_bindir}/sglang %{buildroot}%{_bindir}/sglang-python
+sed -i \
+  -e 's|@EXTRAS_SITELIB@|%{_libdir}/sglang/extras/python%{python3_version}/site-packages|g' \
+  -e 's|@CORE_SITELIB@|%{_libdir}/sglang/core/python%{python3_version}/site-packages|g' \
+  %{buildroot}%{_bindir}/sglang-extras-python
+
 %check -a
-export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
 cd %{buildroot}
 %if %{with cuda}
-%{python3} -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'
 %else
 export SGLANG_USE_CPU_ENGINE=1
-%{python3} -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
 %endif
 %if %{without cuda}
-%{python3} - <<'PY'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} -s - <<'PY'
 import importlib.metadata
 import blobfile
 import openai
 import timm
-import transformers
 from openai.types.responses import ResponseOutputMessage, ResponseOutputText
 from openai_harmony import Message, Role, StreamableParser
 from packaging.version import Version
@@ -175,7 +184,6 @@ assert Version(importlib.metadata.version("openai")) >= Version("2.40.0")
 assert Version(importlib.metadata.version("openai-harmony")) >= Version("0.0.8")
 assert Version(importlib.metadata.version("timm")) >= Version("1.0.28")
 assert Version(importlib.metadata.version("blobfile")) >= Version("3.2.0")
-assert Version(importlib.metadata.version("transformers")) >= Version("5.16.0")
 
 client = openai.OpenAI(api_key="compatibility-check", base_url="http://localhost")
 assert client.base_url.host == "localhost"
@@ -185,20 +193,12 @@ assert Message.from_role_and_content(Role.ASSISTANT, "ok").with_channel("final")
 assert StreamableParser
 output = ResponseOutputMessage(
     id="msg_compatibility",
-    content=[
-        ResponseOutputText(
-            text="ok", annotations=[], type="output_text", logprobs=None
-        )
-    ],
-    role="assistant",
-    status="completed",
-    type="message",
-    phase="final_answer",
+    content=[ResponseOutputText(text="ok", annotations=[], type="output_text", logprobs=None)],
+    role="assistant", status="completed", type="message", phase="final_answer",
 )
 assert output.content[0].text == "ok"
 assert timm.is_model("vit_so400m_patch14_siglip_384.webli")
 assert blobfile.exists(".")
-assert transformers.__version__
 PY
 %endif
 
@@ -206,6 +206,8 @@ PY
 %doc README.md
 %license LICENSE
 %{_bindir}/sglang
+%{_bindir}/sglang-python
+%{_bindir}/sglang-extras-python
 
 %changelog
 %autochangelog

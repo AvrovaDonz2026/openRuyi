@@ -9,6 +9,8 @@
 %global pypi_name smg-grpc-servicer
 
 Name:           python-smg-grpc-servicer
+BuildRequires:  sglang-rpm-macros
+%sglang_python_compat core
 Version:        0.9.1
 Release:        %autorelease
 Summary:        SMG gRPC servicer implementations for LLM inference engines
@@ -24,30 +26,27 @@ BuildOption(install):  -l %{srcname}
 
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(grpcio) >= 1.81.1
-BuildRequires:  python3dist(grpcio-health-checking) >= 1.81.1
-BuildRequires:  python3dist(grpcio-reflection) >= 1.81.1
+BuildRequires:  sglang(python3dist(grpcio)) >= 1.81.1
+BuildRequires:  sglang(python3dist(grpcio-health-checking)) >= 1.81.1
+BuildRequires:  sglang(python3dist(grpcio-reflection)) >= 1.81.1
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools) >= 77
-BuildRequires:  python3dist(smg-grpc-proto) >= 0.4.18
+BuildRequires:  sglang(python3dist(smg-grpc-proto)) >= 0.4.18
 
-Requires:       python3dist(grpcio) >= 1.81.1
-Requires:       python3dist(grpcio-health-checking) >= 1.81.1
-Requires:       python3dist(grpcio-reflection) >= 1.81.1
-Requires:       python3dist(smg-grpc-proto) >= 0.4.18
-
-Provides:       python3-%{pypi_name} = %{version}-%{release}
-%python_provide python3-%{pypi_name}
+Requires:       sglang(python3dist(grpcio)) >= 1.81.1
+Requires:       sglang(python3dist(grpcio-health-checking)) >= 1.81.1
+Requires:       sglang(python3dist(grpcio-reflection)) >= 1.81.1
+Requires:       sglang(python3dist(smg-grpc-proto)) >= 0.4.18
 
 %description
 This package provides gRPC servicer implementations for LLM inference engines,
 including vLLM, MLX, TokenSpeed, and SGLang.
 
 %generate_buildrequires
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
 
 %check -a
-PYTHONPATH="%{buildroot}%{python3_sitelib}" %{python3} - <<'PY'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} - <<'PY'
 import importlib
 import importlib.metadata
 

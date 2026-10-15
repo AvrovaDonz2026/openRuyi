@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: Suyun <ziyu.oerv@isrc.iscas.ac.cn>
 # SPDX-FileContributor: yyjeqhc <jialin.oerv@isrc.iscas.ac.cn>
 #
@@ -11,12 +10,12 @@
 %global _pyproject_wheeldir %{_builddir}/%{name}-%{version}-%{release}/pyproject-wheeldir
 
 Name:           python-%{srcname}
-Version:        1.18.1
+Version:        1.17.1
 Release:        %autorelease
 Summary:        Scientific Tools for Python
 License:        BSD-3-Clause AND LGPL-2.0-or-later AND BSL-1.0
 URL:            https://www.scipy.org
-#!RemoteAsset:  sha256:52c4b7422442aba924d03ad4019852b08a92e64ea187b933135687bfe2747307
+#!RemoteAsset:  sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0
 Source0:        https://files.pythonhosted.org/packages/source/s/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 
@@ -37,11 +36,11 @@ BuildOption(check):  -e scipy.stats.tests.test_marray
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  gcc-fortran
-BuildRequires:  python3dist(cython) >= 3.2.0
-BuildRequires:  python3dist(meson-python) >= 0.15.0
-BuildRequires:  python3dist(numpy) >= 2.0.0
-BuildRequires:  python3dist(pybind11) >= 2.13.2
-BuildRequires:  python3dist(pythran) >= 0.18.1
+BuildRequires:  python3dist(cython)
+BuildRequires:  python3dist(meson-python)
+BuildRequires:  python3dist(numpy)
+BuildRequires:  python3dist(pybind11)
+BuildRequires:  python3dist(pythran)
 BuildRequires:  python3dist(pip)
 BuildRequires:  pkgconfig(openblas64)
 # For tests
@@ -52,9 +51,7 @@ Provides:       python3-%{srcname}%{?_isa} = %{version}-%{release}
 %python_provide python3-%{srcname}
 
 %description
-SciPy is a collection of algorithms for scientific computing, including
-optimization, integration, interpolation, signal processing, linear algebra,
-and statistics.
+Data validation using Python type hints.
 
 %generate_buildrequires
 %pyproject_buildrequires -R

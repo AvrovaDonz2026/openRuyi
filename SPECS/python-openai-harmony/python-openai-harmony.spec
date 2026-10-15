@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: Kimmy <yucheng.or@isrc.iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
@@ -72,11 +71,7 @@ response format used by the gpt-oss open-weight model series.
 rm -f Cargo.lock
 
 %generate_buildrequires
-export CARGO_NET_OFFLINE=true
 %pyproject_buildrequires
-
-%build -p
-export CARGO_NET_OFFLINE=true
 
 %files -f %{pyproject_files}
 %doc README.md

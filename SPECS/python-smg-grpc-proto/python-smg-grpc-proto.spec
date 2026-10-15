@@ -9,6 +9,8 @@
 %global pypi_name smg-grpc-proto
 
 Name:           python-smg-grpc-proto
+BuildRequires:  sglang-rpm-macros
+%sglang_python_compat core
 Version:        0.4.22
 Release:        %autorelease
 Summary:        Protocol Buffer definitions for SMG gRPC services
@@ -26,17 +28,14 @@ BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools) >= 77
-BuildRequires:  python3dist(grpcio) >= 1.84.0
-BuildRequires:  python3dist(grpcio-tools) >= 1.84.0
+BuildRequires:  sglang(python3dist(grpcio)) >= 1.84.0
+BuildRequires:  sglang(python3dist(grpcio-tools)) >= 1.84.0
 BuildRequires:  python3dist(protobuf) >= 7.35.1
 BuildRequires:  python3dist(protobuf) < 8.0.0
 
-Requires:       python3dist(grpcio) >= 1.84.0
+Requires:       sglang(python3dist(grpcio)) >= 1.84.0
 Requires:       python3dist(protobuf) >= 7.35.1
 Requires:       python3dist(protobuf) < 8.0.0
-
-Provides:       python3-%{pypi_name} = %{version}-%{release}
-%python_provide python3-%{pypi_name}
 
 %description
 Protocol Buffer definitions and pre-compiled Python gRPC stubs for SMG
@@ -49,10 +48,10 @@ Protocol Buffer definitions and pre-compiled Python gRPC stubs for SMG
 sed -i 's/grpcio-tools>=1.81.1,<1.82/grpcio-tools>=1.84.0/' pyproject.toml
 
 %generate_buildrequires
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
 
 %check -a
-PYTHONPATH="%{buildroot}%{python3_sitelib}" %{python3} - <<'PY'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} - <<'PY'
 import importlib
 import importlib.metadata
 
