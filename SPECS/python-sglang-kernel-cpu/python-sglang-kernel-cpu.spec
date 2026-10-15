@@ -93,8 +93,8 @@ cd %{buildroot}
 %pyproject_check_import sgl_kernel
 %ifarch riscv64
 # Check the built extension with the Torch build dependency.
-# TP=1 validates registration and the shared-memory interface; it does not
-# exercise multi-rank reduction or synchronization.
+# The smoke script validates registration, two-rank reduction, and
+# synchronization with the native shared-memory implementation.
 LOCAL_SIZE=1 MASTER_ADDR=127.0.0.1 MASTER_PORT=29599 \
   %{python3} %{SOURCE1}
 %endif
