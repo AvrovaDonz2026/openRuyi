@@ -119,12 +119,10 @@ sed -i \
     -e 's/"transformers==5.12.1"/"transformers>=5.16.0,<6"/' \
     python/pyproject.toml
 %endif
-grep -qF 'dynamic = ["version"]' python/pyproject.toml
-sed -i 's/dynamic = \["version"\]/version = "%{version}"/' \
-    python/pyproject.toml
 
 %generate_buildrequires
 cd python
+export SETUPTOOLS_SCM_PRETEND_VERSION='%{version}'
 %if %{without cuda}
 export SGLANG_BUILD_RUST_EXTS=none
 %endif
