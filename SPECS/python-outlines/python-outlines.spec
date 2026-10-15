@@ -28,7 +28,7 @@ BuildRequires:  python3dist(genson)
 BuildRequires:  python3dist(jinja2)
 BuildRequires:  python3dist(jsonpath-ng)
 BuildRequires:  python3dist(jsonschema)
-BuildRequires:  python3dist(outlines_core) = 0.2.14
+BuildRequires:  python3dist(outlines-core) = 0.2.14
 BuildRequires:  python3dist(pillow)
 BuildRequires:  python3dist(pydantic) >= 2
 BuildRequires:  python3dist(pip)
@@ -43,7 +43,7 @@ Requires:       python3dist(genson)
 Requires:       python3dist(jinja2)
 Requires:       python3dist(jsonpath-ng)
 Requires:       python3dist(jsonschema)
-Requires:       python3dist(outlines_core) = 0.2.14
+Requires:       python3dist(outlines-core) = 0.2.14
 Requires:       python3dist(pillow)
 Requires:       python3dist(pydantic) >= 2
 Requires:       python3dist(typing-extensions)
