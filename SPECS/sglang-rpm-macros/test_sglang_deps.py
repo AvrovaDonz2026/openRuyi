@@ -105,13 +105,15 @@ class SglangDependencyTests(unittest.TestCase):
         ):
             with self.subTest(package_name=package_name):
                 rewritten = DISTDEPS._rewrite_capabilities(
-                    "python3dist(torch) >= 2.14",
+                    "python3.14dist(torch) >= 2.14\n"
+                    "python3dist(torch) = 2.14",
                     "core",
                     torch_flavor=DISTDEPS._torch_flavor(package_name),
                 )
                 self.assertEqual(
                     rewritten,
-                    f"sglang(python3dist(torch-{flavor})) >= 2.14",
+                    f"sglang(python3.14dist(torch-{flavor})) >= 2.14\n"
+                    f"sglang(python3dist(torch-{flavor})) = 2.14",
                 )
 
     def test_transformers_closure_uses_private_providers_in_both_profiles(self):
@@ -163,6 +165,20 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertIn("python3dist(numpy) >= 2", result.stdout)
         self.assertIn("sglang(python3dist(torch)) >= 2", result.stdout)
         self.assertIn("sglang-extras(python3dist(fsspec))", result.stdout)
+
+    def test_python_short_generator_option_is_accepted(self):
+        result = self.run_generator(
+            ROOT / "sglangdistdeps.py",
+            "python3dist(torch) = 2.14\n",
+            [
+                "--profile", "core", "--namespace", "sglang",
+                "--package-name", "python-torch-sglang-2.14", "-P",
+            ],
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stderr, "fake generator stderr\n")
+        self.assertIn("sglang(python3dist(torch-cpu)) = 2.14", result.stdout)
 
     def test_elf_provides_namespace_arbitrary_private_soname(self):
         result = self.run_generator(
