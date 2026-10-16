@@ -35,8 +35,10 @@ Source6:        https://github.com/sgl-project/FlashMLA/archive/3e18517fb055a6c9
 Source7:        https://github.com/NVIDIA/cutlass/archive/147f5673d0c1c3dcf66f78d677fd647e4a020219.tar.gz#/cutlass-147f567.tar.gz
 BuildSystem:    pyproject
 # The AOT extension requires NVIDIA's CUDA toolkit; no supported RISC-V CUDA
-# toolkit is available in the build environment.
+# toolkit is available in the build environment.  This is a reserved,
+# currently unbuildable flavor until a matching CUDA Torch provider exists.
 ExclusiveArch:  x86_64 aarch64
+Conflicts:      python-sglang-kernel-cpu
 
 BuildOption(prep):  -n %{srcname}-0.5.21/python/sglang/kernels/aot
 BuildOption(install):  -l sgl_kernel
@@ -51,10 +53,10 @@ BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
 BuildRequires:  python3dist(scikit-build-core) >= 0.10
-BuildRequires:  sglang(python3dist(torch)) = 2.14.0
+BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
 BuildRequires:  python3dist(wheel)
 
-Requires:       sglang(python3dist(torch)) = 2.14.0
+Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
 
 %description
 SGLang Kernel provides optimized CUDA compute primitives used by the SGLang

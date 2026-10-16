@@ -16,51 +16,61 @@ import sys
 
 
 # These names are produced by PyTorch and the selected native SGLang modules.
-# System libraries remain ordinary ELF capabilities and are deliberately absent
-# from this list.  The multifile provider path is authoritative for provides,
-# so this list only needs to cover private libraries named by requires output.
+# Multifile paths identify the file that emitted a requirement.  Provides are
+# always namespaced by that private path; requires are limited to these known
+# private SONAMEs so ordinary system dependencies remain global.
 CORE_SONAME = re.compile(
     r"^lib(?:torch|c10|c10d|kineto|shm|torch_cpu|torch_cuda|"
     r"torch_global_deps|torch_python|torchaudio|torchvision|triton|"
     r"llguidance|xgrammar|xgrammar_bindings|tvm_ffi|sglang|sgl_kernel|"
     r"aoti_custom_ops|backend_with_compiler|jitbackend_test|torchbind_test)"
-    r"(?:[-_.].*)?\.so(?:\.[0-9]+)*"
+    r"(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
 )
 PRIVATE_SONAME = re.compile(
     r"^lib(?:torch|c10|c10d|kineto|shm|torch_cpu|torch_cuda|"
     r"torch_global_deps|torch_python|torchaudio|torchvision|triton|"
     r"llguidance|xgrammar|xgrammar_bindings|tvm_ffi|sglang|sgl_kernel|"
     r"aoti_custom_ops|backend_with_compiler|jitbackend_test|torchbind_test)"
-    r"(?:[-_.].*)?\.so(?:\.[0-9]+)*"
+    r"(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
 )
+def _capability_name(capability: str) -> str:
+    unwrapped = re.sub(r"^(?:sglang|sglang-extras)\((.*)\)$", r"\1", capability)
+    return unwrapped.split("(", 1)[0]
 
 
 def _private(capability: str) -> bool:
-    name = capability.split("(", 1)[0]
-    return bool(PRIVATE_SONAME.match(name))
+    return bool(PRIVATE_SONAME.match(_capability_name(capability)))
 
 
 def _core(capability: str) -> bool:
-    name = capability.split("(", 1)[0]
-    return bool(CORE_SONAME.match(name))
+    return bool(CORE_SONAME.match(_capability_name(capability)))
 
 
-def _private_path(marker: str) -> bool:
-    """Return whether a multifile marker names a private SGLang file."""
+def _private_path(marker: str, profile: str | None = None) -> bool:
+    """Return whether a multifile marker names a private SGLang file.
+
+    RPM 6 prefixes multifile paths with the buildroot, so match the installed
+    ``/usr/lib[64]`` portion rather than anchoring at the beginning.  A
+    profile mismatch is rejected to keep the two file attributes isolated.
+    """
     path = marker[1:].lstrip()
-    return bool(re.search(r"(?:^|/)sglang/(?:core|extras)(?:/|$)", path))
+    match = re.search(r"(?:^|/)usr/lib(?:64)?/sglang/(core|extras)(?:/|$)", path)
+    return bool(match and (profile is None or match.group(1) == profile))
 
 
 def _namespace(capability: str, namespace: str) -> str:
     if capability.startswith(namespace + "("):
         return capability
+    # A generator should emit raw capabilities, but canonicalize an already
+    # namespaced private capability instead of producing nested namespaces.
+    capability = re.sub(r"^(?:sglang|sglang-extras)\((.*)\)$", r"\1", capability)
     return f"{namespace}({capability})"
 
 
-def _requires_namespace(capability: str, profile: str) -> str:
+def _requires_namespace(capability: str, namespace: str) -> str:
     if _core(capability):
         return "sglang"
-    return "sglang" if profile == "core" else "sglang-extras"
+    return namespace
 
 
 def main() -> int:
@@ -88,14 +98,21 @@ def main() -> int:
     private_file = False
     for line in result.stdout.splitlines():
         if multifile and line.startswith(";"):
-            private_file = _private_path(line)
+            private_file = _private_path(line, args.profile)
             print(line)
             continue
         capability = line.strip()
         if capability and provides and private_file:
-            print(_namespace(capability, _requires_namespace(capability, args.profile)))
-        elif capability and _private(capability):
-            print(_namespace(capability, _requires_namespace(capability, args.profile)))
+            print(_namespace(capability, _requires_namespace(
+                capability, args.namespace)))
+        elif (
+            capability
+            and not provides
+            and (not multifile or private_file)
+            and _private(capability)
+        ):
+            print(_namespace(capability, _requires_namespace(
+                capability, args.namespace)))
         else:
             print(line)
     return result.returncode

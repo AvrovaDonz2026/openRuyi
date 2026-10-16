@@ -6,7 +6,16 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global upstream_name sglang
+# Keep the CUDA conditionals for a future provider-backed flavor.  This source
+# package intentionally has no multibuild entry until a CUDA Torch provider is
+# available; the default build must resolve to the CPU dependency closure.
 %global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "cuda"
+%{error:CUDA SGLang flavor is reserved and is not supported by this SPEC}
+%endif
+%if "%{flavor}" == "rocm"
+%{error:ROCm SGLang flavor is reserved and is not supported by this SPEC}
+%endif
 %ifarch riscv64
 %global llvm_maj_ver 22
 %global toolchain clang
@@ -68,20 +77,29 @@ BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
 %if %{with cuda}
-# The CUDA flavor retains the upstream CUDA dependency versions.
+# The CUDA flavor is intentionally dormant until a CUDA Torch provider is
+# added.
+Conflicts:      python-sglang
 BuildRequires:  python3dist(setuptools-rust)
-BuildRequires:  sglang(python3dist(torch))
+BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
+Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
 %else
-BuildRequires:  sglang(python3dist(torch)) = 2.14.0
+Conflicts:      python-sglang-cuda
+BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
 BuildRequires:  sglang(python3dist(torchaudio)) = 2.11.0
 BuildRequires:  sglang(python3dist(torchvision)) = 0.29.0
 BuildRequires:  sglang(python3dist(triton)) = 3.8.0
 BuildRequires:  sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 BuildRequires:  sglang(python3dist(mistral-common)) >= 1.11.5
+BuildRequires:  sglang(python3dist(transformers)) = 5.19.0
+%ifnarch aarch64 armv7hl
+# pyproject_cpu.toml excludes torchcodec on Linux ARM (aarch64, arm64, armv7l).
+BuildRequires:  sglang(python3dist(torchcodec)) = 0.12.0
+%endif
 %endif
 
 %if %{without cuda}
-Requires:       sglang(python3dist(torch)) = 2.14.0
+Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
 Requires:       sglang(python3dist(torchaudio)) = 2.11.0
 Requires:       sglang(python3dist(torchvision)) = 0.29.0
 Requires:       sglang(python3dist(triton)) = 3.8.0
@@ -89,6 +107,10 @@ Requires:       sglang(python3dist(triton)) = 3.8.0
 Requires:       sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
 Requires:       sglang(python3dist(mistral-common)) >= 1.11.5
+Requires:       sglang(python3dist(transformers)) = 5.19.0
+%ifnarch aarch64 armv7hl
+Requires:       sglang(python3dist(torchcodec)) = 0.12.0
+%endif
 %endif
 
 %patchlist
@@ -112,6 +134,7 @@ sed -i \
     -e 's/"blobfile==3.0.0"/"blobfile>=3.2.0,<4"/' \
     -e 's/"openai==2.6.1"/"openai>=2.40.0,<3"/' \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8,<0.1"/' \
+    -e 's/"transformers==5.12.1"/"transformers==5.19.0"/' \
     -e 's/"timm==1.0.16"/"timm>=1.0.28,<2"/' \
     python/pyproject.toml
 %endif
@@ -165,13 +188,13 @@ sed -i \
 %check -a
 cd %{buildroot}
 %if %{with cuda}
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'
 %else
 export SGLANG_USE_CPU_ENGINE=1
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
 %endif
 %if %{without cuda}
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} -s - <<'PY'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{python3} -s - <<'PY'
 import importlib.metadata
 import blobfile
 import openai

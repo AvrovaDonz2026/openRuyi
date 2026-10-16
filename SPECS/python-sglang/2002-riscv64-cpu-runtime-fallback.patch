@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 From: A. Donz <Avrova@Donz.si>
 Subject: [PATCH] sglang: add RISC-V torch-native CPU fallback
 

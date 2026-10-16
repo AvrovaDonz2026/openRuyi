@@ -44,6 +44,10 @@ Provides:       crate(%{pkgname}/default) = %{version}
 %description -n %{name}+default
 This metapackage enables feature "default" for the Rust daachorse crate.
 
+%files -n %{name}+alloc
+
+%files -n %{name}+default
+
 %files
 %{_datadir}/cargo/registry/%{crate_name}-%{version}/
 

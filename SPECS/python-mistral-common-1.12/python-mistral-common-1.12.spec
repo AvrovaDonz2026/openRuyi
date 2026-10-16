@@ -21,7 +21,6 @@ URL:            https://github.com/mistralai/mistral-common
 Source0:        https://files.pythonhosted.org/packages/source/m/%{srcname}/%{srcname}-%{version}.tar.gz
 #!RemoteAsset:  sha256:5ed6f79e77734b5a60740dd821af5ecac9a6f33709c860eea4e20fcb6cca7fcc
 Source1:        https://raw.githubusercontent.com/mistralai/mistral-common/refs/tags/v1.12.0/LICENSE
-BuildArch:      noarch
 BuildSystem:    pyproject
 
 BuildOption(install):  -l mistral_common

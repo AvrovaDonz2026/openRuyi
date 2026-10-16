@@ -1,7 +1,11 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 From: A. Donz <Avrova@Donz.si>
 Subject: [PATCH] cpu: select RISC-V sources and explicit target ISA
 
-Upstream reference: https://github.com/sgl-project/sglang/tree/v0.5.21/python/sglang/kernels/aot/csrc/cpu/CMakeLists.txt
+Upstream-Reference: https://github.com/sgl-project/sglang/tree/v0.5.21/python/sglang/kernels/aot/csrc/cpu/CMakeLists.txt
 Upstream-Status: Downstream (RISC-V target selection and source exclusion)
 
 --- a/python/sglang/kernels/aot/csrc/cpu/CMakeLists.txt

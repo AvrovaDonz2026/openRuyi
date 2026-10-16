@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+
+From: CHEN Xuan <chenxuan@iscas.ac.cn>
+Date: Mon, 20 Jul 2026 09:20:00 +0800
+Subject: [PATCH] lower hipBLASLt preferred architecture ROCm gate
+
+PyTorch 2.14.0 already prefers hipBLASLt on gfx1100, gfx1101, and
+gfx1151 starting with ROCm 7.13. Lower that gate to ROCm 7.2, which is
+the version shipped by openRuyi and avoids rocBLAS fp16 GEMM failures
+on gfx1100 for some problem shapes.
+
+Upstream-Reference: https://github.com/pytorch/pytorch/commit/10a5f2ff7c90d8c84938b0e789ab2f4145f90b5d
+Upstream-Status: Inappropriate [distribution-specific ROCm version gate]
+---
+ aten/src/ATen/cuda/detail/CUDAHooks.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/aten/src/ATen/cuda/detail/CUDAHooks.cpp b/aten/src/ATen/cuda/detail/CUDAHooks.cpp
+--- a/aten/src/ATen/cuda/detail/CUDAHooks.cpp
++++ b/aten/src/ATen/cuda/detail/CUDAHooks.cpp
+@@ -556,7 +556,7 @@ const std::vector<std::string>& CUDAHooks::getHipblasltPreferredArchs() const {
+ #if ROCM_VERSION >= 70000
+     "gfx950",
+ #endif
+-#if ROCM_VERSION >= 71300
++#if ROCM_VERSION >= 70200
+     "gfx1100", "gfx1101", "gfx1151",
+ #endif
+ #if ROCM_VERSION >= 71400

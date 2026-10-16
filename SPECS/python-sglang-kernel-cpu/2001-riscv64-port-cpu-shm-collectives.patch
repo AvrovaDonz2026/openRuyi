@@ -7,7 +7,7 @@
 From: A. Donz <Avrova@Donz.si>
 Subject: [PATCH] cpu: add portable RISC-V shared-memory collectives
 
-Upstream reference: https://github.com/sgl-project/sglang/tree/v0.5.21/python/sglang/kernels/aot/csrc/cpu
+Upstream-Reference: https://github.com/sgl-project/sglang/tree/v0.5.21/python/sglang/kernels/aot/csrc/cpu
 Upstream-Status: Downstream (no upstream RISC-V port or fix found)
 
 --- a/python/sglang/kernels/aot/csrc/cpu/shm.cpp

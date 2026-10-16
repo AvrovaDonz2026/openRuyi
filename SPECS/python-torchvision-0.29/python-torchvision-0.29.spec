@@ -13,12 +13,17 @@
 %global toolchain clang
 %endif
 
+# ROCm remains a source-level flavor for a future completed build.  No OBS
+# multibuild entry is enabled while its dependency closure is unvalidated.
 %global flavor @BUILD_FLAVOR@%{nil}
 %if "%{flavor}" == "rocm"
+%{error:ROCm SGLang TorchVision flavor is reserved and is not supported by this SPEC}
 %bcond rocm 1
+%global torch_capability torch-rocm
 %global toolchain clang
 %else
 %bcond rocm 0
+%global torch_capability torch-cpu
 %endif
 
 %bcond test 0
@@ -79,12 +84,12 @@ BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
 BuildRequires:  hipcc
 BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
-BuildRequires:  python-sglang-torch-2.14-rocm-devel
+BuildRequires:  python-torch-sglang-2.14-rocm-devel
 BuildRequires:  rocm-device-libs
 BuildRequires:  rocm-llvm-macros
 %else
 BuildRequires:  gcc-c++
-BuildRequires:  python-sglang-torch-2.14-devel
+BuildRequires:  python-torch-sglang-2.14-devel
 %ifarch riscv64
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -97,7 +102,7 @@ BuildRequires:  llvm(major) = %{llvm_maj_ver}
 Requires:       python3dist(numpy)
 Requires:       python3dist(pillow)
 Requires:       python3dist(requests)
-Requires:       sglang(python3dist(torch)) = 2.14.0
+Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
 
 %patchlist
 2001-Add-HIP-detect-logic.patch

@@ -8,6 +8,7 @@
 %_sglang_python_profile %{?sglang_python_profile}%{!?sglang_python_profile:core}
 %_sglang_dep_namespace %{expr:"%{_sglang_python_profile}" == "extras" ? "sglang-extras" : "sglang"}
 %_sglang_torch_profile %{expr:"%{_sglang_python_profile}" == "extras" ? "core" : "%{_sglang_python_profile}"}
+# Payloads in this architecture-specific root MUST NOT use BuildArch: noarch.
 %_sglang_private_root %{_libdir}/sglang/%{_sglang_python_profile}/python%{_sglang_private_python}
 %_sglang_private_sitelib %{_sglang_private_root}/site-packages
 %_sglang_private_sitearch %{_sglang_private_sitelib}
@@ -30,26 +31,29 @@ find "%{buildroot}%{_sglang_private_sitelib}" -type f -name '*.so*' -print0 | wh
   if file "$so" | grep -q 'ELF'; then
     old=$(patchelf --print-rpath "$so")
     new=
-    old_ifs=$IFS
-    IFS=:
-    for entry in $old; do
+    while [ -n "$old" ]; do
+      entry=${old%%%%:*}
+      if [ "$entry" = "$old" ]; then
+        old=
+      else
+        old=${old#*:}
+      fi
       case "$entry" in
         \\$ORIGIN) new="${new:+$new:}$entry" ;;
         %{_libdir}/sglang/*)
           case "$entry" in
-            *..*) ;;
+            */../*|*/./*|*/..|*/.) ;;
             *) new="${new:+$new:}$entry" ;;
           esac
           ;;
         \\$ORIGIN/*)
           case "$entry" in
-            *..*) ;;
+            */../*|*/./*|*/..|*/.) ;;
             *) new="${new:+$new:}$entry" ;;
           esac
           ;;
       esac
     done
-    IFS=$old_ifs
     new="${new:+$new:}\\$ORIGIN:%{_libdir}/sglang/%{_sglang_python_profile}/lib:%{_libdir}/sglang/%{_sglang_torch_profile}/python%{python3_version}/site-packages/torch/lib"
     patchelf --set-rpath "$new" "$so"
   fi
@@ -103,7 +107,7 @@ if [ $sglang_buildrequires_status -ne 0 ]; then
   rm -f "$sglang_buildrequires_output"
   exit $sglang_buildrequires_status
 fi
-%{__python3} %{_rpmconfigdir}/sglangdistdeps.py --profile %{_sglang_python_profile} --namespace %{_sglang_dep_namespace} %{?sglang_private_build_deps:--private-dists "%{sglang_private_build_deps}"} --rewrite-requires "$sglang_buildrequires_output"
+%{__python3} %{_rpmconfigdir}/sglangdistdeps.py --profile %{_sglang_python_profile} --namespace %{_sglang_dep_namespace} --package-name %{name} %{?sglang_private_build_deps:--private-dists "%{sglang_private_build_deps}"} --rewrite-requires "$sglang_buildrequires_output"
 sglang_namespace_status=$?
 if [ $sglang_namespace_status -ne 0 ]; then
   rm -f "$sglang_buildrequires_output"

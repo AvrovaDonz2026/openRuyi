@@ -17,8 +17,25 @@ import tempfile
 import re
 
 
-MODULES = ("torch", "transformers", "tokenizers", "numpy", "scipy", "fsspec", "datasets", "pandas", "PIL")
-SYSTEM_MODULES = ("transformers", "tokenizers", "numpy", "scipy", "fsspec", "datasets", "pandas", "PIL")
+MODULES = (
+    "torch", "transformers", "tokenizers", "huggingface_hub", "click",
+    "numpy", "scipy", "fsspec", "datasets", "pandas", "PIL",
+)
+# These distributions remain shared with the base system.  Transformers,
+# tokenizers, Hugging Face Hub and Click are private compatibility providers.
+SYSTEM_MODULES = ("numpy", "scipy", "fsspec", "datasets", "pandas", "PIL")
+BASELINE_MODULES = MODULES
+DIST_NAMES = {
+    "huggingface_hub": "huggingface-hub",
+    "PIL": "Pillow",
+}
+PRIVATE_MODULE_VERSIONS = {
+    "transformers": "5.19.0",
+    "tokenizers": "0.23.2",
+    "huggingface_hub": "1.31.0",
+    "click": "8.4.2",
+}
+OPTIONAL_BASELINE_MODULES = frozenset(PRIVATE_MODULE_VERSIONS)
 DEFAULT_ROOTS = (
     "/usr/lib64/sglang/core",
     "/usr/lib/sglang/core",
@@ -38,16 +55,22 @@ if private_module:
     names = names + [private_module]
 result = {"modules": {}, "torch": {}}
 for name in names:
-    module = importlib.import_module(name)
+    try:
+        module = importlib.import_module(name)
+    except ModuleNotFoundError as exc:
+        allowed = os.environ.get("COEXIST_ALLOW_ABSENT", "").split(",")
+        missing_requested = exc.name == name or (exc.name or "").startswith(name + ".")
+        if name not in allowed or not missing_requested:
+            raise
+        result["modules"][name] = {"absent": True}
+        continue
     path = getattr(module, "__file__", None)
     if not path:
         raise RuntimeError("module has no __file__: " + name)
-    version = getattr(module, "__version__", None)
-    if version is None:
-        try:
-            version = importlib.metadata.version(name)
-        except Exception:
-            version = None
+    try:
+        version = importlib.metadata.version(DIST_NAMES.get(name, name))
+    except importlib.metadata.PackageNotFoundError:
+        version = getattr(module, "__version__", None)
     result["modules"][name] = {"version": version, "path": str(path)}
 
 import torch
@@ -102,7 +125,8 @@ def baseline_probe():
     env.pop("LD_LIBRARY_PATH", None)
     env.pop("LD_PRELOAD", None)
     env["PYTHONNOUSERSITE"] = "1"
-    env["COEXIST_MODULES"] = json.dumps(MODULES)
+    env["COEXIST_MODULES"] = json.dumps(BASELINE_MODULES)
+    env["COEXIST_ALLOW_ABSENT"] = ",".join(sorted(OPTIONAL_BASELINE_MODULES))
     return run_probe([sys.executable, "-c", PROBE], env, "baseline")
 
 
@@ -154,9 +178,29 @@ def private_probe(launcher, private_roots, private_module):
     env.pop("LD_PRELOAD", None)
     env["PYTHONNOUSERSITE"] = "1"
     env["COEXIST_MODULES"] = json.dumps(MODULES)
+    env.pop("COEXIST_ALLOW_ABSENT", None)
     env["COEXIST_PRIVATE_ROOT"] = os.pathsep.join(str(root) for root in private_roots)
     env["COEXIST_PRIVATE_MODULE"] = private_module
     return run_probe([*launcher, "-c", PROBE], env, "private")
+
+
+def verbose_import_paths(output):
+    """Extract Python files reported by ``PYTHONVERBOSE`` from launcher output."""
+    return sorted(set(re.findall(
+        r"(/[\w./+@:-]+?\.(?:py|pyc|so(?:\.[0-9]+)*))", output,
+    )))
+
+
+def validate_sglang_launcher_probe(output, private_roots):
+    paths = verbose_import_paths(output)
+    private_paths = [path for path in paths if under_any(path, private_roots)]
+    if not private_paths:
+        raise RuntimeError("SGLang launcher probe loaded no private modules")
+    if not any(
+        "/sglang/" in path or path.endswith("/sglang.py")
+        for path in private_paths
+    ):
+        raise RuntimeError("SGLang launcher probe did not import private sglang")
 
 
 def run_sglang_launcher(launcher, private_roots):
@@ -167,6 +211,9 @@ def run_sglang_launcher(launcher, private_roots):
     env.pop("LD_PRELOAD", None)
     env["PYTHONNOUSERSITE"] = "1"
     env["PYTHONSAFEPATH"] = "1"
+    # The console entry point accepts its normal CLI only.  Python's verbose
+    # import trace gives us a probe without assuming it supports ``-c``.
+    env["PYTHONVERBOSE"] = "1"
     env["PYTHONPATH"] = os.pathsep.join(
         str(root / ("python" + ".".join(map(str, sys.version_info[:2]))) / "site-packages")
         for root in private_roots
@@ -181,6 +228,7 @@ def run_sglang_launcher(launcher, private_roots):
         raise RuntimeError("SGLang launcher failed: %s%s" % (exc, ("; stderr: " + detail.strip()) if detail else "")) from exc
     if not (completed.stdout.strip() or completed.stderr.strip()):
         raise RuntimeError("SGLang launcher produced no help output")
+    validate_sglang_launcher_probe(completed.stderr, private_roots)
 
 
 def under_any(path, roots):
@@ -191,7 +239,7 @@ def under_any(path, roots):
         return False
 
 
-def validate_private(result, expected, roots, private_module):
+def validate_private(result, expected, roots, private_module, private_versions):
     if not result.get("modules"):
         raise RuntimeError("private probe returned no modules")
     torch_path = result["modules"].get("torch", {}).get("path")
@@ -201,9 +249,18 @@ def validate_private(result, expected, roots, private_module):
         actual = result["modules"].get(name, {})
         if actual != expected["modules"].get(name):
             raise RuntimeError("system module %s changed under private launcher" % name)
-    private_path = result["modules"].get(private_module, {}).get("path")
-    if not private_path or not under_any(private_path, roots):
-        raise RuntimeError("private module %s is outside private roots: %s" % (private_module, private_path))
+    private_names = dict(private_versions)
+    private_names[private_module] = private_names.get(private_module)
+    for name, version in private_names.items():
+        actual = result["modules"].get(name, {})
+        private_path = actual.get("path")
+        if not private_path or not under_any(private_path, roots):
+            raise RuntimeError("private module %s is outside private roots: %s" % (name, private_path))
+        if version is not None and actual.get("version") != version:
+            raise RuntimeError(
+                "private module %s has version %s, expected %s"
+                % (name, actual.get("version"), version)
+            )
     native = [path for path in result.get("native_paths", []) if under_any(path, roots)]
     if not native:
         raise RuntimeError("private probe loaded no native .so from private roots")
@@ -232,7 +289,18 @@ def main():
     parser.add_argument("--sglang-launcher", nargs="+", default=["/usr/bin/sglang"])
     parser.add_argument("--private-root", type=Path, action="append", dest="private_roots")
     parser.add_argument("--private-module", default="sglang")
+    parser.add_argument(
+        "--private-version", action="append", metavar="MODULE=VERSION",
+        help="override an expected private module version (repeatable)",
+    )
     args = parser.parse_args()
+
+    private_versions = dict(PRIVATE_MODULE_VERSIONS)
+    for item in args.private_version or ():
+        name, separator, version = item.partition("=")
+        if not separator or not name or not version:
+            parser.error("--private-version requires MODULE=VERSION")
+        private_versions[name] = version
 
     baseline = baseline_probe()
     rpm_baseline = rpm_verify_snapshot()
@@ -263,7 +331,7 @@ def main():
     if not any(root.joinpath("python" + ".".join(map(str, sys.version_info[:2])), "site-packages").is_dir() for root in roots):
         raise RuntimeError("private roots do not contain the running Python site-packages tree")
     private = private_probe(args.private_launcher, roots, args.private_module)
-    validate_private(private, expected, roots, args.private_module)
+    validate_private(private, expected, roots, args.private_module, private_versions)
     run_sglang_launcher(args.sglang_launcher, roots)
     after = baseline_probe()
     if after != expected:
