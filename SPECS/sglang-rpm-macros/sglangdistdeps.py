@@ -84,8 +84,12 @@ def _rewrite_capabilities(
         capability = match.group("wcap") or match.group("rawcap")
         name = match.group("wname") or match.group("rawname")
         if _normalize_dist_name(name) == "torch" and torch_flavor:
-            capability = capability.replace(
-                "python3dist(torch)", f"python3dist(torch-{torch_flavor})"
+            capability = re.sub(
+                r"python(?:[0-9]+(?:\.[0-9]+)?)?dist\(torch\)",
+                lambda match: match.group(0).replace(
+                    "(torch)", f"(torch-{torch_flavor})"
+                ),
+                capability,
             )
         private_namespace = _private_namespace(name, profile, private_dists)
         if private_namespace is None:
@@ -145,7 +149,10 @@ def main() -> int:
         ))
         path.truncate()
         return 0
-    if not any(flag in passthrough for flag in ("--provides", "--requires", "--recommends", "--conflicts")):
+    if not any(flag in passthrough for flag in (
+        "--provides", "-P", "--requires", "-R", "--recommends", "-r",
+        "--conflicts", "-C",
+    )):
         parser.error("one of --provides, --requires, --recommends or --conflicts is required")
     command = [args.generator, "--namespace", args.namespace]
     if args.package_name:
