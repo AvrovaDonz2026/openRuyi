@@ -22,11 +22,13 @@ import sys
 
 CORE = frozenset({
     "torch", "torchaudio", "torchvision", "triton",
-    "xgrammar", "llguidance", "mistral-common", "sglang-kernel-cpu", "sglang",
+    "xgrammar", "llguidance", "mistral-common", "sglang-kernel",
+    "sglang-kernel-cpu", "sglang",
     "sglang-cpu",
     "grpcio", "grpcio-tools", "grpcio-health-checking", "grpcio-reflection",
     "grpcio-status", "torchcodec",
     "apache-tvm-ffi", "smg-grpc-proto", "smg-grpc-servicer",
+    "transformers", "tokenizers", "huggingface-hub", "click",
 })
 EXTRAS = frozenset({
     "fsspec", "datasets", "pandas", "pillow", "sgl-eval", "moviepy",
@@ -60,24 +62,39 @@ def _private_namespace(
     return None
 
 
+def _torch_flavor(package_name: str) -> str:
+    if package_name.endswith("-rocm"):
+        return "rocm"
+    if package_name in {"python-sglang-cuda", "python-sglang-kernel"}:
+        return "cuda"
+    return "cpu"
+
+
 def _rewrite_capabilities(
     text: str,
     profile: str,
     provides: bool = False,
     default_namespace: str | None = None,
     private_dists: frozenset[str] = frozenset(),
+    torch_flavor: str | None = None,
 ) -> str:
     """Canonicalize private Python capabilities and unwrap system ones."""
 
     def replace_dist(match: re.Match[str]) -> str:
         capability = match.group("wcap") or match.group("rawcap")
         name = match.group("wname") or match.group("rawname")
+        if _normalize_dist_name(name) == "torch" and torch_flavor:
+            capability = capability.replace(
+                "python3dist(torch)", f"python3dist(torch-{torch_flavor})"
+            )
         private_namespace = _private_namespace(name, profile, private_dists)
         if private_namespace is None:
             if provides:
                 # All metadata selected by the private-path attribute belongs
-                # to a private tree. Keep unknown provider names isolated.
-                provider_namespace = match.group("wrapped") or default_namespace
+                # to a private tree. Keep unknown provider names in the
+                # namespace selected by the file attribute, even if a
+                # generator accidentally supplied another namespace.
+                provider_namespace = default_namespace
                 if provider_namespace:
                     return f"{provider_namespace}({capability})"
             return capability
@@ -90,15 +107,18 @@ def _rewrite_capabilities(
     return _ABI.sub(replace_abi, _DIST.sub(replace_dist, text))
 
 
-def _namespace_requirements(text: str, profile: str) -> str:
+def _namespace_requirements(
+    text: str, profile: str, torch_flavor: str | None = None
+) -> str:
     """Namespace only private requirements in a generated requirements file."""
-    return _rewrite_capabilities(text, profile)
+    return _rewrite_capabilities(text, profile, torch_flavor=torch_flavor)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", choices=("core", "extras"), required=True)
     parser.add_argument("--namespace", required=True)
+    parser.add_argument("--package-name", default="")
     parser.add_argument("--generator", default="/usr/lib/rpm/pythondistdeps.py")
     parser.add_argument(
         "--private-dists",
@@ -112,16 +132,25 @@ def main() -> int:
         for name in args.private_dists.split(",")
         if name.strip()
     )
+    torch_flavor = _torch_flavor(args.package_name) if args.package_name else None
     if args.rewrite_requires:
         path = args.rewrite_requires
         content = path.read()
         path.seek(0)
-        path.write(_rewrite_capabilities(content, args.profile, private_dists=private_dists))
+        path.write(_rewrite_capabilities(
+            content,
+            args.profile,
+            private_dists=private_dists,
+            torch_flavor=torch_flavor,
+        ))
         path.truncate()
         return 0
     if not any(flag in passthrough for flag in ("--provides", "--requires", "--recommends", "--conflicts")):
         parser.error("one of --provides, --requires, --recommends or --conflicts is required")
-    command = [args.generator, "--namespace", args.namespace, *passthrough]
+    command = [args.generator, "--namespace", args.namespace]
+    if args.package_name:
+        command.extend(("--package-name", args.package_name))
+    command.extend(passthrough)
     provides = "--provides" in passthrough or "-P" in passthrough
     try:
         result = subprocess.run(
@@ -141,6 +170,7 @@ def main() -> int:
             provides=provides,
             default_namespace=args.namespace,
             private_dists=private_dists,
+            torch_flavor=torch_flavor,
         ))
     return result.returncode
 

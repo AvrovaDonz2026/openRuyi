@@ -11,6 +11,8 @@
 Name:           python-sgl-deep-ep
 Version:        0.1.2
 Release:        %autorelease
+# This CUDA-only recipe is reserved until a matching CUDA Torch provider and
+# target validation are available; it is not part of the CPU build closure.
 Summary:        CUDA expert parallel communication kernels for SGLang
 License:        MIT
 URL:            https://github.com/sgl-project/DeepEP
@@ -37,10 +39,10 @@ BuildRequires:  python-rpm-macros
 BuildRequires:  python3dist(ninja)
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(torch) = 2.14.0
+BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
 BuildRequires:  python3dist(wheel)
 
-Requires:       python3dist(torch) = 2.14.0
+Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
 Requires:       nccl
 Requires:       nvshmem
 

@@ -1,3 +1,10 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+Upstream-Status: Downstream
+Upstream-Reference: https://github.com/guidance-ai/llguidance/tree/v1.7.0
+
 diff -urN a/Cargo.toml b/Cargo.toml
 --- a/Cargo.toml	2006-07-24 09:21:28.000000000 +0800
 +++ b/Cargo.toml	2026-06-14 21:12:41.114841796 +0800

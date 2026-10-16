@@ -16,7 +16,6 @@ URL:            https://pypi.org/project/datasets/
 VCS:            git:https://github.com/huggingface/datasets
 #!RemoteAsset:  sha256:0f0c1c3d56ffff2c93b2f4c63c95bac94f3d7e8621aea2a2a576275233bba772
 Source0:        https://files.pythonhosted.org/packages/source/d/%{srcname}/%{srcname}-%{version}.tar.gz
-BuildArch:      noarch
 BuildRequires:  sglang-rpm-macros
 %sglang_python_compat extras
 BuildSystem:    pyproject

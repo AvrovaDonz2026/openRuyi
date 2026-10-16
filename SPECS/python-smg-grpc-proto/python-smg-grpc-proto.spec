@@ -19,7 +19,6 @@ URL:            https://pypi.org/project/%{pypi_name}/
 VCS:            git:https://github.com/smg-project/smg.git
 #!RemoteAsset:  sha256:0d69e782cabd4b76480461767351c2acddb887e2fed54bd1e7e4d1d4a52a5bd2
 Source0:        https://files.pythonhosted.org/packages/source/s/%{pypi_name}/%{srcname}-%{version}.tar.gz
-BuildArch:      noarch
 BuildSystem:    pyproject
 
 BuildOption(install):  -l %{srcname}

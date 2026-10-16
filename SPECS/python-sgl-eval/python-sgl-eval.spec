@@ -17,7 +17,6 @@ URL:            https://github.com/sgl-project/sgl-eval
 VCS:            git:https://github.com/sgl-project/sgl-eval
 #!RemoteAsset:  sha256:95d663d1896a0b7fe5eb0eb239d97eddeeca46f9cb057a8488aa43574974cf61
 Source:         https://files.pythonhosted.org/packages/5f/5b/05497b34c3564836a71d2dc0a7b1604f1daab2126e0d0df68f6abde24c2b/%{pypi_name}-%{version}.tar.gz
-BuildArch:      noarch
 BuildRequires:  sglang-rpm-macros
 %sglang_python_compat extras
 BuildSystem:    pyproject

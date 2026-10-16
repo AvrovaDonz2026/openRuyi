@@ -8,8 +8,21 @@
 
 %global srcname xgrammar
 %global compat_name python-xgrammar-0.2
+# ROCm remains a source-level flavor for a future completed build.  No OBS
+# multibuild entry is enabled while its dependency closure is unvalidated.
+%global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "rocm"
+%{error:ROCm SGLang XGrammar flavor is reserved and is not supported by this SPEC}
+%global torch_capability torch-rocm
+%else
+%global torch_capability torch-cpu
+%endif
 
+%if "%{flavor}" == "rocm"
+Name:           %{compat_name}-rocm
+%else
 Name:           %{compat_name}
+%endif
 BuildRequires:  sglang-rpm-macros
 %sglang_python_compat
 Version:        0.2.7
@@ -38,10 +51,15 @@ BuildRequires:  file
 BuildRequires:  ninja
 BuildRequires:  patchelf
 BuildRequires:  sglang(python3dist(apache-tvm-ffi)) >= 0.1.11
-BuildRequires:  sglang(python3dist(torch)) >= 1.10
+BuildRequires:  sglang(python3dist(%{torch_capability})) >= 1.10
 
 Requires:       sglang(python3dist(apache-tvm-ffi)) >= 0.1.11
-Requires:       sglang(python3dist(torch)) >= 1.10
+Requires:       sglang(python3dist(%{torch_capability})) >= 1.10
+%if "%{flavor}" == "rocm"
+Conflicts:      %{compat_name}
+%else
+Conflicts:      %{compat_name}-rocm
+%endif
 
 %description
 Efficient, Flexible and Portable Structured Generation.
@@ -57,6 +75,20 @@ sed -i 's/-Werror//g' CMakeLists.txt
 # tvm_ffi uses wheel RECORD metadata to locate the native binding library.
 echo '%{srcname}/libxgrammar_bindings.so,,' > \
     %{buildroot}%{_sglang_private_sitearch}/%{srcname}-%{version}.dist-info/RECORD
+
+%check -a
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" \
+%{python3} - <<'PY'
+import torch
+import xgrammar
+
+assert xgrammar.__version__ == "%{version}"
+%if "%{flavor}" == "rocm"
+assert torch.version.hip is not None
+%else
+assert torch.version.hip is None
+%endif
+PY
 
 %sglang_pyproject_save_files
 %files -f %{pyproject_files}

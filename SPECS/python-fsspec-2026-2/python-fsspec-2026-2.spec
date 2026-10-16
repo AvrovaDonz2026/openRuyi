@@ -16,7 +16,6 @@ URL:            https://filesystem-spec.readthedocs.io/
 VCS:            git:https://github.com/fsspec/filesystem_spec
 #!RemoteAsset:  sha256:6544e34b16869f5aacd5b90bdf1a71acb37792ea3ddf6125ee69a22a53fb8bff
 Source0:        https://files.pythonhosted.org/packages/source/f/%{srcname}/%{srcname}-%{version}.tar.gz
-BuildArch:      noarch
 BuildRequires:  sglang-rpm-macros
 %sglang_python_compat extras
 BuildSystem:    pyproject

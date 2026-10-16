@@ -43,13 +43,14 @@ BuildRequires:  pkgconfig(python3)
 BuildRequires:  file
 BuildRequires:  pkgconfig(pybind11)
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python-sglang-torch-2.14-devel = 2.14.0
+BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
+BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
 
 Requires:       ffmpeg
-Requires:       sglang(python3dist(torch)) = 2.14.0
+Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
 
 %description
 TorchCodec provides PyTorch bindings for decoding and encoding audio and video

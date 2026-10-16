@@ -20,7 +20,6 @@ License:        Apache-2.0 AND MIT
 URL:            https://github.com/scikit-build/scikit-build-core
 #!RemoteAsset:  sha256:e347a59193c878ac56a363e57506938652a6dd8c965790cb1cbc6bc7e8d5abad
 Source:         https://files.pythonhosted.org/packages/source/s/%{pypi_name}/%{pypi_name}-%{version}.tar.gz
-BuildArch:      noarch
 BuildRequires:  sglang-rpm-macros
 %sglang_python_compat
 BuildSystem:    pyproject

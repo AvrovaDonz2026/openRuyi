@@ -8,11 +8,16 @@
 
 %global srcname torchaudio
 %global compat_name python-torchaudio-2.11
+# ROCm remains a source-level flavor for a future completed build.  No OBS
+# multibuild entry is enabled while its dependency closure is unvalidated.
 %global flavor @BUILD_FLAVOR@%{nil}
 %if "%{flavor}" == "rocm"
+%{error:ROCm SGLang TorchAudio flavor is reserved and is not supported by this SPEC}
 %bcond rocm 1
+%global torch_capability torch-rocm
 %else
 %bcond rocm 0
+%global torch_capability torch-cpu
 %endif
 %ifarch riscv64
 %global llvm_maj_ver 22
@@ -51,13 +56,13 @@ BuildRequires:  pkgconfig(protobuf)
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
-BuildRequires:  sglang(python3dist(torch)) = 2.14.0
+BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
 BuildRequires:  python3dist(wheel)
 # Could not find a package configuration file provided by "Torch"
 %if %{with rocm}
-BuildRequires:  python-sglang-torch-2.14-rocm-devel
+BuildRequires:  python-torch-sglang-2.14-rocm-devel
 %else
-BuildRequires:  python-sglang-torch-2.14-devel
+BuildRequires:  python-torch-sglang-2.14-devel
 %endif
 %ifarch riscv64
 BuildRequires:  clang
@@ -67,7 +72,7 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
-Requires:       sglang(python3dist(torch)) = 2.14.0
+Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
 
 %description
 TorchAudio is an audio package for PyTorch providing signal processing

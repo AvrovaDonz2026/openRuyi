@@ -25,6 +25,7 @@ VCS:            git:https://github.com/sgl-project/sglang.git
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version_upstream}.tar.gz#/sglang-%{version_upstream}.tar.gz
 Source1:        sglang-kernel-cpu-smoke.py
 BuildSystem:    pyproject
+Conflicts:      python-sglang-kernel
 
 BuildOption(prep):  -n sglang-%{version_upstream}
 BuildOption(install):  -l sgl_kernel
@@ -39,9 +40,9 @@ BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
 BuildRequires:  python3dist(scikit-build-core) >= 0.10
-BuildRequires:  sglang(python3dist(torch)) = 2.14.0
+BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
 BuildRequires:  python3dist(wheel)
-BuildRequires:  python-sglang-torch-2.14-devel = 2.14.0
+BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
 
 %ifarch riscv64
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -50,7 +51,7 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
-Requires:       sglang(python3dist(torch)) = 2.14.0
+Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
 
 %patchlist
 # RISC-V source selection and explicit cross-target ISA handling.

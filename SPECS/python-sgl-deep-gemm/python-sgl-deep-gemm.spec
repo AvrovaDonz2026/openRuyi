@@ -11,6 +11,8 @@
 Name:           python-sgl-deep-gemm
 Version:        0.2.0
 Release:        %autorelease
+# This CUDA-only recipe is reserved until a matching CUDA Torch provider and
+# target validation are available; it is not part of the CPU build closure.
 Summary:        CUDA FP8 GEMM kernels for SGLang
 License:        Apache-2.0
 URL:            https://github.com/sgl-project/DeepGEMM
@@ -38,11 +40,11 @@ BuildRequires:  python-rpm-macros
 BuildRequires:  python3dist(packaging)
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools) >= 77
-BuildRequires:  python3dist(torch) = 2.14.0
+BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
 BuildRequires:  python3dist(apache-tvm-ffi) = 0.1.11
 BuildRequires:  python3dist(wheel)
 
-Requires:       python3dist(torch) = 2.14.0
+Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
 Requires:       python3dist(apache-tvm-ffi) = 0.1.11
 
 %description

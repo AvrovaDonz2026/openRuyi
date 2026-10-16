@@ -16,7 +16,6 @@ URL:            https://github.com/Zulko/moviepy
 VCS:            git:https://github.com/Zulko/moviepy.git
 #!RemoteAsset:  sha256:c80cb56815ece94e5e3e2d361aa40070eeb30a09d23a24c4e684d03e16deacb1
 Source0:        https://files.pythonhosted.org/packages/source/m/%{srcname}/%{srcname}-%{version}.tar.gz
-BuildArch:      noarch
 BuildRequires:  sglang-rpm-macros
 %sglang_python_compat extras
 BuildSystem:    pyproject
