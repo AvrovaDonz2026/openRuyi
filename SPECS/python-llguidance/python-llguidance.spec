@@ -44,8 +44,8 @@ BuildRequires:  rust >= 1.87
 BuildRequires:  rust-rpm-macros
 BuildRequires:  crate(anyhow-1/default) >= 1.0.95
 BuildRequires:  crate(bytemuck-1/default) >= 1.21.0
-BuildRequires:  crate(derivre-0.3/ahash) >= 0.3.11
-BuildRequires:  crate(derivre-0.3/compress) >= 0.3.11
+BuildRequires:  crate(derivre-0.3/ahash) >= 0.3.12
+BuildRequires:  crate(derivre-0.3/compress) >= 0.3.12
 BuildRequires:  crate(indexmap-2/default) >= 2.7.1
 BuildRequires:  crate(jsonschema-0.29/default) >= 0.29.0
 BuildRequires:  crate(lazy-static-1/default) >= 1.5.0

@@ -33,7 +33,7 @@ BuildOption(check):  -e tvm_ffi.lib.libtvm_ffi_testing
 BuildRequires:  cmake
 BuildRequires:  file
 BuildRequires:  gcc-c++
-BuildRequires:  ninja
+BuildRequires:  ninja >= 1.11
 BuildRequires:  patchelf
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros

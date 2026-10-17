@@ -85,6 +85,7 @@ BuildRequires:  crate(unicode-categories-0.1/default)
 BuildRequires:  crate(unicode-normalization-alignments-0.1/default)
 BuildRequires:  crate(unicode-segmentation-1/default)
 BuildRequires:  crate(onig-6/default)
+BuildRequires:  crate(tempfile-3/default)
 
 %description
 Tokenizers provides fast and production-ready tokenization implementations for

@@ -29,10 +29,14 @@ provide speculative kernels or establish complete RISC-V engine support.
 +    is_host_cpu_supported = (
 +        is_host_cpu_x86() or is_host_cpu_arm64() or is_host_cpu_riscv64()
 +    )
-@@ -223,0 +235,11 @@
+@@ -223,0 +235,15 @@
 +def cpu_has_riscv_shm_support() -> bool:
 +    """Return true only when the loaded AOT extension exports SHM collectives."""
 +    if not is_host_cpu_riscv64():
++        return False
++    try:
++        import sgl_kernel  # noqa: F401
++    except (ImportError, OSError, RuntimeError):
 +        return False
 +    try:
 +        return hasattr(torch.ops.sgl_kernel, "shm_allreduce")

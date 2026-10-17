@@ -28,7 +28,7 @@ BuildOption(install):  -l mistral_common
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  python3dist(build)
-BuildRequires:  python3dist(click)
+BuildRequires:  sglang(python3dist(click)) >= 8.4.2
 BuildRequires:  python3dist(fastapi)
 BuildRequires:  python3dist(jsonschema) >= 4.21.1
 BuildRequires:  python3dist(numpy) >= 1.25
@@ -54,7 +54,7 @@ Requires:       python3dist(pydantic-extra-types[pycountry]) >= 2.10.5
 Requires:       python3dist(requests) >= 2
 Requires:       python3dist(tiktoken) >= 0.7
 Requires:       python3dist(typing-extensions) >= 4.11
-Requires:       python3dist(click)
+Requires:       sglang(python3dist(click)) >= 8.4.2
 Requires:       python3dist(fastapi)
 Requires:       python3dist(pydantic-settings)
 Requires:       python3dist(uvicorn)
