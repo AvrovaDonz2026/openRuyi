@@ -33,6 +33,12 @@
 %bcond rocm 0
 %endif
 
+# Keep the reserved ROCm flavor unbuildable when a caller enables the bcond
+# directly instead of selecting BUILD_FLAVOR=rocm.
+%if %{with rocm}
+%{error:ROCm SGLang Torch flavor is reserved and is not supported by this SPEC}
+%endif
+
 # For testing distributed+rccl etc.
 # TODO: openmpi not included in openRuyi
 %bcond mpi 0

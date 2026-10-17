@@ -73,6 +73,7 @@ PY
 %files -f %{pyproject_files}
 %doc README.md
 %license LICENSE
+%{_sglang_private_libexec}/transformers
 
 %changelog
 %autochangelog

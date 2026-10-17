@@ -28,6 +28,12 @@
 %bcond cuda 0
 %endif
 
+# Keep the reserved CUDA flavor unbuildable even when a caller overrides the
+# bcond directly instead of selecting BUILD_FLAVOR=cuda.
+%if %{with cuda}
+%{error:CUDA SGLang flavor is reserved and is not supported by this SPEC}
+%endif
+
 %if %{with cuda}
 %global srcname sglang
 Name:           python-sglang-cuda
@@ -48,6 +54,7 @@ Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{versi
 Source1:        sglang-launcher
 Source2:        sglang-python-launcher
 Source3:        sglang-extras-python
+Source4:        sglang-cpu-engine-smoke.py
 BuildSystem:    pyproject
 %if %{with cuda}
 # CUDA toolkit currently provides Linux host support for these architectures.
@@ -176,6 +183,9 @@ cd python
 install -Dpm0755 %{SOURCE1} %{buildroot}%{_bindir}/sglang
 install -Dpm0755 %{SOURCE2} %{buildroot}%{_bindir}/sglang-python
 install -Dpm0755 %{SOURCE3} %{buildroot}%{_bindir}/sglang-extras-python
+%if %{without cuda}
+install -Dpm0755 %{SOURCE4} %{buildroot}%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py
+%endif
 sed -i \
   -e 's|@PRIVATE_SITELIB@|%{_sglang_private_sitelib}|g' \
   -e 's|@PRIVATE_LIBEXEC@|%{_sglang_private_libexec}|g' \
@@ -231,6 +241,9 @@ PY
 %{_bindir}/sglang
 %{_bindir}/sglang-python
 %{_bindir}/sglang-extras-python
+%if %{without cuda}
+%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py
+%endif
 
 %changelog
 %autochangelog

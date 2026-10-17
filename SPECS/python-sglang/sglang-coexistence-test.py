@@ -8,6 +8,7 @@
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -49,6 +50,10 @@ import pathlib
 import re
 import sys
 
+DIST_NAMES = {
+    "huggingface_hub": "huggingface-hub",
+    "PIL": "Pillow",
+}
 names = json.loads(os.environ["COEXIST_MODULES"])
 private_module = os.environ.get("COEXIST_PRIVATE_MODULE")
 if private_module:
@@ -95,7 +100,20 @@ print(json.dumps(result, sort_keys=True))
 '''
 
 
-def run_probe(command, env, label):
+DEFAULT_PROBE_TIMEOUT = 300.0
+
+
+def positive_finite_timeout(value):
+    try:
+        timeout = float(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("probe timeout must be a positive finite number") from exc
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise argparse.ArgumentTypeError("probe timeout must be a positive finite number")
+    return timeout
+
+
+def run_probe(command, env, label, timeout):
     try:
         completed = subprocess.run(
             command,
@@ -104,7 +122,7 @@ def run_probe(command, env, label):
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=90,
+            timeout=timeout,
         )
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         detail = getattr(exc, "stderr", None)
@@ -118,7 +136,7 @@ def run_probe(command, env, label):
         raise RuntimeError("%s probe returned invalid JSON" % label) from exc
 
 
-def baseline_probe():
+def baseline_probe(timeout):
     env = os.environ.copy()
     env.pop("PYTHONHOME", None)
     env.pop("PYTHONPATH", None)
@@ -127,7 +145,7 @@ def baseline_probe():
     env["PYTHONNOUSERSITE"] = "1"
     env["COEXIST_MODULES"] = json.dumps(BASELINE_MODULES)
     env["COEXIST_ALLOW_ABSENT"] = ",".join(sorted(OPTIONAL_BASELINE_MODULES))
-    return run_probe([sys.executable, "-c", PROBE], env, "baseline")
+    return run_probe([sys.executable, "-c", PROBE], env, "baseline", timeout)
 
 
 def rpm_verify_snapshot(packages=None):
@@ -170,7 +188,7 @@ def rpm_installed_packages():
     return set(line for line in completed.stdout.splitlines() if line)
 
 
-def private_probe(launcher, private_roots, private_module):
+def private_probe(launcher, private_roots, private_module, timeout):
     env = os.environ.copy()
     env.pop("PYTHONHOME", None)
     env.pop("PYTHONPATH", None)
@@ -181,7 +199,7 @@ def private_probe(launcher, private_roots, private_module):
     env.pop("COEXIST_ALLOW_ABSENT", None)
     env["COEXIST_PRIVATE_ROOT"] = os.pathsep.join(str(root) for root in private_roots)
     env["COEXIST_PRIVATE_MODULE"] = private_module
-    return run_probe([*launcher, "-c", PROBE], env, "private")
+    return run_probe([*launcher, "-c", PROBE], env, "private", timeout)
 
 
 def verbose_import_paths(output):
@@ -203,7 +221,7 @@ def validate_sglang_launcher_probe(output, private_roots):
         raise RuntimeError("SGLang launcher probe did not import private sglang")
 
 
-def run_sglang_launcher(launcher, private_roots):
+def run_sglang_launcher(launcher, private_roots, timeout):
     env = os.environ.copy()
     env.pop("PYTHONHOME", None)
     env.pop("PYTHONPATH", None)
@@ -221,7 +239,7 @@ def run_sglang_launcher(launcher, private_roots):
     try:
         completed = subprocess.run(
             [*launcher, "--help"], env=env, check=True, text=True,
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=90,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout,
         )
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         detail = getattr(exc, "stderr", None)
@@ -284,6 +302,11 @@ def validate_private(result, expected, roots, private_module, private_versions):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--baseline-json", required=True, type=Path)
+    parser.add_argument(
+        "--probe-timeout", type=positive_finite_timeout,
+        default=DEFAULT_PROBE_TIMEOUT,
+        help="timeout in seconds for each coexistence probe (default: %(default)s)",
+    )
     parser.add_argument("--snapshot", action="store_true")
     parser.add_argument("--private-launcher", nargs="+", default=["/usr/bin/sglang-python"])
     parser.add_argument("--sglang-launcher", nargs="+", default=["/usr/bin/sglang"])
@@ -302,7 +325,7 @@ def main():
             parser.error("--private-version requires MODULE=VERSION")
         private_versions[name] = version
 
-    baseline = baseline_probe()
+    baseline = baseline_probe(args.probe_timeout)
     rpm_baseline = rpm_verify_snapshot()
     if args.snapshot:
         args.baseline_json.parent.mkdir(parents=True, exist_ok=True)
@@ -330,10 +353,10 @@ def main():
         raise RuntimeError("provide existing --private-root paths")
     if not any(root.joinpath("python" + ".".join(map(str, sys.version_info[:2])), "site-packages").is_dir() for root in roots):
         raise RuntimeError("private roots do not contain the running Python site-packages tree")
-    private = private_probe(args.private_launcher, roots, args.private_module)
+    private = private_probe(args.private_launcher, roots, args.private_module, args.probe_timeout)
     validate_private(private, expected, roots, args.private_module, private_versions)
-    run_sglang_launcher(args.sglang_launcher, roots)
-    after = baseline_probe()
+    run_sglang_launcher(args.sglang_launcher, roots, args.probe_timeout)
+    after = baseline_probe(args.probe_timeout)
     if after != expected:
         raise RuntimeError("baseline probe changed after private launcher invocation")
     if expected_rpm and expected_rpm.get("available"):

@@ -21,7 +21,9 @@ VCS:            git:https://github.com/huggingface/tokenizers
 Source0:        https://files.pythonhosted.org/packages/18/1e/bc6587c5ab643b2e17776cace9070a2ae73549c86bffac9934a600bf3c31/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 
-BuildOption(install):  -l %{srcname}
+# Tokenizers 0.23.2 does not publish PEP 639 License-File metadata.  Keep
+# automatic file collection, but handle the source license explicitly below.
+BuildOption(install):  -l %{srcname} -L
 # The default import scan also probes optional model and network helpers.
 BuildOption(check):  -e 'tokenizers.*'
 
@@ -29,6 +31,7 @@ BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(maturin)
+BuildRequires:  gcc-c++
 BuildRequires:  rust
 BuildRequires:  rust-rpm-macros
 BuildRequires:  crate(ahash-0.8/default)
