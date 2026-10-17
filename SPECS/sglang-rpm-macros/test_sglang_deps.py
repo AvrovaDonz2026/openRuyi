@@ -141,6 +141,24 @@ class SglangDependencyTests(unittest.TestCase):
                     "python3dist(safetensors) >= 0.8",
                 )))
 
+    def test_timm_is_private_and_uses_cpu_torch_provider(self):
+        requires = DISTDEPS._namespace_requirements(
+            "python3dist(timm) >= 1.0.28",
+            "core",
+            torch_flavor="cpu",
+        )
+        self.assertEqual(requires, "sglang(python3dist(timm)) >= 1.0.28")
+
+        torch_requires = DISTDEPS._namespace_requirements(
+            "python3dist(torch) >= 2.0",
+            "core",
+            torch_flavor="cpu",
+        )
+        self.assertEqual(
+            torch_requires,
+            "sglang(python3dist(torch-cpu)) >= 2.0",
+        )
+
     def test_python_subprocess_protocol_preserves_status_and_stderr(self):
         output = "\n".join((
             "python(abi) = 3.13",

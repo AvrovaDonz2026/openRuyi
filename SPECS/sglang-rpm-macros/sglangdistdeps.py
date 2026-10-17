@@ -28,7 +28,7 @@ CORE = frozenset({
     "grpcio", "grpcio-tools", "grpcio-health-checking", "grpcio-reflection",
     "grpcio-status", "torchcodec",
     "apache-tvm-ffi", "smg-grpc-proto", "smg-grpc-servicer",
-    "transformers", "tokenizers", "huggingface-hub", "click",
+    "transformers", "tokenizers", "huggingface-hub", "click", "timm",
 })
 EXTRAS = frozenset({
     "fsspec", "datasets", "pandas", "pillow", "sgl-eval", "moviepy",

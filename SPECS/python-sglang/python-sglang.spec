@@ -99,6 +99,7 @@ BuildRequires:  sglang(python3dist(triton)) = 3.8.0
 BuildRequires:  sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 BuildRequires:  sglang(python3dist(mistral-common)) >= 1.11.5
 BuildRequires:  sglang(python3dist(transformers)) = 5.19.0
+BuildRequires:  sglang(python3dist(timm)) = 1.0.28
 %ifnarch aarch64 armv7hl
 # pyproject_cpu.toml excludes torchcodec on Linux ARM (aarch64, arm64, armv7l).
 BuildRequires:  sglang(python3dist(torchcodec)) = 0.12.0
@@ -115,6 +116,7 @@ Requires:       sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
 Requires:       sglang(python3dist(mistral-common)) >= 1.11.5
 Requires:       sglang(python3dist(transformers)) = 5.19.0
+Requires:       sglang(python3dist(timm)) = 1.0.28
 %ifnarch aarch64 armv7hl
 Requires:       sglang(python3dist(torchcodec)) = 0.12.0
 %endif
@@ -143,8 +145,10 @@ sed -i \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8,<0.1"/' \
     -e 's/"transformers==5.12.1"/"transformers==5.19.0"/' \
     -e 's/"timm==1.0.16"/"timm>=1.0.28,<2"/' \
-    -e '/intel-openmp.*platform_machine.*x86_64/d' \
     python/pyproject.toml
+%ifarch riscv64
+sed -i '/intel-openmp.*platform_machine.*x86_64/d' python/pyproject.toml
+%endif
 %endif
 
 %generate_buildrequires
