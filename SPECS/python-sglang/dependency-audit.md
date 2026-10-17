@@ -31,6 +31,12 @@ not complete, so no ROCm RPM is scheduled or claimed as built. The conditional
 requirements continue to name `torch-rocm`; they MUST NOT fall back to the CPU
 provider when the flavor is enabled in a future change.
 
+The packaged CPU closure is currently limited to `x86_64` and `riscv64`, which
+are the architectures covered by the private Triton 3.8 provider. The upstream
+CPU metadata also mentions Linux ARM, but this repository does not yet provide
+an ARM-compatible Triton RPM; publishing the SGLang RPM there would leave an
+unsatisfied runtime dependency.
+
 ## Shared and private providers
 
 | Dependency | Provider selection |

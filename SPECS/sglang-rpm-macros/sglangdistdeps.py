@@ -65,7 +65,9 @@ def _private_namespace(
 def _torch_flavor(package_name: str) -> str:
     if package_name.endswith("-rocm"):
         return "rocm"
-    if package_name in {"python-sglang-cuda", "python-sglang-kernel"}:
+    if package_name.endswith("-cuda") or package_name in {
+        "python-sglang-cuda", "python-sglang-kernel",
+    }:
         return "cuda"
     return "cpu"
 
@@ -85,10 +87,9 @@ def _rewrite_capabilities(
         name = match.group("wname") or match.group("rawname")
         if _normalize_dist_name(name) == "torch" and torch_flavor:
             capability = re.sub(
-                r"python(?:[0-9]+(?:\.[0-9]+)?)?dist\(torch\)",
-                lambda match: match.group(0).replace(
-                    "(torch)", f"(torch-{torch_flavor})"
-                ),
+                r"(?P<prefix>python(?:[0-9]+(?:\.[0-9]+)?)?dist)"
+                r"\(torch(?:\[[^)]*\])?\)",
+                lambda match: f"{match.group('prefix')}(torch-{torch_flavor})",
                 capability,
             )
         private_namespace = _private_namespace(name, profile, private_dists)

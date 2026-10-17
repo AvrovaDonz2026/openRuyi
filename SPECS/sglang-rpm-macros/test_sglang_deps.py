@@ -102,6 +102,7 @@ class SglangDependencyTests(unittest.TestCase):
             ("python-torch-sglang-2.14-rocm", "rocm"),
             ("python-sglang-cuda", "cuda"),
             ("python-sglang-kernel", "cuda"),
+            ("python-torch-sglang-2.14-cuda", "cuda"),
         ):
             with self.subTest(package_name=package_name):
                 rewritten = DISTDEPS._rewrite_capabilities(
@@ -115,6 +116,19 @@ class SglangDependencyTests(unittest.TestCase):
                     f"sglang(python3.14dist(torch-{flavor})) >= 2.14\n"
                     f"sglang(python3dist(torch-{flavor})) = 2.14",
                 )
+
+    def test_torch_flavor_rewrites_extras(self):
+        rewritten = DISTDEPS._rewrite_capabilities(
+            "python3dist(torch[cuda]) >= 2.14\n"
+            "python3.14dist(torch[rocm]) = 2.14",
+            "core",
+            torch_flavor="cpu",
+        )
+        self.assertEqual(
+            rewritten,
+            "sglang(python3dist(torch-cpu)) >= 2.14\n"
+            "sglang(python3.14dist(torch-cpu)) = 2.14",
+        )
 
     def test_transformers_closure_uses_private_providers_in_both_profiles(self):
         # A system provider must not satisfy the newer private stack's
