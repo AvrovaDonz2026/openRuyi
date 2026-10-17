@@ -36,6 +36,10 @@ BuildRequires:  python3dist(safetensors)
 BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
 BuildRequires:  sglang(python3dist(torchvision)) = 0.29.0
 
+Requires:       sglang(python3dist(huggingface-hub)) >= 1.31.0
+Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
+Requires:       sglang(python3dist(torchvision)) = 0.29.0
+
 %description
 PyTorch Image Models provides model architectures, layers, and utilities for
 PyTorch. This package provides the SGLang-private compatibility tree so its
