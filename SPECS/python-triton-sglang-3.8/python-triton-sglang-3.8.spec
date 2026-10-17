@@ -80,7 +80,7 @@ BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
 
 %patchlist
-# Link X86 codegen libraries on the riscv64 host.
+# Link RISC-V and X86 codegen libraries on the riscv64 host.
 2001-Add-riscv64-host-codegen-libraries.patch
 # Use system-provided build tools instead of vendored copies.
 2002-use-system-build-tools.patch

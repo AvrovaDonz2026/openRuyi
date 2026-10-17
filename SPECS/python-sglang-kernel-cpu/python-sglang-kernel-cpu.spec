@@ -52,6 +52,8 @@ BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
 Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
+# Keep the private capability aligned with pyproject_cpu.toml's project name.
+Provides:       sglang(python3dist(%{srcname})) = %{version}
 
 %patchlist
 # RISC-V source selection and explicit cross-target ISA handling.

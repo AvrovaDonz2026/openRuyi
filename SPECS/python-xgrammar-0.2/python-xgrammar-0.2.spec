@@ -8,6 +8,10 @@
 
 %global srcname xgrammar
 %global compat_name python-xgrammar-0.2
+%ifarch riscv64
+%global llvm_maj_ver 22
+%global toolchain clang
+%endif
 # ROCm remains a source-level flavor for a future completed build.  No OBS
 # multibuild entry is enabled while its dependency closure is unvalidated.
 %global flavor @BUILD_FLAVOR@%{nil}
@@ -41,6 +45,7 @@ URL:            https://github.com/mlc-ai/xgrammar
 #!RemoteAsset:  sha256:7674afeee5e6eff9672627b62d5ab0aa2347ea51674f4d78a5c160029f92bc3e
 Source0:        https://files.pythonhosted.org/packages/source/x/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
+ExclusiveArch:  x86_64 riscv64
 
 BuildOption(install):  -l xgrammar
 # No module named 'triton'
@@ -56,10 +61,19 @@ BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  cmake
 BuildRequires:  file
+BuildRequires:  gcc-c++
 BuildRequires:  ninja
 BuildRequires:  patchelf
+BuildRequires:  python3dist(scikit-build-core) >= 0.10
 BuildRequires:  sglang(python3dist(apache-tvm-ffi)) >= 0.1.11
 BuildRequires:  sglang(python3dist(%{torch_capability})) >= 1.10
+%ifarch riscv64
+BuildRequires:  clang
+BuildRequires:  clang(major) = %{llvm_maj_ver}
+BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
+BuildRequires:  lld(major) = %{llvm_maj_ver}
+BuildRequires:  llvm(major) = %{llvm_maj_ver}
+%endif
 
 Requires:       sglang(python3dist(apache-tvm-ffi)) >= 0.1.11
 Requires:       sglang(python3dist(%{torch_capability})) >= 1.10
@@ -78,6 +92,18 @@ sed -i 's/-Werror//g' CMakeLists.txt
 %generate_buildrequires
 %sglang_pyproject_buildrequires
 
+%build -p
+%ifarch riscv64
+export CC=clang
+export CXX=clang++
+export LD=ld.lld
+export AR=llvm-ar
+export RANLIB=llvm-ranlib
+export CFLAGS="%{build_cflags} --target=%{_target_platform}"
+export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
+export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+%endif
+
 %install -a
 %sglang_private_rpath
 # tvm_ffi uses wheel RECORD metadata to locate the native binding library.
@@ -85,7 +111,7 @@ echo '%{srcname}/libxgrammar_bindings.so,,' > \
     %{buildroot}%{_sglang_private_sitearch}/%{srcname}-%{version}.dist-info/RECORD
 
 %check -a
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" \
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
 %{python3} - <<'PY'
 import torch
 import xgrammar

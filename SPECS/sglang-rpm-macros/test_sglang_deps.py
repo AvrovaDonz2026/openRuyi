@@ -74,6 +74,7 @@ class SglangDependencyTests(unittest.TestCase):
             "python3dist(numpy) >= 2",
             "python3dist(torch) >= 2",
             "python3dist(sglang-kernel) = 0.4.7",
+            "python3dist(sglang-kernel-cpu) = 0.4.7",
             "python3dist(fsspec)",
             "python3dist(scikit-build-core)",
         ))
@@ -88,10 +89,12 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertIn("python3dist(numpy) >= 2", core)
         self.assertIn("sglang(python3dist(torch)) >= 2", core)
         self.assertIn("sglang(python3dist(sglang-kernel)) = 0.4.7", core)
+        self.assertIn("sglang(python3dist(sglang-kernel-cpu)) = 0.4.7", core)
         self.assertIn("python3dist(fsspec)", core)
         self.assertIn("sglang-extras(python3dist(fsspec))", extras)
         self.assertIn("sglang(python3dist(torch)) >= 2", extras)
         self.assertIn("sglang(python3dist(sglang-kernel)) = 0.4.7", extras)
+        self.assertIn("sglang(python3dist(sglang-kernel-cpu)) = 0.4.7", extras)
         self.assertIn("sglang(python3dist(scikit-build-core))", extras)
         self.assertNotIn("sglang(python(abi))", extras)
         self.assertNotIn("sglang(python3dist(numpy))", extras)
@@ -103,6 +106,9 @@ class SglangDependencyTests(unittest.TestCase):
             ("python-sglang-cuda", "cuda"),
             ("python-sglang-kernel", "cuda"),
             ("python-torch-sglang-2.14-cuda", "cuda"),
+            ("python-widget-cuda", "cuda"),
+            ("python-widget-rocm", "rocm"),
+            ("python-torch-sglang-2.14-CUDA", "cuda"),
         ):
             with self.subTest(package_name=package_name):
                 rewritten = DISTDEPS._rewrite_capabilities(
@@ -120,14 +126,16 @@ class SglangDependencyTests(unittest.TestCase):
     def test_torch_flavor_rewrites_extras(self):
         rewritten = DISTDEPS._rewrite_capabilities(
             "python3dist(torch[cuda]) >= 2.14\n"
-            "python3.14dist(torch[rocm]) = 2.14",
+            "python3.14dist(torch[rocm,foo]) = 2.14\n"
+            "sglang(python3dist(torch[cuda]))",
             "core",
             torch_flavor="cpu",
         )
         self.assertEqual(
             rewritten,
             "sglang(python3dist(torch-cpu)) >= 2.14\n"
-            "sglang(python3.14dist(torch-cpu)) = 2.14",
+            "sglang(python3.14dist(torch-cpu)) = 2.14\n"
+            "sglang(python3dist(torch-cpu))",
         )
 
     def test_transformers_closure_uses_private_providers_in_both_profiles(self):
@@ -292,10 +300,10 @@ class SglangDependencyTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, 0)
-        self.assertIn("libarbitrary_backend.so.1", result.stdout)
+        self.assertIn("sglang-extras(libarbitrary_backend.so.1)", result.stdout)
         self.assertIn("sglang(libtorch_cpu.so.2)", result.stdout)
         self.assertIn("libnuma.so.1", result.stdout)
-        self.assertNotIn("sglang-extras(libarbitrary_backend.so.1)", result.stdout)
+        self.assertNotIn("\nlibarbitrary_backend.so.1\n", result.stdout)
 
     def test_elf_requires_reset_private_marker_between_files(self):
         result = self.run_generator(

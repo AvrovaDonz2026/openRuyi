@@ -16,9 +16,9 @@ import sys
 
 
 # These names are produced by PyTorch and the selected native SGLang modules.
-# Multifile paths identify the file that emitted a requirement.  Provides are
-# always namespaced by that private path; requires are limited to these known
-# private SONAMEs so ordinary system dependencies remain global.
+# Multifile paths identify the file that emitted a requirement.  Provides and
+# private-file requires are namespaced; the system SONAME list keeps ordinary
+# runtime dependencies global while allowing new private SONAMEs to work.
 CORE_SONAME = re.compile(
     r"^lib(?:torch|c10|c10d|kineto|shm|torch_cpu|torch_cuda|"
     r"torch_global_deps|torch_python|torchaudio|torchvision|triton|"
@@ -33,13 +33,29 @@ PRIVATE_SONAME = re.compile(
     r"aoti_custom_ops|backend_with_compiler|jitbackend_test|torchbind_test)"
     r"(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
 )
+
+# A private ELF can introduce a new SONAME at any time.  Treat known system
+# libraries as the exception rather than maintaining a closed private list.
+SYSTEM_SONAME = re.compile(
+    r"^(?:linux-vdso|ld-linux(?:-[^.]*)?|ld-musl(?:-[^.]*)?|lib(?:anl|"
+    r"atomic|blas|bz2|c|crypt|dl|expat|ffi|gcc_s|gomp|lapack|lzma|m|"
+    r"nsl|numa|omp|openblas(?:64)?|pthread|quadmath|resolv|rt|stdc\+\+|"
+    r"util|uuid|z|zstd))(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
+)
+SONAME = re.compile(r"^(?:lib|ld-)[^/]+\.so(?:\.[0-9]+)*$")
+
+
 def _capability_name(capability: str) -> str:
     unwrapped = re.sub(r"^(?:sglang|sglang-extras)\((.*)\)$", r"\1", capability)
     return unwrapped.split("(", 1)[0]
 
 
 def _private(capability: str) -> bool:
-    return bool(PRIVATE_SONAME.match(_capability_name(capability)))
+    name = _capability_name(capability)
+    return bool(
+        PRIVATE_SONAME.match(name)
+        or SONAME.match(name) and not SYSTEM_SONAME.match(name)
+    )
 
 
 def _core(capability: str) -> bool:

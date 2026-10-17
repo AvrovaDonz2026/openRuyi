@@ -37,8 +37,8 @@ BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %else
 BuildRequires:  gcc-c++
 %endif
-BuildRequires:  ffmpeg-devel >= 4
-BuildRequires:  ffmpeg-devel < 9
+BuildRequires:  ffmpeg-devel%{?_isa} >= 4
+BuildRequires:  ffmpeg-devel%{?_isa} < 9
 BuildRequires:  pkgconfig
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  file
@@ -50,8 +50,8 @@ BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
 
-Requires:       ffmpeg >= 4
-Requires:       ffmpeg < 9
+Requires:       ffmpeg%{?_isa} >= 4
+Requires:       ffmpeg%{?_isa} < 9
 Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
 
 %description

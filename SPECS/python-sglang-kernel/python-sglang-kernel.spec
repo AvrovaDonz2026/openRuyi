@@ -8,7 +8,13 @@
 %global srcname sglang
 %global kernel_version 0.4.7
 
+%global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "cuda"
 %{error:CUDA SGLang Kernel flavor is reserved and is not supported by this SPEC}
+%endif
+%if "%{flavor}" == "rocm"
+%{error:ROCm SGLang Kernel flavor is reserved and is not supported by this SPEC}
+%endif
 
 Name:           python-sglang-kernel
 BuildRequires:  sglang-rpm-macros

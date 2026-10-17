@@ -63,6 +63,7 @@ def _private_namespace(
 
 
 def _torch_flavor(package_name: str) -> str:
+    package_name = package_name.lower()
     if package_name.endswith("-rocm"):
         return "rocm"
     if package_name.endswith("-cuda") or package_name in {

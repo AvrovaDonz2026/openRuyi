@@ -32,6 +32,7 @@ Source0:        https://github.com/triton-lang/triton/releases/download/v%{versi
 #!RemoteAsset:  sha256:b6aa9fbc954895bbd69374529593bbcdc4342b0812d8884698bbfd3d92d3426d
 Source1:        https://codeload.github.com/llvm/llvm-project/tar.gz/%{llvm_commit}#/llvm-project-%{llvm_commit}.tar.gz
 BuildSystem:    pyproject
+ExclusiveArch:  x86_64 riscv64
 
 BuildOption(install):  -l %{srcname}
 BuildOption(check):  -e 'triton.instrumentation.*'

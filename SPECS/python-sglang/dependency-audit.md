@@ -56,8 +56,9 @@ unsatisfied runtime dependency.
 Tokenizers 0.23.2 uses the existing Rust PyO3, NumPy and async-runtime 0.29
 crate series. Its offline Cargo resolution and target extension build have
 not yet passed. Hugging Face Hub's `hf-xet>=1.5.2,<2` dependency applies only
-to its upstream x86/ARM platform markers; the existing 1.5.1 recipe is
-insufficient on those platforms. It is not required by the RISC-V CPU marker.
+to its upstream x86/ARM platform markers; the `python-hf-xet` recipe is aligned
+to 1.5.2 for those platforms, although its target build remains unverified. It
+is not required by the RISC-V CPU marker.
 
 The optional Datasets 4, fsspec 2026.2, pandas 2 and Pillow 11 recipes use the
 separate `extras` tree. They MUST NOT replace shared distribution providers.
