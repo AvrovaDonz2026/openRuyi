@@ -32,13 +32,14 @@ BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(hatchling)
 BuildRequires:  python3dist(hatch-vcs)
+%if %{with test}
 BuildRequires:  cmake
 BuildRequires:  ninja
 BuildRequires:  gcc-c++
-# For tests
 BuildRequires:  python3dist(pytest)
 BuildRequires:  python3dist(virtualenv)
 BuildRequires:  python3dist(numpy)
+%endif
 
 %description
 A next generation Python CMake adapter and Python API for plugins.
@@ -57,6 +58,8 @@ cp -p src/scikit_build_core/_vendor/pyproject_metadata/LICENSE LICENSE-pyproject
 %files -f %{pyproject_files}
 %doc README.md
 %license LICENSE LICENSE-pyproject-metadata
+%{_sglang_private_libexec}/scikit-build
+%{_sglang_private_libexec}/scikit-build-core
 
 %changelog
 %autochangelog
