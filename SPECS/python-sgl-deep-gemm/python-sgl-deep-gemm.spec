@@ -8,6 +8,8 @@
 %global srcname DeepGEMM
 %global pypi_name sgl-deep-gemm
 
+%{error:CUDA SGL DeepGEMM flavor is reserved and is not supported by this SPEC}
+
 Name:           python-sgl-deep-gemm
 Version:        0.2.0
 Release:        %autorelease

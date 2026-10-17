@@ -143,6 +143,7 @@ sed -i \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8,<0.1"/' \
     -e 's/"transformers==5.12.1"/"transformers==5.19.0"/' \
     -e 's/"timm==1.0.16"/"timm>=1.0.28,<2"/' \
+    -e '/intel-openmp.*platform_machine.*x86_64/d' \
     python/pyproject.toml
 %endif
 

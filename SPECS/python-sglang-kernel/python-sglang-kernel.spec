@@ -8,6 +8,8 @@
 %global srcname sglang
 %global kernel_version 0.4.7
 
+%{error:CUDA SGLang Kernel flavor is reserved and is not supported by this SPEC}
+
 Name:           python-sglang-kernel
 BuildRequires:  sglang-rpm-macros
 %sglang_python_compat core
