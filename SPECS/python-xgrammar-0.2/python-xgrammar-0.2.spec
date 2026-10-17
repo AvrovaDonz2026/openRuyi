@@ -13,9 +13,17 @@
 %global flavor @BUILD_FLAVOR@%{nil}
 %if "%{flavor}" == "rocm"
 %{error:ROCm SGLang XGrammar flavor is reserved and is not supported by this SPEC}
+%bcond rocm 1
 %global torch_capability torch-rocm
 %else
+%bcond rocm 0
 %global torch_capability torch-cpu
+%endif
+
+# Keep the reserved ROCm flavor unbuildable when a caller enables the bcond
+# directly instead of selecting BUILD_FLAVOR=rocm.
+%if %{with rocm}
+%{error:ROCm SGLang XGrammar flavor is reserved and is not supported by this SPEC}
 %endif
 
 %if "%{flavor}" == "rocm"

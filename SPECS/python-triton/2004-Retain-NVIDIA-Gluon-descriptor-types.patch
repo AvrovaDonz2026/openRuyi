@@ -1,7 +1,15 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+
 From fd3406067f9a105f4f4f243ce959462787ca33f9 Mon Sep 17 00:00:00 2001
 From: CHEN Xuan <chenxuan@iscas.ac.cn>
 Date: Sun, 12 Jul 2026 10:00:01 +0800
 Subject: [PATCH] Retain NVIDIA Gluon descriptor types
+
+Upstream-Reference: https://github.com/triton-lang/triton/tree/v3.7.1
+Upstream-Status: Downstream
 
 The common native specializer imports the pure-Python NVIDIA
 TensorDescriptor class even when only the AMD backend is enabled.
@@ -37,4 +45,3 @@ index cc4ad5a..ee89ba1 100644
              "triton.tools.triton_to_gluon_translater",
 -- 
 2.53.0
-

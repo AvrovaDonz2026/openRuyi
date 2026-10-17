@@ -1,3 +1,17 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+
+Subject: [PATCH] Make Triton plugins and tools selectable
+Upstream-Reference: https://github.com/triton-lang/triton/tree/v3.7.1
+Upstream-Status: Downstream
+
+Allow the riscv64 package build to omit CUDA-dependent Python plugins and
+developer tools while retaining the NVIDIA dialect and lowering libraries
+used by common compiler and Proton code. Other architectures retain the
+upstream NVIDIA and Proton plugin defaults.
+
 diff -ruN a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt	2026-06-18 11:45:56
 +++ b/CMakeLists.txt	2026-06-18 11:45:56
