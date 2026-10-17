@@ -1,7 +1,15 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+
 From 0d1ba411824f3ae029800b0ac2da5d4ebd68889b Mon Sep 17 00:00:00 2001
 From: CHEN Xuan <chenxuan@iscas.ac.cn>
 Date: Fri, 21 Aug 2026 17:43:00 +0800
 Subject: [PATCH] Add riscv64 host-codegen libraries
+
+Upstream-Reference: https://github.com/triton-lang/triton/tree/v3.7.1
+Upstream-Status: Downstream
 
 Link X86 codegen libraries on riscv64 because llvm::InitializeAllTargets()
 references them, preventing undefined LLVMInitializeX86Target at import time.
@@ -32,4 +40,3 @@ index c47bb01..eaa70d1 100644
    endif()
 -- 
 2.53.0
-

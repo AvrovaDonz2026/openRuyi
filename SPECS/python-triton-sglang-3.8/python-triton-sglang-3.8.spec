@@ -10,6 +10,16 @@
 %global srcname triton
 %global compat_name python-triton-sglang-3.8
 
+# CUDA and ROCm flavors are reserved until matching SGLang providers and
+# validated target dependency closures are available.
+%global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "cuda"
+%{error:CUDA SGLang Triton flavor is reserved and is not supported by this SPEC}
+%endif
+%if "%{flavor}" == "rocm"
+%{error:ROCm SGLang Triton flavor is reserved and is not supported by this SPEC}
+%endif
+
 # Triton pins an exact, in-development LLVM *commit*
 %global llvm_commit 5f07f818b51b786b0a87b4e514882600ecba112f
 
@@ -40,6 +50,7 @@ Source0:        https://github.com/triton-lang/triton/releases/download/v%{versi
 #!CreateArchive
 Source1:        llvm-project-%{llvm_commit}.tar.gz
 BuildSystem:    pyproject
+ExclusiveArch:  x86_64 riscv64
 
 BuildOption(install):  -l triton
 BuildOption(check):  -e 'triton.instrumentation.*'
@@ -106,9 +117,10 @@ link_jobs=$(( 1 + mem_gb / 16 ))
 
 %ifarch x86_64
 llvm_targets="X86;AMDGPU;NVPTX"
-%endif
-%ifarch riscv64
+%elifarch riscv64
 llvm_targets="RISCV;X86;AMDGPU;NVPTX"
+%else
+%{error:unsupported architecture for SGLang Triton}
 %endif
 
 cmake -S "$llvm_src/llvm" -B "$llvm_src/build" -G Ninja \
@@ -143,10 +155,12 @@ export TRITON_BUILD_WITH_CLANG_LLD=ON
 export TRITON_BUILD_PROTON=OFF
 export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=OFF
 export TRITON_CODEGEN_BACKENDS=amd
-%else
+%elifarch x86_64
 export TRITON_BUILD_PROTON=ON
 export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=ON
 export TRITON_CODEGEN_BACKENDS="nvidia;amd"
+%else
+%{error:unsupported architecture for SGLang Triton}
 %endif
 export TRITON_OFFLINE_BUILD=1
 export TRITON_BUILD_TOOLS=OFF

@@ -1,3 +1,16 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+
+Subject: [PATCH] Use system build tools for packaging
+Upstream-Reference: https://github.com/triton-lang/triton/tree/v3.7.1
+Upstream-Status: Downstream
+
+Use the system CMake, Ninja and pybind11 packages during RPM builds. Keep
+setuptools as the isolated Python build requirement and pass the system
+pybind11 CMake package path explicitly.
+
 diff -ruN a/CMakeLists.txt b/CMakeLists.txt
 --- a/CMakeLists.txt	2026-05-08 00:50:13
 +++ b/CMakeLists.txt	2026-06-17 17:19:09
