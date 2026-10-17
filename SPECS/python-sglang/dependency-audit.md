@@ -60,6 +60,12 @@ to its upstream x86/ARM platform markers; the `python-hf-xet` recipe is aligned
 to 1.5.2 for those platforms, although its target build remains unverified. It
 is not required by the RISC-V CPU marker.
 
+LLGuidance 1.7.6 requires the exact `derivre` 0.3.12 crate release. The
+compatibility closure therefore keeps the existing 0.3.11 crate available and
+adds a co-installable 0.3.12 provider, together with the required hashbrown
+0.17.1 provider. The Rust crate transaction and LLGuidance target build remain
+unverified.
+
 The optional Datasets 4, fsspec 2026.2, pandas 2 and Pillow 11 recipes use the
 separate `extras` tree. They MUST NOT replace shared distribution providers.
 They are not selected by the core CPU launcher. Optional diffusion dependencies,
