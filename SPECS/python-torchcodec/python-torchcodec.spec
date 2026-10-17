@@ -23,6 +23,8 @@ VCS:            git:https://github.com/meta-pytorch/torchcodec.git
 #!RemoteAsset:  sha256:f0cc21c1f99439cff30eb43080e9bc8e43c6b9505b4f327cb42ee132075bcec4
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz#/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
+# The CPU Torch/SGLang closure is published only for these targets.
+ExclusiveArch:  x86_64 riscv64
 
 BuildOption(install):  -l %{srcname}
 

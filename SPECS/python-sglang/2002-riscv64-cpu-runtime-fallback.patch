@@ -45,7 +45,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 +
 +
 +@lru_cache(maxsize=1)
-@@ -4411 +4433 @@
+@@ -4078 +4102 @@
 -        (cpu_has_amx_support() or is_host_cpu_arm64())
 +        (cpu_has_amx_support() or is_host_cpu_arm64() or cpu_has_riscv_shm_support())
 --- a/python/sglang/srt/arg_groups/platform_hook.py

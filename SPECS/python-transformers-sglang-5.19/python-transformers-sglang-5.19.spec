@@ -52,7 +52,7 @@ cat > "$tmpdir/tokenizer_config.json" <<'JSON'
 JSON
 printf '[UNK]\n[CLS]\n[SEP]\nhello\n' > "$tmpdir/vocab.txt"
 HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 \
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_sitelib}" \
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
 %{python3} -s - "$tmpdir" <<'PY'
 import importlib.metadata
 import json
