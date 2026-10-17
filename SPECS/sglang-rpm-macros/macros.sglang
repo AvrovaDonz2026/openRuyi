@@ -20,10 +20,10 @@
 %%global sglang_python_profile %%{?1}%%{!?1:core}
 %%global _sglang_private_enabled 1
 %%global __elf_exclude_path (^/usr/lib/debug/)|(^/lib/modules/.*\\.ko?(\\.[[:alnum:]]*)$)|(^/usr/lib(64)?/sglang/(core|extras)/)
-%%global buildsystem_pyproject_generate_buildrequires(rRxtNwpe:g:C:) %%%%sglang_pyproject_buildrequires %%%%{**}
-%%global buildsystem_pyproject_build(C:) %%%%sglang_pyproject_wheel %%%%{**}
-%%global buildsystem_pyproject_install(l:L) %%%%sglang_pyproject_install %%%%{**}
-%%global buildsystem_pyproject_check(e:t) %%%%sglang_pyproject_check_import %%%%{**}
+%%global buildsystem_pyproject_generate_buildrequires() %%%%sglang_pyproject_buildrequires %%%%*
+%%global buildsystem_pyproject_build() %%%%sglang_pyproject_wheel %%%%*
+%%global buildsystem_pyproject_install() %%%%sglang_pyproject_install %%%%*
+%%global buildsystem_pyproject_check() %%%%sglang_pyproject_check_import %%%%*
 }
 
 %sglang_private_rpath() %{expand:\\\

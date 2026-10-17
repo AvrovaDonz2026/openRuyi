@@ -26,6 +26,10 @@
 %global torch_capability torch-cpu
 %endif
 
+%if %{with rocm}
+%{error:ROCm SGLang TorchVision flavor is reserved and is not supported by this SPEC}
+%endif
+
 %bcond test 0
 
 %if %{with rocm}

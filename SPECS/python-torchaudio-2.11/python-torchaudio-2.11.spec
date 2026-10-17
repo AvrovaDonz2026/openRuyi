@@ -19,6 +19,11 @@
 %bcond rocm 0
 %global torch_capability torch-cpu
 %endif
+
+%if %{with rocm}
+%{error:ROCm SGLang TorchAudio flavor is reserved and is not supported by this SPEC}
+%endif
+
 %ifarch riscv64
 %global llvm_maj_ver 22
 %global toolchain clang

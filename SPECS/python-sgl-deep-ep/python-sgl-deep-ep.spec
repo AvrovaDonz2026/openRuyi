@@ -8,6 +8,8 @@
 %global srcname DeepEP
 %global pypi_name sgl-deep-ep
 
+%{error:CUDA SGL DeepEP flavor is reserved and is not supported by this SPEC}
+
 Name:           python-sgl-deep-ep
 Version:        0.1.2
 Release:        %autorelease
