@@ -42,7 +42,7 @@ tree.
 
 %check -a
 HF_HUB_OFFLINE=1 \
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_sitelib}" \
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
 %{python3} -s - <<'PY'
 import importlib.metadata
 

@@ -9,6 +9,9 @@
 %global srcname apache-tvm-ffi
 %global pypi_name apache_tvm_ffi
 %global compat_name python-apache-tvm-ffi-0.1
+%ifarch riscv64
+%global llvm_maj_ver 22
+%endif
 
 Name:           %{compat_name}
 BuildRequires:  sglang-rpm-macros
@@ -40,6 +43,13 @@ BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python3dist(cython)
 BuildRequires:  python3dist(scikit-build-core) >= 0.10
 BuildRequires:  python3dist(setuptools-scm)
+%ifarch riscv64
+BuildRequires:  clang
+BuildRequires:  clang(major) = %{llvm_maj_ver}
+BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
+BuildRequires:  lld(major) = %{llvm_maj_ver}
+BuildRequires:  llvm(major) = %{llvm_maj_ver}
+%endif
 
 %description
 Apache TVM FFI provides an open ABI and foreign-function interface for machine
@@ -47,6 +57,18 @@ learning systems, including Python and C++ bindings used by XGrammar.
 
 %generate_buildrequires
 %sglang_pyproject_buildrequires
+
+%build -p
+%ifarch riscv64
+export CC=clang
+export CXX=clang++
+export LD=ld.lld
+export AR=llvm-ar
+export RANLIB=llvm-ranlib
+export CFLAGS="%{build_cflags} --target=%{_target_platform}"
+export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
+export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+%endif
 
 %install -a
 %sglang_private_rpath

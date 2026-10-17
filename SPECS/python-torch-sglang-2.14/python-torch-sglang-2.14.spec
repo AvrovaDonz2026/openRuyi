@@ -7,6 +7,8 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 %global srcname torch
 %global compat_name python-torch-sglang-2.14
+%global llvm_major 22
+%global llvm_bindir %{_libdir}/llvm%{llvm_major}/bin
 
 # PyTorch's PEP 517 backend requires a newer private scikit-build-core than
 # the distribution backend used by the other SGLang extension packages.
@@ -92,6 +94,15 @@ BuildOption(prep):  -n pytorch-v%{version}
 # Native builds use the upstream CMake cache definition; cross builds use the
 # upstream PYTORCH_BLAS_USE_CBLAS_DOT environment override below.
 BuildOption(build):  -Ccmake.define.BLAS_USE_CBLAS_DOT:BOOL=ON
+%ifarch riscv64
+# Keep the C++ toolchain in lockstep with the LLVM 22 headers and runtime used
+# by the distribution.  These cache entries are consumed by the PyTorch
+# CMake backend while the compiler environment below covers extension builds.
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%endif
 # packages: torch, torchgen, functorch; torchrun is installed separately below.
 BuildOption(install):  -l '*torch*' functorch
 # torch.lib.lib*: C++ shared libs
@@ -148,6 +159,20 @@ BuildRequires:  python3dist(setuptools) >= 77.0.3
 BuildRequires:  python3dist(six)
 BuildRequires:  python3dist(sympy)
 BuildRequires:  python3dist(typing-extensions) >= 4.10.0
+
+# PyTorch consumes protobuf's CMake imported targets. The protobuf config
+# imports utf8_range and Abseil targets, so pkgconfig(protobuf) alone is not
+# sufficient for an isolated CMake configure.
+BuildRequires:  abseil-cpp-devel
+
+%ifarch riscv64
+# Keep the C++ toolchain in lockstep with the LLVM 22 headers and runtime used
+# by the distribution, including during cross or emulated RISC-V builds.
+BuildRequires:  clang(major) = %{llvm_major}
+BuildRequires:  compiler-rt(major) = %{llvm_major}
+BuildRequires:  lld(major) = %{llvm_major}
+BuildRequires:  llvm(major) = %{llvm_major}
+%endif
 
 %if %{with system_httplib}
 BuildRequires:  cmake(httplib)
@@ -393,15 +418,17 @@ MEM_KB=0
 MEM_KB=`cat /proc/meminfo | grep MemTotal | awk '{ print $2 }'`
 MEM_MB=`eval "expr ${MEM_KB} / 1024"`
 MEM_GB=`eval "expr ${MEM_MB} / 1024"`
-COMPILE_JOBS_MEM=`eval "expr 1 + ${MEM_GB} / ${BUILD_MEM}"`
+COMPILE_JOBS_MEM=`eval "expr ${MEM_GB} / ${BUILD_MEM}"`
 if [ "$COMPILE_JOBS_MEM" -lt "$COMPILE_JOBS" ]; then
     COMPILE_JOBS=$COMPILE_JOBS_MEM
 fi
-# Ensure at least 2 jobs to avoid single-threading the large files
+# A single TraceType/VariableType unit can exceed 4 GiB. Never force a second
+# concurrent unit on a small QEMU guest.
 if [ "$COMPILE_JOBS" -lt 2 ]; then
-    COMPILE_JOBS=2
+    COMPILE_JOBS=1
 fi
 export MAX_JOBS=$COMPILE_JOBS
+export CMAKE_BUILD_PARALLEL_LEVEL=$COMPILE_JOBS
 
 # For verbose cmake output
 # export VERBOSE=ON
@@ -491,6 +518,22 @@ export CMAKE_NO_SYSTEM_FROM_IMPORTED=ON
 export LDFLAGS="-fuse-ld=lld %{build_ldflags}"
 export CMAKE_LIBRARY_PATH=%{_libdir}
 export CMAKE_PREFIX_PATH="%{_prefix}:%{_libdir}/cmake:%{python3_sitearch}"
+
+%ifarch riscv64
+# Keep CMake try-compiles and extension builds on the selected LLVM target.
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export AR="%{llvm_bindir}/llvm-ar"
+export NM="%{llvm_bindir}/llvm-nm"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
+export LD="%{llvm_bindir}/ld.lld"
+export CFLAGS="%{build_cflags} --target=%{_target_platform}"
+export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
+export CMAKE_GENERATOR=Ninja
+export CMAKE_MAKE_PROGRAM="%{_bindir}/ninja"
+%endif
 
 # The upstream cross-compiling branch reads this environment override instead
 # of the BLAS_USE_CBLAS_DOT CMake cache definition.
