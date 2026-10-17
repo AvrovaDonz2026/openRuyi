@@ -56,7 +56,12 @@ Source2:        sglang-python-launcher
 Source3:        sglang-extras-python
 Source4:        sglang-cpu-engine-smoke.py
 BuildSystem:    pyproject
-%if %{with cuda}
+%if %{without cuda}
+# The CPU closure currently relies on the private Triton provider, which is
+# built only for these targets.  Keep unsupported architectures out of the
+# repository rather than publishing an RPM with an unsatisfied dependency.
+ExclusiveArch:  x86_64 riscv64
+%else
 # CUDA toolkit currently provides Linux host support for these architectures.
 ExclusiveArch:  x86_64 aarch64
 %endif
