@@ -304,7 +304,17 @@ mv third_party/benchmark .
 %endif
 mv third_party/mslk .
 
-# Remove everything
+# PyTorch's release archive contains these directories even for a CPU build.
+# Keep them in the source tree because the offline pre-build checks reference
+# their complete submodule paths before USE_NCCL/USE_ITT is applied.
+if [ -d third_party/ittapi ]; then
+    mv third_party/ittapi .
+fi
+if [ -d third_party/nccl ]; then
+    mv third_party/nccl .
+fi
+
+# Remove unused third-party sources
 rm -rf third_party/*
 # Put stuff back
 mv miniz-%{miniz_version} third_party
@@ -328,6 +338,13 @@ mv kineto third_party
 mv mslk third_party
 
 mv gloo third_party
+
+if [ -d ittapi ]; then
+    mv ittapi third_party
+fi
+if [ -d nccl ]; then
+    mv nccl third_party
+fi
 
 %if %{with test}
 # googletest is provided by the system gtest-devel (openRuyi package) instead
