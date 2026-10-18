@@ -93,6 +93,7 @@ fi
 (
   export PYTHONPATH="%{_sglang_private_pythonpath}"
   export CARGO_NET_OFFLINE=true
+  export PIP_NO_INDEX=1
   %%pyproject_wheel %{**}
 )
 }
@@ -102,6 +103,7 @@ sglang_buildrequires_output="%{_pyproject_buildrequires}.sglang"
 (
   export PYTHONPATH="%{_sglang_private_pythonpath}"
   export CARGO_NET_OFFLINE=true
+  export PIP_NO_INDEX=1
   %%pyproject_buildrequires %{**}
 ) > "$sglang_buildrequires_output"
 sglang_buildrequires_status=$?

@@ -10,7 +10,10 @@ Upstream-Reference: https://github.com/sgl-project/sglang/issues/18072
 
 The RISC-V CPU path uses PyTorch-native attention and defers optional CPU AOT
 operations that are not implemented for this architecture. This patch does not
-provide speculative kernels or establish complete RISC-V engine support.
+provide speculative kernels or establish complete RISC-V engine support. An
+optional extension can also fail to load with OSError when its shared-library
+dependencies or architecture are unavailable, so those failures follow the
+same fallback path as ImportError.
 
 --- a/python/sglang/srt/utils/common.py
 +++ b/python/sglang/srt/utils/common.py
@@ -64,7 +67,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 -    from sgl_kernel import assign_req_to_token_pool_cpu
 +    try:
 +        from sgl_kernel import assign_req_to_token_pool_cpu
-+    except ImportError:
++    except (ImportError, OSError):
 +        assign_req_to_token_pool_cpu = None
 @@ -685,0 +689,19 @@
 +
@@ -118,7 +121,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 -    from sgl_kernel import assign_extend_cache_locs_cpu
 +    try:
 +        from sgl_kernel import assign_extend_cache_locs_cpu
-+    except ImportError:
++    except (ImportError, OSError):
 +        assign_extend_cache_locs_cpu = None
 @@ -552,0 +556,4 @@
 +        if assign_extend_cache_locs_cpu is None:
@@ -131,7 +134,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 -    from sgl_kernel import assign_extend_cache_locs_cpu
 +    try:
 +        from sgl_kernel import assign_extend_cache_locs_cpu
-+    except ImportError:
++    except (ImportError, OSError):
 +        assign_extend_cache_locs_cpu = None
 @@ -799,0 +803,4 @@
 +        if assign_extend_cache_locs_cpu is None:
@@ -150,7 +153,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 +            build_tree_kernel_efficient_cpu as sgl_build_tree_kernel_efficient_cpu,
 +        )
 +        from sgl_kernel import verify_tree_greedy_cpu as sgl_verify_tree_greedy_cpu
-+    except ImportError:
++    except (ImportError, OSError):
 +        sgl_build_tree_kernel_efficient_cpu = None
 +        sgl_verify_tree_greedy_cpu = None
 @@ -259,0 +264,4 @@
@@ -169,7 +172,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 -    from sgl_kernel import assign_draft_cache_locs_contiguous_cpu
 +    try:
 +        from sgl_kernel import assign_draft_cache_locs_contiguous_cpu
-+    except ImportError:
++    except (ImportError, OSError):
 +        assign_draft_cache_locs_contiguous_cpu = None
 @@ -234,0 +238,4 @@
 +                if assign_draft_cache_locs_contiguous_cpu is None:
@@ -182,7 +185,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 -    from sgl_kernel import fill_accept_out_cache_loc_cpu, fill_bonus_tokens_cpu
 +    try:
 +        from sgl_kernel import fill_accept_out_cache_loc_cpu, fill_bonus_tokens_cpu
-+    except ImportError:
++    except (ImportError, OSError):
 +        fill_accept_out_cache_loc_cpu = None
 +        fill_bonus_tokens_cpu = None
 @@ -39,0 +44,4 @@
@@ -201,7 +204,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 -    from sgl_kernel import rotate_input_ids_cpu
 +    try:
 +        from sgl_kernel import rotate_input_ids_cpu
-+    except ImportError:
++    except (ImportError, OSError):
 +        rotate_input_ids_cpu = None
 @@ -68,0 +72,4 @@
 +        if rotate_input_ids_cpu is None:
@@ -214,7 +217,7 @@ provide speculative kernels or establish complete RISC-V engine support.
 -    from sgl_kernel import copy_all_layer_kv_cache_cpu
 +    try:
 +        from sgl_kernel import copy_all_layer_kv_cache_cpu
-+    except ImportError:
++    except (ImportError, OSError):
 +        copy_all_layer_kv_cache_cpu = None
 @@ -105,0 +109,4 @@
 +        if copy_all_layer_kv_cache_cpu is None:

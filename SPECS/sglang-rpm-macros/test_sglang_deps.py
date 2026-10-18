@@ -19,6 +19,18 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parent
+SYSTEM_SONAMES = (
+    "libc.so.6", "libcpuinfo.so.0", "libomp.so.5", "libpthreadpool.so.0", "libuv.so.1",
+    "libpython3.13.so.1.0", "libunwind.so.8", "libtinfo.so.6", "libxml2.so.2",
+    "libtiff.so.6", "libfreetype.so.6", "liblcms2.so.2", "libssl.so.3", "libcrypto.so.3",
+    "libavcodec.so.60", "libavdevice.so.60", "libavfilter.so.9", "libavformat.so.60",
+    "libavutil.so.58", "libswresample.so.4", "libswscale.so.7", "libjpeg.so.62",
+    "libpng16.so.16", "libwebp.so.7", "libwebpdecoder.so.3", "libwebpdemux.so.2", "libwebpmux.so.3",
+    "libsharpyuv.so.0", "libfmt.so.10", "libsleef.so.3", "libsleefgnuabi.so.3",
+    "libsleefdft.so.3", "libsleefquad.so.3", "libonnx.so.1", "libonnx_proto.so.1",
+    "libonnxruntime.so.1", "libonnxruntime_providers_shared.so.1", "libfoxi_loader.so.1",
+    "libprotobuf.so.32", "libprotobuf-lite.so.32", "libabsl_strings.so.2407",
+)
 
 
 def load_helper(filename: str):
@@ -224,12 +236,13 @@ class SglangDependencyTests(unittest.TestCase):
     def test_pyproject_wrappers_force_offline_cargo(self):
         macros = (ROOT / "macros.sglang").read_text()
         self.assertEqual(macros.count("export CARGO_NET_OFFLINE=true"), 2)
+        self.assertEqual(macros.count("export PIP_NO_INDEX=1"), 2)
         self.assertIn(
-            'export CARGO_NET_OFFLINE=true\n  %%pyproject_wheel',
+            'export CARGO_NET_OFFLINE=true\n  export PIP_NO_INDEX=1\n  %%pyproject_wheel',
             macros,
         )
         self.assertIn(
-            'export CARGO_NET_OFFLINE=true\n  %%pyproject_buildrequires',
+            'export CARGO_NET_OFFLINE=true\n  export PIP_NO_INDEX=1\n  %%pyproject_buildrequires',
             macros,
         )
 
@@ -293,13 +306,16 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertNotIn("sglang(libstdc++.so.6)", result.stdout)
 
     def test_elf_requires_namespace_known_torch_but_keep_system_libc_global(self):
+        generator_output = "\n".join((
+            "; /buildroot/usr/lib/sglang/extras/lib/libconsumer.so",
+            "libtorch_cpu.so.2",
+            "libarbitrary_backend.so.1",
+            *SYSTEM_SONAMES,
+            "",
+        ))
         result = self.run_generator(
             ROOT / "sglang-elfdeps.py",
-            "; /buildroot/usr/lib/sglang/extras/lib/libconsumer.so\n"
-            "libtorch_cpu.so.2\n"
-            "libarbitrary_backend.so.1\n"
-            "libc.so.6\n"
-            "libomp.so.5\n",
+            generator_output,
             [
                 "--profile", "extras", "--namespace", "sglang-extras",
                 "--requires", "--multifile",
@@ -309,11 +325,21 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertIn("sglang(libtorch_cpu.so.2)", result.stdout)
         self.assertIn("libarbitrary_backend.so.1", result.stdout)
-        self.assertIn("libc.so.6", result.stdout)
-        self.assertIn("libomp.so.5", result.stdout)
-        self.assertNotIn("sglang(libomp.so.5)", result.stdout)
+        for capability in SYSTEM_SONAMES:
+            self.assertIn(capability, result.stdout)
+            self.assertNotIn(f"sglang({capability})", result.stdout)
+            self.assertNotIn(f"sglang-extras({capability})", result.stdout)
         self.assertNotIn("sglang-extras(libomp.so.5)", result.stdout)
         self.assertNotIn("sglang-extras(libtorch_cpu.so.2)", result.stdout)
+
+    def test_elf_system_sonames_are_global_and_private_sonames_are_namespaced(self):
+        for capability in SYSTEM_SONAMES:
+            with self.subTest(capability=capability):
+                self.assertFalse(ELFDEPS._private(capability))
+
+        for capability in ("libarbitrary_backend.so.1", "libsglang_backend.so.1"):
+            with self.subTest(capability=capability):
+                self.assertTrue(ELFDEPS._private(capability))
 
     def test_elf_provides_namespace_system_soname_collisions(self):
         result = self.run_generator(

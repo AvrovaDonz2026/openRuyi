@@ -265,6 +265,12 @@ assert output.content[0].text == "ok"
 assert timm.is_model("vit_so400m_patch14_siglip_384.webli")
 assert blobfile.exists(".")
 PY
+# The public wrapper resolves its final installed path; use the private entrypoint in buildroot.
+PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 \
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
+SGLANG_SMOKE_PYTHON="%{python3}" \
+SGLANG_SMOKE_SERVER="%{buildroot}%{_sglang_private_libexec}/sglang" \
+%{python3} -s "%{buildroot}%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py"
 %endif
 
 %files -f %{pyproject_files}

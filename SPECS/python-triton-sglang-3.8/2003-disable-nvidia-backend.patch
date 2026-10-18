@@ -7,10 +7,11 @@ Subject: [PATCH] Make Triton plugins and tools selectable
 Upstream-Reference: https://github.com/triton-lang/triton/tree/v3.8.0
 Upstream-Status: Downstream
 
-Allow the riscv64 package build to omit CUDA-dependent Python plugins and
-developer tools while retaining the NVIDIA dialect and lowering libraries
-used by common compiler and Proton code. Other architectures retain the
-upstream NVIDIA and Proton plugin defaults.
+Allow the riscv64 package build to omit the CUDA-dependent Python backend
+plugin and developer tools while retaining the NVIDIA dialect and lowering
+libraries used by common compiler code. Select the packaged in-tree backends
+from TRITON_CODEGEN_BACKENDS so the CPU build does not install the NVIDIA
+backend package. Other architectures retain the upstream backend defaults.
 diff --git a/CMakeLists.txt b/CMakeLists.txt
 index 3f066ea..c4ff865 100644
 --- a/CMakeLists.txt
@@ -123,3 +124,17 @@ index 63c1dcb..a23c3ce 100644
              "TRITON_BUILD_WITH_CCACHE",
              "TRITON_PARALLEL_LINK_JOBS",
              "TRITON_OFFLINE_BUILD",
+@@ -380,9 +380,14 @@
+         subprocess.check_call(["cmake", "--build", ".", "--target", "mlir-doc"], cwd=cmake_dir)
+
+
+-backends = [*BackendInstaller.copy(["nvidia", "amd"]), *BackendInstaller.copy_externals()]
++def get_enabled_in_tree_backends():
++    backends = os.getenv("TRITON_CODEGEN_BACKENDS")
++    return ["nvidia", "amd"] if backends is None else [backend for backend in backends.split(";") if backend]
++
++
++backends = [*BackendInstaller.copy(get_enabled_in_tree_backends()), *BackendInstaller.copy_externals()]
+
+
+ def get_package_dirs():
