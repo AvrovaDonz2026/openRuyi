@@ -103,6 +103,11 @@ tar -xf %{SOURCE1}
 export PATH="%{bootstrap_llvm_bindir}:${PATH}"
 export CC="%{bootstrap_llvm_bindir}/clang"
 export CXX="%{bootstrap_llvm_bindir}/clang++"
+%ifarch riscv64
+export CFLAGS="%{build_cflags} --target=%{_target_platform}"
+export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
+export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+%endif
 
 llvm_src="$(pwd)/llvm-project-%{llvm_commit}"
 llvm_install="$(pwd)/llvm-install"
