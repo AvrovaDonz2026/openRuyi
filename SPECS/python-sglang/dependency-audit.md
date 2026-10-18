@@ -8,9 +8,8 @@ SPDX-License-Identifier: MulanPSL-2.0
 
 # SGLang 0.5.21 dependency isolation (audit 2026-10-16)
 
-The v0.5.21 Source0 CPU metadata pins Transformers to 5.12.1. openRuyi
-downstream selects 5.19.0 during `%prep`: the recipe replaces that exact pin
-so the private Transformers 5.19.0 compatibility package is selected alongside
+The v0.5.21 CPU metadata used by this recipe selects Transformers 5.19.0.
+The private Transformers 5.19.0 compatibility package is selected alongside
 Tokenizers 0.23.2, Hugging
 Face Hub 1.31.0 and Click 8.4.2. This downstream choice is based on the
 private compatibility package set and the declared `BuildRequires`/`Requires`;
@@ -54,7 +53,7 @@ x86_64 transaction is validated.
 
 | Dependency | Provider selection |
 | --- | --- |
-| Transformers 5.19.0 and Tokenizers 0.23.2 | Private compatibility packages; the upstream Transformers 5.12.1 pin is replaced with 5.19.0 during `%prep`. |
+| Transformers 5.19.0 and Tokenizers 0.23.2 | Private compatibility packages selected by the current CPU metadata. |
 | Hugging Face Hub >=1.31.0 and Click >=8.4.2 | Private 1.31.0 and 8.4.2 compatibility packages for the newer Transformers closure. |
 | NumPy, SciPy, protobuf, compressed-tensors | Existing distribution recipes; SGLang does not require their proposed upgrades. |
 | Datasets, fsspec, pandas, Pillow | Existing distribution packages for the core CPU environment. |
@@ -112,8 +111,8 @@ internal requirements use the same namespaces. Python ABI and external system
 libraries retain normal RPM requirements. Private ELF libraries MUST NOT
 satisfy unrelated applications' global SONAME requirements.
 
-The blobfile, OpenAI, Harmony and timm exact pins are replaced by bounded
-requirements for the existing distribution versions. The recipe includes API
+The blobfile, OpenAI, Harmony and timm requirements are bounded in `%prep`
+for the existing distribution versions. The recipe includes API
 smoke checks for these substitutions. They do not establish complete inference
 compatibility and remain explicit downstream changes for review.
 

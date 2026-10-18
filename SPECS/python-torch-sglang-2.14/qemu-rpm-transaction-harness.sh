@@ -30,6 +30,14 @@ while (( $# > 0 )); do
   shift
 done
 (( $# > 0 )) || { echo "usage: $0 [--install] [--gpg-key FILE] [--gpg-fingerprint FPR] RPM..." >&2; exit 2; }
+case $coexistence_script in
+  /*) ;;
+  *) echo '--coexistence-script must be an absolute installed path' >&2; exit 2 ;;
+esac
+case $cpu_smoke_script in
+  /*) ;;
+  *) echo '--cpu-smoke-script must be an absolute installed path' >&2; exit 2 ;;
+esac
 for rpm in "$@"; do [[ -f $rpm ]] || { echo "missing RPM: $rpm" >&2; exit 2; }; done
 
 candidate_names=()
@@ -301,6 +309,38 @@ fi
 coexistence_baseline="$tmp/coexistence-baseline.json"
 coexistence_enabled=0
 if contains_candidate python-sglang; then
+  # A fresh guest does not have the validation helpers before the candidate
+  # RPM is installed. Extract them from that RPM for the pre-install
+  # baseline, then use the installed copies for post-install checks.
+  validation_root="$tmp/validation"
+  mkdir -p "$validation_root"
+  installed_coexistence_script=$coexistence_script
+  installed_cpu_smoke_script=$cpu_smoke_script
+  if [[ ! -f $coexistence_script || ! -f $cpu_smoke_script ]]; then
+    command -v rpm2cpio >/dev/null || {
+      echo 'rpm2cpio is required to extract pre-install validation helpers' >&2
+      exit 1
+    }
+    command -v cpio >/dev/null || {
+      echo 'cpio is required to extract pre-install validation helpers' >&2
+      exit 1
+    }
+    sglang_rpm=
+    sglang_count=0
+    for rpm in "$@"; do
+      if [[ $(rpm -qp --qf '%{NAME}' "$rpm") == python-sglang ]]; then
+        sglang_rpm=$rpm
+        sglang_count=$((sglang_count + 1))
+      fi
+    done
+    (( sglang_count == 1 )) || {
+      echo "expected one python-sglang candidate, found $sglang_count" >&2
+      exit 1
+    }
+    (cd "$validation_root" && rpm2cpio "$sglang_rpm" | cpio -idm --quiet)
+    coexistence_script="$validation_root$coexistence_script"
+    cpu_smoke_script="$validation_root$cpu_smoke_script"
+  fi
   [[ -f $coexistence_script ]] || {
     echo "COEXISTENCE=FAIL (missing $coexistence_script)" >&2
     exit 1
@@ -310,6 +350,8 @@ if contains_candidate python-sglang; then
     exit 1
   }
   python3 -s "$coexistence_script" --baseline-json "$coexistence_baseline" --snapshot
+  coexistence_script=$installed_coexistence_script
+  cpu_smoke_script=$installed_cpu_smoke_script
   coexistence_enabled=1
   echo 'COEXISTENCE_BASELINE=PASS'
 fi

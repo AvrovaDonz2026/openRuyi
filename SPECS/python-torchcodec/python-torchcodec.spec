@@ -7,10 +7,27 @@
 
 %global srcname torchcodec
 
-# TorchCodec is packaged only for the validated SGLang CPU provider.  Keep a
-# future accelerator flavor from silently resolving to the CPU dependency.
+# TorchCodec is packaged only for the validated SGLang CPU provider.  CUDA and
+# ROCm flavors are reserved until matching providers and target validation are
+# available; keep them from silently resolving to the CPU dependency.
 %global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "cuda"
+%bcond cuda 1
+%else
+%bcond cuda 0
+%endif
 %if "%{flavor}" == "rocm"
+%bcond rocm 1
+%else
+%bcond rocm 0
+%endif
+
+# Keep reserved accelerator flavors unbuildable when a caller enables a bcond
+# directly instead of selecting the corresponding BUILD_FLAVOR.
+%if %{with cuda}
+%{error:CUDA SGLang TorchCodec flavor is reserved and is not supported by this SPEC}
+%endif
+%if %{with rocm}
 %{error:ROCm SGLang TorchCodec flavor is reserved and is not supported by this SPEC}
 %endif
 %global torch_capability torch-cpu
