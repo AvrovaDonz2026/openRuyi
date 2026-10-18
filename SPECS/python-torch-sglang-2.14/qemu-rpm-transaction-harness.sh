@@ -55,6 +55,15 @@ for rpm in "$@"; do
   candidate_paths+=("$path")
 done
 
+for ((index = 0; index < ${#candidate_names[@]}; index++)); do
+  for ((previous = 0; previous < index; previous++)); do
+    if [[ ${candidate_names[index]} == "${candidate_names[previous]}" ]]; then
+      echo "duplicate candidate package name: ${candidate_names[index]}" >&2
+      exit 2
+    fi
+  done
+done
+
 contains_candidate() {
   local wanted=$1 name
   for name in "${candidate_names[@]}"; do
@@ -62,6 +71,24 @@ contains_candidate() {
   done
   return 1
 }
+
+# The SGLang CPU transaction is validated as one private runtime closure.  A
+# partial closure would make the conditional smoke checks look successful while
+# leaving dependency resolution to an unrelated system package.
+if contains_candidate python-sglang || contains_candidate python-torchcodec; then
+  contains_candidate python-torch-sglang-2.14 || {
+    echo 'SGLang/TorchCodec transaction requires python-torch-sglang-2.14' >&2
+    exit 2
+  }
+  contains_candidate python-sglang || {
+    echo 'SGLang/TorchCodec transaction requires python-sglang' >&2
+    exit 2
+  }
+  contains_candidate python-torchcodec || {
+    echo 'SGLang/TorchCodec transaction requires python-torchcodec' >&2
+    exit 2
+  }
+fi
 
 metadata_failure=0
 assert_metadata_line() {
@@ -419,6 +446,20 @@ if (( install )); then
   if [[ -n $removed_rpms ]]; then
     echo 'RPM_BASELINE=REMOVED' >&2
     printf '%s\n' "$removed_rpms" >&2
+    exit 1
+  fi
+  # Candidate packages are expected to be added or replaced.  Every other
+  # installed NEVRA must remain identical so a private transaction cannot
+  # silently upgrade or remove an existing system package.
+  candidate_names_file="$tmp/candidate-names.txt"
+  printf '%s\n' "${candidate_names[@]}" | LC_ALL=C sort -u > "$candidate_names_file"
+  awk -F '\t' 'NR == FNR { names[$1] = 1; next } !names[$1]' \
+    "$candidate_names_file" "$tmp/rpm-before.txt" | LC_ALL=C sort > "$tmp/rpm-before-system.txt"
+  awk -F '\t' 'NR == FNR { names[$1] = 1; next } !names[$1]' \
+    "$candidate_names_file" "$tmp/rpm-after.txt" | LC_ALL=C sort > "$tmp/rpm-after-system.txt"
+  if ! cmp -s "$tmp/rpm-before-system.txt" "$tmp/rpm-after-system.txt"; then
+    echo 'RPM_BASELINE=CHANGED (non-candidate package set)' >&2
+    diff -u "$tmp/rpm-before-system.txt" "$tmp/rpm-after-system.txt" >&2 || true
     exit 1
   fi
   echo 'RPM_BASELINE=UNCHANGED'
