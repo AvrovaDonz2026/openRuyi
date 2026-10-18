@@ -143,6 +143,7 @@ def baseline_probe(timeout):
     env.pop("LD_LIBRARY_PATH", None)
     env.pop("LD_PRELOAD", None)
     env["PYTHONNOUSERSITE"] = "1"
+    env["PYTHONSAFEPATH"] = "1"
     env["COEXIST_MODULES"] = json.dumps(BASELINE_MODULES)
     env["COEXIST_ALLOW_ABSENT"] = ",".join(sorted(OPTIONAL_BASELINE_MODULES))
     return run_probe([sys.executable, "-c", PROBE], env, "baseline", timeout)
@@ -195,6 +196,7 @@ def private_probe(launcher, private_roots, private_module, timeout):
     env.pop("LD_LIBRARY_PATH", None)
     env.pop("LD_PRELOAD", None)
     env["PYTHONNOUSERSITE"] = "1"
+    env["PYTHONSAFEPATH"] = "1"
     env["COEXIST_MODULES"] = json.dumps(MODULES)
     env.pop("COEXIST_ALLOW_ABSENT", None)
     env["COEXIST_PRIVATE_ROOT"] = os.pathsep.join(str(root) for root in private_roots)

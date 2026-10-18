@@ -66,15 +66,16 @@ x86_64 transaction is validated.
 | ModelScope | Existing shared package; no differing version requires duplication. |
 
 Tokenizers 0.23.2 uses the existing Rust PyO3, NumPy and async-runtime 0.29
-crate series. A RISC-V QEMU build has completed offline Cargo resolution,
-produced the `cp310-abi3-linux_riscv64` wheel, and passed the package import
-and WordLevel encode/decode checks. In a separate RISC-V QEMU scratch RPMDB,
-the same RPM installed with an explicit `--nosignature` validation override,
-passed `rpm -V`, and passed the private-path import and WordLevel smoke while
-leaving the existing system packages untouched. The resulting validation RPM
-is unsigned scratch output, so the default signature check correctly rejects
-it; the final OBS-signed transaction remains to be verified. The SGLang
-pyproject wrappers export
+crate series. Historical validation notes report a RISC-V QEMU run that
+completed offline Cargo resolution, produced the
+`cp310-abi3-linux_riscv64` wheel, and passed package import and WordLevel
+encode/decode checks. The notes also report a separate RISC-V QEMU scratch
+RPMDB run in which an unsigned RPM installed with an explicit `--nosignature`
+override, passed `rpm -V`, and passed private-path import and WordLevel smoke
+checks while leaving the existing system packages untouched. Those logs and
+the scratch RPM are not current repository artifacts; they do not prove a
+reproducible package build, a signed RPM, or a successful SGLang inference
+run. The SGLang pyproject wrappers export
 `CARGO_NET_OFFLINE=true` for both build-requirements generation and wheel
 construction, so this offline constraint is enforced by the package macros.
 Hugging Face Hub's
@@ -133,16 +134,19 @@ Before this stack is ready for mainline review, the final recipes MUST pass:
    the original system modules and representative operations.
 6. Applicable repository pre-commit checks and SRPM/binary RPM review checks.
 
-A scratch LLVM/RISC-V probe has produced an executable that ran in a QEMU
-guest. This is toolchain evidence only, not a package build result. The current
-QEMU RPM transaction harness checks the supplied Torch, TorchAudio, TorchVision,
+Historical validation notes also report a scratch LLVM/RISC-V probe producing
+an executable that ran in a QEMU guest; no such executable or run log is
+present as a current repository artifact. This is toolchain evidence only, not
+a package build result. The current QEMU RPM transaction harness checks the
+supplied Torch, TorchAudio, TorchVision,
 TorchCodec, Triton and SGLang metadata, installs the candidate transaction,
 checks private module versions and native paths, preserves the system RPM and
 Python baselines, and exercises Torch distributed Gloo, TorchCodec/FFmpeg and
 the SGLang CPU launcher when those candidate RPMs are supplied. It does not
 constitute a real OBS-signed RISC-V binary build or prove complete inference
 compatibility. Full production Torch 2.14 distributed support, SGLang CPU
-inference and the final OBS-signed coexistence transaction remain unverified.
+inference, and the final OBS-signed coexistence transaction remain unverified;
+no inference result is claimed by this audit.
 
 The CUDA flavor is unsupported on RISC-V: its SPEC is restricted to
 `x86_64` and `aarch64`, and CUDA recipes requiring NVIDIA's toolkit cannot be

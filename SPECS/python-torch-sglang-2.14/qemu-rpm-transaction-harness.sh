@@ -116,7 +116,7 @@ rpm --version
 
 system_snapshot() {
   env -i PATH=/usr/bin:/bin HOME=/root LANG=C LC_ALL=C \
-    PYTHONNOUSERSITE=1 python3 -s - <<'PY'
+    PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 python3 -s - <<'PY'
 import importlib
 from pathlib import Path
 
