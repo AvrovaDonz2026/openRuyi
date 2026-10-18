@@ -46,7 +46,14 @@ URL:            https://github.com/mlc-ai/xgrammar
 #!RemoteAsset:  sha256:7674afeee5e6eff9672627b62d5ab0aa2347ea51674f4d78a5c160029f92bc3e
 Source0:        https://files.pythonhosted.org/packages/source/x/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
-ExclusiveArch:  x86_64 riscv64
+# The default CPU flavor requires the private Torch provider, which is
+# currently published only for the validated RISC-V closure. Keep the
+# reserved ROCm architecture set explicit for a future completed flavor.
+%if "%{flavor}" == "rocm"
+ExclusiveArch:  x86_64 aarch64
+%else
+ExclusiveArch:  riscv64
+%endif
 
 BuildOption(install):  -l xgrammar
 # No module named 'triton'

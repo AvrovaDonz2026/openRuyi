@@ -20,6 +20,9 @@ VCS:            git:https://github.com/huggingface/pytorch-image-models.git
 #!RemoteAsset:  sha256:3789d313fdd5541a327b60180d70dbb4bdec73db8ff0655e413db3c3d134a9a4
 Source0:        https://files.pythonhosted.org/packages/source/t/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
+# The private CPU Torch and TorchVision providers used by this compatibility
+# package are currently published only for the validated RISC-V closure.
+ExclusiveArch:  riscv64
 
 BuildOption(install):  -l %{srcname}
 BuildOption(check):  -e timm.data.readers.reader_tfds
