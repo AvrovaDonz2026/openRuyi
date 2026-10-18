@@ -36,6 +36,8 @@ are the architectures covered by the private Triton 3.8 provider. The upstream
 CPU metadata also mentions Linux ARM, but this repository does not yet provide
 an ARM-compatible Triton RPM; publishing the SGLang RPM there would leave an
 unsatisfied runtime dependency.
+The standalone `python-sglang-kernel-cpu` provider uses the same architecture
+limit, so it cannot be scheduled independently on an unsupported architecture.
 
 ## Shared and private providers
 
@@ -54,9 +56,20 @@ unsatisfied runtime dependency.
 | ModelScope | Existing shared package; no differing version requires duplication. |
 
 Tokenizers 0.23.2 uses the existing Rust PyO3, NumPy and async-runtime 0.29
-crate series. Its offline Cargo resolution and target extension build have
-not yet passed. Hugging Face Hub's `hf-xet>=1.5.2,<2` dependency applies only
-to its upstream x86/ARM platform markers; the `python-hf-xet` recipe is aligned
+crate series. A RISC-V QEMU build has completed offline Cargo resolution,
+produced the `cp310-abi3-linux_riscv64` wheel, and passed the package import
+and WordLevel encode/decode checks. In a separate RISC-V QEMU scratch RPMDB,
+the same RPM installed with an explicit `--nosignature` validation override,
+passed `rpm -V`, and passed the private-path import and WordLevel smoke while
+leaving the existing system packages untouched. The resulting validation RPM
+is unsigned scratch output, so the default signature check correctly rejects
+it; the final OBS-signed transaction remains to be verified. The SGLang
+pyproject wrappers export
+`CARGO_NET_OFFLINE=true` for both build-requirements generation and wheel
+construction, so this offline constraint is enforced by the package macros.
+Hugging Face Hub's
+`hf-xet>=1.5.2,<2` dependency applies only to its upstream x86/ARM platform
+markers; the `python-hf-xet` recipe is aligned
 to 1.5.2 for those platforms, although its target build remains unverified. It
 is not required by the RISC-V CPU marker.
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib.util
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -220,6 +221,18 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertEqual(result.stderr, "fake generator stderr\n")
         self.assertIn("sglang(python3dist(torch-cpu)) = 2.14", result.stdout)
 
+    def test_pyproject_wrappers_force_offline_cargo(self):
+        macros = (ROOT / "macros.sglang").read_text()
+        self.assertEqual(macros.count("export CARGO_NET_OFFLINE=true"), 2)
+        self.assertIn(
+            'export CARGO_NET_OFFLINE=true\n  %%pyproject_wheel',
+            macros,
+        )
+        self.assertIn(
+            'export CARGO_NET_OFFLINE=true\n  %%pyproject_buildrequires',
+            macros,
+        )
+
     def test_elf_provides_namespace_arbitrary_private_soname(self):
         result = self.run_generator(
             ROOT / "sglang-elfdeps.py",
@@ -235,6 +248,49 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertEqual(result.stderr, "fake generator stderr\n")
         self.assertIn("; /buildroot/usr/lib/sglang/extras/lib/libprovider.so", result.stdout)
         self.assertIn("sglang-extras(libarbitrary_backend.so.1)", result.stdout)
+
+    def test_elf_attrs_cover_private_executables_in_python_trees(self):
+        for profile in ("core", "extras"):
+            with self.subTest(profile=profile):
+                attr = ROOT / f"sglang_{profile}_elf.attr"
+                line = next(
+                    item for item in attr.read_text().splitlines()
+                    if item.startswith(f"%__sglang_{profile}_elf_path ")
+                )
+                expression = line.split(None, 1)[1]
+                expression = expression.replace("\\\\", "\\")
+                expression = expression.replace("[[:digit:]]", "[0-9]")
+                path_pattern = re.compile(expression)
+
+                self.assertRegex(
+                    f"/usr/lib64/sglang/{profile}/python3.13/site-packages/torch/bin/FileStoreTest",
+                    path_pattern,
+                )
+                self.assertRegex(
+                    f"/usr/lib/sglang/{profile}/lib/libtorch_cpu.so",
+                    path_pattern,
+                )
+                self.assertNotRegex(
+                    "/usr/lib64/python3.13/site-packages/torch/bin/FileStoreTest",
+                    path_pattern,
+                )
+
+    def test_elf_requires_namespace_private_sonames_for_private_executable(self):
+        result = self.run_generator(
+            ROOT / "sglang-elfdeps.py",
+            "; /buildroot/usr/lib64/sglang/core/python3.13/site-packages/torch/bin/FileStoreTest\n"
+            "libtorch_cpu.so.2\n"
+            "libstdc++.so.6\n",
+            [
+                "--profile", "core", "--namespace", "sglang",
+                "--requires", "--multifile",
+            ],
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("sglang(libtorch_cpu.so.2)", result.stdout)
+        self.assertIn("libstdc++.so.6", result.stdout)
+        self.assertNotIn("sglang(libstdc++.so.6)", result.stdout)
 
     def test_elf_requires_namespace_known_torch_but_keep_system_libc_global(self):
         result = self.run_generator(

@@ -9,4 +9,4 @@
 %__sglang_core_elf_requires %{_rpmconfigdir}/sglang-elfdeps.py --profile core --namespace sglang --requires --multifile
 %__sglang_core_elf_magic ^(setuid,? )?(setgid,? )?(sticky )?ELF (32|64)-bit.*$
 %__sglang_core_elf_protocol multifile
-%__sglang_core_elf_path ^/usr/lib(64)?/sglang/core/(python[3-9]\\.[[:digit:]]+/site-packages/.*\\.so(\\.[[:digit:]]+)*|lib/.*\\.so(\\.[[:digit:]]+)*)$
+%__sglang_core_elf_path ^/usr/lib(64)?/sglang/core/(python[3-9]\\.[[:digit:]]+/site-packages/.*|lib/.*)$
