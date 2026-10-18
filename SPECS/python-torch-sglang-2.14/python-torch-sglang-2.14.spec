@@ -5,6 +5,7 @@
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
+
 %global srcname torch
 %global compat_name python-torch-sglang-2.14
 %global llvm_major 22
