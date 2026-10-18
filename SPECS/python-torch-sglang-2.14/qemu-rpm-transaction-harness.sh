@@ -33,8 +33,16 @@ done
 for rpm in "$@"; do [[ -f $rpm ]] || { echo "missing RPM: $rpm" >&2; exit 2; }; done
 
 candidate_names=()
+candidate_paths=()
 for rpm in "$@"; do
+  path=$(basename -- "$rpm")
+  for existing in "${candidate_paths[@]}"; do
+    [[ $existing != "$path" ]] && continue
+    echo "duplicate candidate basename: $path" >&2
+    exit 2
+  done
   candidate_names+=("$(rpm -qp --qf '%{NAME}' "$rpm")")
+  candidate_paths+=("$path")
 done
 
 contains_candidate() {
@@ -139,8 +147,8 @@ for rpm in "$@"; do
     echo "incomplete RPM metadata: $rpm" >&2
     metadata_failure=1
   }
-  [[ $arch == riscv64 ]] || {
-    echo "unexpected RPM architecture for $rpm: $arch (expected riscv64)" >&2
+  [[ $arch == riscv64 || $arch == noarch ]] || {
+    echo "unexpected RPM architecture for $rpm: $arch (expected riscv64 or noarch)" >&2
     metadata_failure=1
   }
   case "$name" in
@@ -222,6 +230,11 @@ if [[ -n $offline_repo_source ]]; then
 else
   cp -- "$@" "$repo_dir/"
 fi
+# Always stage the exact candidate files, even when the offline repository
+# contains another build of the same package name.
+for rpm in "$@"; do
+  cp -- "$rpm" "$repo_dir/$(basename -- "$rpm")"
+done
 dnf_ready=0
 dnf_args=(--disablerepo='*'
   --repofrompath=openruyi-qemu-local,"file://$repo_dir"
@@ -243,9 +256,9 @@ if (( install )); then
   }
   createrepo_c --quiet "$repo_dir"
   dnf_ready=1
-  dnf_preview_args=(--assumeno "${dnf_args[@]}")
+  dnf_preview_args=(--assumeyes --setopt=tsflags=test "${dnf_args[@]}")
   set +e
-  dnf "${dnf_preview_args[@]}" install "${candidate_names[@]}"
+  dnf "${dnf_preview_args[@]}" install "${candidate_paths[@]/#/$repo_dir/}"
   dnf_rc=$?
   set -e
   echo "DNF_OFFLINE_RC=$dnf_rc"
@@ -253,16 +266,16 @@ if (( install )); then
     echo 'DNF_OFFLINE_RESULT=FAIL' >&2
     exit "$dnf_rc"
   fi
-  echo 'DNF_OFFLINE_RESULT=PASS'
+  echo 'DNF_OFFLINE_RESULT=PASS (RPM transaction test)'
 elif [[ -z $gpg_key ]]; then
   echo 'DNF_OFFLINE_RESULT=SKIPPED (signed RPM key unavailable; scratch mode)'
 elif ! command -v createrepo_c >/dev/null || ! command -v dnf >/dev/null; then
   echo 'DNF_OFFLINE_RESULT=SKIPPED (createrepo_c or dnf unavailable)'
 else
   createrepo_c --quiet "$repo_dir"
-  dnf_preview_args=(--assumeno "${dnf_args[@]}")
+  dnf_preview_args=(--assumeyes --setopt=tsflags=test "${dnf_args[@]}")
   set +e
-  dnf "${dnf_preview_args[@]}" install "${candidate_names[@]}"
+  dnf "${dnf_preview_args[@]}" install "${candidate_paths[@]/#/$repo_dir/}"
   dnf_rc=$?
   set -e
   echo "DNF_OFFLINE_RC=$dnf_rc"
@@ -270,7 +283,7 @@ else
     echo 'DNF_OFFLINE_RESULT=FAIL' >&2
     exit "$dnf_rc"
   fi
-  echo 'DNF_OFFLINE_RESULT=PASS'
+  echo 'DNF_OFFLINE_RESULT=PASS (RPM transaction test)'
 fi
 
 rpm_signature_args=()
@@ -324,11 +337,18 @@ fi
 if (( install )); then
   echo '== install transaction =='
   (( dnf_ready )) || { echo 'DNF transaction was not prepared' >&2; exit 1; }
-  dnf --assumeyes "${dnf_args[@]}" install "${candidate_names[@]}"
+  dnf --assumeyes "${dnf_args[@]}" install "${candidate_paths[@]/#/$repo_dir/}"
   echo 'DNF_INSTALL_RESULT=PASS'
   echo '== verify installed packages =='
   for rpm in "$@"; do
     name=$(rpm -qp --qf '%{NAME}' "$rpm")
+    expected_nevra=$(rpm -qp --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' "$rpm")
+    installed_nevra=$(rpm -q --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}\n' "$name" |
+      LC_ALL=C sort | tail -n 1)
+    [[ $installed_nevra == "$expected_nevra" ]] || {
+      echo "installed NEVRA mismatch for $name: $installed_nevra (expected $expected_nevra)" >&2
+      exit 1
+    }
     rpm -V "$name"
   done
   echo 'INSTALL_VERIFY=PASS'
@@ -560,7 +580,8 @@ PY
       --private-root "$private_root"
     echo 'COEXISTENCE=PASS'
   fi
-  python3 -s "$cpu_smoke_script"
+  PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 PYTHONPATH="$private_site" \
+    python3 -s "$cpu_smoke_script"
   echo 'CPU_ENGINE_SMOKE=PASS'
 else
   echo 'SGLANG_SMOKE=SKIPPED (python-sglang RPM not supplied)'
