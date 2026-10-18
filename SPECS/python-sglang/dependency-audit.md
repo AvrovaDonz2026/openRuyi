@@ -39,6 +39,13 @@ unsatisfied runtime dependency.
 The standalone `python-sglang-kernel-cpu` provider uses the same architecture
 limit, so it cannot be scheduled independently on an unsupported architecture.
 
+The upstream CPU metadata also requests `intel-openmp` on `x86_64`. This
+repository has no `intel-openmp` recipe or provider; the RISC-V `%prep` path
+removes that platform-marked requirement because the target uses the packaged
+LLVM OpenMP runtime instead. Consequently, the RISC-V closure is not affected,
+but an x86_64 OBS build remains incomplete until the project supplies an
+`intel-openmp` provider or explicitly scopes this private stack to RISC-V.
+
 ## Shared and private providers
 
 | Dependency | Provider selection |
