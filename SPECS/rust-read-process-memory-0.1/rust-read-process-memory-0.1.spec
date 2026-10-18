@@ -24,8 +24,6 @@ BuildRequires:  rust-rpm-macros
 
 Requires:       crate(libc-0.2/default) >= 0.2.0
 Requires:       crate(log-0.4/default) >= 0.4.0
-Requires:       crate(mach-0.3/default) >= 0.3.2
-Requires:       crate(winapi-0.3/default) >= 0.3.0
 Provides:       crate(%{pkgname}) = %{version}
 Provides:       crate(%{pkgname}/default) = %{version}
 
