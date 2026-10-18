@@ -31,20 +31,22 @@ not complete, so no ROCm RPM is scheduled or claimed as built. The conditional
 requirements continue to name `torch-rocm`; they MUST NOT fall back to the CPU
 provider when the flavor is enabled in a future change.
 
-The packaged CPU closure is currently limited to `x86_64` and `riscv64`, which
-are the architectures covered by the private Triton 3.8 provider. The upstream
+The packaged CPU closure is currently limited to `riscv64`, where the private
+Torch, Triton and CPU-kernel providers have been target-tested. The upstream
 CPU metadata also mentions Linux ARM, but this repository does not yet provide
 an ARM-compatible Triton RPM; publishing the SGLang RPM there would leave an
-unsatisfied runtime dependency.
-The standalone `python-sglang-kernel-cpu` provider uses the same architecture
-limit, so it cannot be scheduled independently on an unsupported architecture.
+unsatisfied runtime dependency. x86_64 is likewise held back until the
+repository supplies the upstream `intel-openmp` Python capability and validates
+the complete transaction. The standalone `python-sglang-kernel-cpu` provider
+uses the same architecture limit, so it cannot be scheduled independently on
+an unsupported architecture.
 
-The upstream CPU metadata also requests `intel-openmp` on `x86_64`. This
-repository has no `intel-openmp` recipe or provider; the RISC-V `%prep` path
-removes that platform-marked requirement because the target uses the packaged
-LLVM OpenMP runtime instead. Consequently, the RISC-V closure is not affected,
-but an x86_64 OBS build remains incomplete until the project supplies an
-`intel-openmp` provider or explicitly scopes this private stack to RISC-V.
+The upstream CPU metadata requests `intel-openmp` on `x86_64`. This repository
+has no `intel-openmp` recipe or provider; the RISC-V `%prep` path removes that
+platform-marked requirement because the target uses the packaged LLVM OpenMP
+runtime instead. The SGLang CPU and CPU-kernel recipes therefore explicitly
+scope publication to RISC-V until an `intel-openmp` provider is added and the
+x86_64 transaction is validated.
 
 ## Shared and private providers
 
