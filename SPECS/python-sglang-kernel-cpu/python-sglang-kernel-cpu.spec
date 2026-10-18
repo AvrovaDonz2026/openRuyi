@@ -25,6 +25,7 @@ VCS:            git:https://github.com/sgl-project/sglang.git
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version_upstream}.tar.gz#/sglang-%{version_upstream}.tar.gz
 Source1:        sglang-kernel-cpu-smoke.py
 BuildSystem:    pyproject
+ExclusiveArch:  x86_64 riscv64
 Conflicts:      python-sglang-kernel
 
 BuildOption(prep):  -n sglang-%{version_upstream}
