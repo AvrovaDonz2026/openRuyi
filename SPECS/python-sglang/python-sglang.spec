@@ -67,6 +67,7 @@ Source1:        sglang-launcher
 Source2:        sglang-python-launcher
 Source3:        sglang-extras-python
 Source4:        sglang-cpu-engine-smoke.py
+Source5:        sglang-coexistence-test.py
 BuildSystem:    pyproject
 %if %{without cuda}
 # The CPU closure currently relies on private providers that are validated
@@ -217,6 +218,7 @@ install -Dpm0755 %{SOURCE2} %{buildroot}%{_bindir}/sglang-python
 install -Dpm0755 %{SOURCE3} %{buildroot}%{_bindir}/sglang-extras-python
 %if %{without cuda}
 install -Dpm0755 %{SOURCE4} %{buildroot}%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py
+install -Dpm0755 %{SOURCE5} %{buildroot}%{_libexecdir}/sglang/sglang-coexistence-test.py
 %endif
 sed -i \
   -e 's|@PRIVATE_SITELIB@|%{_sglang_private_sitelib}|g' \
@@ -281,6 +283,7 @@ SGLANG_SMOKE_SERVER="%{buildroot}%{_sglang_private_libexec}/sglang" \
 %{_bindir}/sglang-extras-python
 %if %{without cuda}
 %{_libexecdir}/sglang/sglang-cpu-engine-smoke.py
+%{_libexecdir}/sglang/sglang-coexistence-test.py
 %endif
 
 %changelog
