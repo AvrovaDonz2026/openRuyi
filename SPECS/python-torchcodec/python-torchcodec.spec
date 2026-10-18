@@ -70,6 +70,7 @@ BuildRequires:  clang(major) = %{llvm_maj_ver}
 BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
 BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
+BuildRequires:  libstdc++-devel
 %else
 BuildRequires:  gcc-c++
 %endif

@@ -20,6 +20,25 @@
 %{error:ROCm SGLang Triton flavor is reserved and is not supported by this SPEC}
 %endif
 
+# Keep the reserved flavors unbuildable when a caller enables their bconds
+# directly instead of selecting BUILD_FLAVOR=cuda or BUILD_FLAVOR=rocm.
+%if "%{flavor}" == "cuda"
+%bcond cuda 1
+%else
+%bcond cuda 0
+%endif
+%if "%{flavor}" == "rocm"
+%bcond rocm 1
+%else
+%bcond rocm 0
+%endif
+%if %{with cuda}
+%{error:CUDA SGLang Triton flavor is reserved and is not supported by this SPEC}
+%endif
+%if %{with rocm}
+%{error:ROCm SGLang Triton flavor is reserved and is not supported by this SPEC}
+%endif
+
 # Triton pins an exact, in-development LLVM *commit*
 %global llvm_commit 5f07f818b51b786b0a87b4e514882600ecba112f
 

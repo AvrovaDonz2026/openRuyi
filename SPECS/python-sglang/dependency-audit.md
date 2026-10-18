@@ -133,7 +133,8 @@ Before this stack is ready for mainline review, the final recipes MUST pass:
    the original system modules and representative operations.
 6. Applicable repository pre-commit checks and SRPM/binary RPM review checks.
 
-Host LLVM 22 has produced RISC-V executables that ran in a QEMU guest. The
+A scratch LLVM/RISC-V probe has produced an executable that ran in a QEMU
+guest. This is toolchain evidence only, not a package build result. The
 included QEMU smoke script installs the CPU Torch, TorchAudio and TorchVision
 RPMs and exercises import and small CPU operators; it does not validate the
 production SGLang RPM, complete inference, Triton kernel execution, or a full
