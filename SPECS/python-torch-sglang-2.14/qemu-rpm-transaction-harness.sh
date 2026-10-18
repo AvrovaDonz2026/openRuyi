@@ -44,11 +44,13 @@ candidate_names=()
 candidate_paths=()
 for rpm in "$@"; do
   path=$(basename -- "$rpm")
-  for existing in "${candidate_paths[@]}"; do
-    [[ $existing != "$path" ]] && continue
-    echo "duplicate candidate basename: $path" >&2
-    exit 2
-  done
+  if ((${#candidate_paths[@]} > 0)); then
+    for existing in "${candidate_paths[@]}"; do
+      [[ $existing != "$path" ]] && continue
+      echo "duplicate candidate basename: $path" >&2
+      exit 2
+    done
+  fi
   candidate_names+=("$(rpm -qp --qf '%{NAME}' "$rpm")")
   candidate_paths+=("$path")
 done
@@ -91,7 +93,7 @@ system_snapshot() {
 import importlib
 from pathlib import Path
 
-for name in ("torch", "torchaudio", "torchvision", "tokenizers", "transformers", "sglang"):
+for name in ("torch", "torchaudio", "torchvision", "tokenizers", "transformers", "sglang", "triton", "torchcodec"):
     try:
         module = importlib.import_module(name)
         path = Path(module.__file__).resolve() if getattr(module, "__file__", None) else "<none>"
@@ -123,7 +125,7 @@ if [[ -n $gpg_key ]]; then
     awk -F: '$1 == "fpr" { print toupper($10); exit }')
   [[ -n $imported_fingerprint ]] || { echo "cannot read fingerprint from $gpg_key" >&2; exit 1; }
   if [[ -n $gpg_fingerprint ]]; then
-    expected_fingerprint=${gpg_fingerprint^^}
+    expected_fingerprint=$(LC_ALL=C printf '%s' "$gpg_fingerprint" | LC_ALL=C tr '[:lower:]' '[:upper:]')
     [[ $imported_fingerprint == "$expected_fingerprint" ]] || {
       echo "RPM GPG fingerprint mismatch: $imported_fingerprint (expected $expected_fingerprint)" >&2
       exit 1
@@ -205,6 +207,15 @@ for rpm in "$@"; do
       [[ $version == 0.5.21 ]] || { echo "unexpected SGLang version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
       assert_metadata_line "$rpm" requires 'sglang(python3dist(transformers)) = 5.19.0'
+      ;;
+    python-triton-sglang-3.8)
+      [[ $version == 3.8.0 ]] || { echo "unexpected Triton version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(triton)) = 3.8.0'
+      ;;
+    python-torchcodec)
+      [[ $version == 0.12.0 ]] || { echo "unexpected TorchCodec version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(torchcodec)) = 0.12.0'
+      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
       ;;
   esac
 done
@@ -449,6 +460,8 @@ if [[ -n $private_site ]]; then
       python-transformers-sglang-5.19) expected_modules+="transformers," ;;
       python-huggingface-hub-sglang-1.31) expected_modules+="huggingface_hub," ;;
       python-sglang) expected_modules+="sglang," ;;
+      python-triton-sglang-3.8) expected_modules+="triton," ;;
+      python-torchcodec) expected_modules+="torchcodec," ;;
     esac
   done
   expected_modules=${expected_modules%,}
@@ -470,6 +483,8 @@ required = {
     "transformers": ("transformers", "5.19.0"),
     "huggingface_hub": ("huggingface-hub", "1.31.0"),
     "sglang": ("sglang-cpu", "0.5.21"),
+    "triton": ("triton", "3.8.0"),
+    "torchcodec": ("torchcodec", "0.12.0"),
 }
 
 def check_private(name, path):
@@ -498,7 +513,7 @@ for name in names:
     print(f"IMPORT {name}: PASS version={required[name][1]} path={path}")
 
 for module_name, module in tuple(sys.modules.items()):
-    if not module or not module_name.startswith(("torch", "torchaudio", "torchvision")):
+    if not module or not module_name.startswith(("torch", "torchaudio", "torchvision", "triton")):
         continue
     native = getattr(module, "__file__", None)
     if native and ".so" in native:
@@ -604,6 +619,34 @@ PY
   PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" python3 -s "$tmp/gloo-smoke.py"
 else
   echo 'GLOO_SMOKE=SKIPPED (CPU Torch RPM not supplied)'
+fi
+
+if contains_candidate python-triton-sglang-3.8; then
+  echo '== Triton smoke =='
+  PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" python3 -s - <<'PY'
+import triton
+import triton.compiler
+import triton.language
+
+assert triton.__version__ == "3.8.0", triton.__version__
+assert triton.cdiv(7, 3) == 3
+print("TRITON_SMOKE=PASS")
+PY
+else
+  echo 'TRITON_SMOKE=SKIPPED (Triton RPM not supplied)'
+fi
+
+if contains_candidate python-torchcodec; then
+  echo '== TorchCodec smoke =='
+  PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" python3 -s - <<'PY'
+from torchcodec._core import get_ffmpeg_library_versions
+
+versions = get_ffmpeg_library_versions()
+assert versions.get("ffmpeg_version"), versions
+print("TORCHCODEC_SMOKE=PASS")
+PY
+else
+  echo 'TORCHCODEC_SMOKE=SKIPPED (TorchCodec RPM not supplied)'
 fi
 
 if contains_candidate python-sglang; then

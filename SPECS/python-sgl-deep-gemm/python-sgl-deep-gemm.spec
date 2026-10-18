@@ -7,12 +7,31 @@
 
 %global srcname DeepGEMM
 %global pypi_name sgl-deep-gemm
+%global tvm_ffi_capability sglang(python3dist(apache-tvm-ffi))
 
+# CUDA remains a reserved flavor until a matching provider and target
+# validation are available.  Keep the default recipe parseable so the build
+# service can exclude this non-CPU package without aborting metadata scans.
+%global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "cuda"
+%bcond cuda 1
 %{error:CUDA SGL DeepGEMM flavor is reserved and is not supported by this SPEC}
+%else
+%bcond cuda 0
+%endif
+
+# Also reject a direct bcond override, rather than silently building a
+# reserved CUDA flavor under a different invocation.
+%if %{with cuda}
+%{error:CUDA SGL DeepGEMM flavor is reserved and is not supported by this SPEC}
+%endif
 
 Name:           python-sgl-deep-gemm
 Version:        0.2.0
 Release:        %autorelease
+BuildRequires:  sglang-rpm-macros
+%sglang_python_compat core
+
 # This CUDA-only recipe is reserved until a matching CUDA Torch provider and
 # target validation are available; it is not part of the CPU build closure.
 Summary:        CUDA FP8 GEMM kernels for SGLang
@@ -43,11 +62,11 @@ BuildRequires:  python3dist(packaging)
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools) >= 77
 BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
-BuildRequires:  python3dist(apache-tvm-ffi) = 0.1.11
+BuildRequires:  %{tvm_ffi_capability} = 0.1.11
 BuildRequires:  python3dist(wheel)
 
 Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
-Requires:       python3dist(apache-tvm-ffi) = 0.1.11
+Requires:       %{tvm_ffi_capability} = 0.1.11
 
 %description
 SGL DeepGEMM is SGLang's CUDA FP8 GEMM extension for Hopper and Blackwell
@@ -63,7 +82,7 @@ tar -xf %{SOURCE1} --strip-components=1 -C third-party/cutlass
 tar -xf %{SOURCE2} --strip-components=1 -C third-party/deep_jit
 
 %generate_buildrequires
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
 
 %build -p
 export DG_USE_LOCAL_VERSION=0

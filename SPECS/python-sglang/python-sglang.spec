@@ -6,6 +6,8 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global upstream_name sglang
+%global transformers_compat_version 5.19.0
+%global timm_compat_version 1.0.28
 # Keep the CUDA conditionals for a future provider-backed flavor.  This source
 # package intentionally has no multibuild entry until a CUDA Torch provider is
 # available; the default build must resolve to the CPU dependency closure.
@@ -125,8 +127,8 @@ BuildRequires:  sglang(python3dist(torchvision)) = 0.29.0
 BuildRequires:  sglang(python3dist(triton)) = 3.8.0
 BuildRequires:  sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 BuildRequires:  sglang(python3dist(mistral-common)) >= 1.11.5
-BuildRequires:  sglang(python3dist(transformers)) = 5.19.0
-BuildRequires:  sglang(python3dist(timm)) = 1.0.28
+BuildRequires:  sglang(python3dist(transformers)) = %{transformers_compat_version}
+BuildRequires:  sglang(python3dist(timm)) = %{timm_compat_version}
 %ifnarch aarch64 armv7hl
 # pyproject_cpu.toml excludes torchcodec on Linux ARM (aarch64, arm64, armv7l).
 BuildRequires:  sglang(python3dist(torchcodec)) = 0.12.0
@@ -142,8 +144,8 @@ Requires:       sglang(python3dist(triton)) = 3.8.0
 Requires:       sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
 Requires:       sglang(python3dist(mistral-common)) >= 1.11.5
-Requires:       sglang(python3dist(transformers)) = 5.19.0
-Requires:       sglang(python3dist(timm)) = 1.0.28
+Requires:       sglang(python3dist(transformers)) = %{transformers_compat_version}
+Requires:       sglang(python3dist(timm)) = %{timm_compat_version}
 %ifnarch aarch64 armv7hl
 Requires:       sglang(python3dist(torchcodec)) = 0.12.0
 %endif
@@ -170,8 +172,8 @@ sed -i \
     -e 's/"blobfile==3.0.0"/"blobfile>=3.2.0,<4"/' \
     -e 's/"openai==2.6.1"/"openai>=2.40.0,<3"/' \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8,<0.1"/' \
-    -e 's/"transformers==5.12.1"/"transformers==5.19.0"/' \
-    -e 's/"timm==1.0.16"/"timm>=1.0.28,<2"/' \
+    -e 's/"transformers==[^"]*"/"transformers==%{transformers_compat_version}"/' \
+    -e 's/"timm==[^"]*"/"timm==%{timm_compat_version}"/' \
     python/pyproject.toml
 %ifarch riscv64
 sed -i '/intel-openmp.*platform_machine.*x86_64/d' python/pyproject.toml
@@ -249,7 +251,7 @@ from packaging.version import Version
 
 assert Version(importlib.metadata.version("openai")) >= Version("2.40.0")
 assert Version(importlib.metadata.version("openai-harmony")) >= Version("0.0.8")
-assert Version(importlib.metadata.version("timm")) >= Version("1.0.28")
+assert Version(importlib.metadata.version("timm")) == Version("%{timm_compat_version}")
 assert Version(importlib.metadata.version("blobfile")) >= Version("3.2.0")
 
 client = openai.OpenAI(api_key="compatibility-check", base_url="http://localhost")

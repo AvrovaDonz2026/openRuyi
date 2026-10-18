@@ -8,11 +8,29 @@
 %global srcname DeepEP
 %global pypi_name sgl-deep-ep
 
+# CUDA remains a reserved flavor until a matching provider and target
+# validation are available.  Keep the default recipe parseable so the build
+# service can exclude this non-CPU package without aborting metadata scans.
+%global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "cuda"
+%bcond cuda 1
 %{error:CUDA SGL DeepEP flavor is reserved and is not supported by this SPEC}
+%else
+%bcond cuda 0
+%endif
+
+# Also reject a direct bcond override, rather than silently building a
+# reserved CUDA flavor under a different invocation.
+%if %{with cuda}
+%{error:CUDA SGL DeepEP flavor is reserved and is not supported by this SPEC}
+%endif
 
 Name:           python-sgl-deep-ep
 Version:        0.1.2
 Release:        %autorelease
+BuildRequires:  sglang-rpm-macros
+%sglang_python_compat core
+
 # This CUDA-only recipe is reserved until a matching CUDA Torch provider and
 # target validation are available; it is not part of the CPU build closure.
 Summary:        CUDA expert parallel communication kernels for SGLang
@@ -59,7 +77,7 @@ mkdir -p third-party/fmt
 tar -xf %{SOURCE1} --strip-components=1 -C third-party/fmt
 
 %generate_buildrequires
-%pyproject_buildrequires
+%sglang_pyproject_buildrequires
 
 %build -p
 export TORCH_CUDA_ARCH_LIST="9.0"
