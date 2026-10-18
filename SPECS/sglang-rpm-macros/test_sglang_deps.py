@@ -24,7 +24,8 @@ SYSTEM_SONAMES = (
     "libpython3.13.so.1.0", "libunwind.so.8", "libtinfo.so.6", "libxml2.so.2",
     "libtiff.so.6", "libfreetype.so.6", "liblcms2.so.2", "libssl.so.3", "libcrypto.so.3",
     "libavcodec.so.60", "libavdevice.so.60", "libavfilter.so.9", "libavformat.so.60",
-    "libavutil.so.58", "libswresample.so.4", "libswscale.so.7", "libjpeg.so.62",
+    "libavutil.so.58", "libswresample.so.4", "libswscale.so.7", "libgfortran.so.5",
+    "libmvec.so.1", "libjpeg.so.62",
     "libpng16.so.16", "libwebp.so.7", "libwebpdecoder.so.3", "libwebpdemux.so.2", "libwebpmux.so.3",
     "libsharpyuv.so.0", "libfmt.so.10", "libsleef.so.3", "libsleefgnuabi.so.3",
     "libsleefdft.so.3", "libsleefquad.so.3", "libonnx.so.1", "libonnx_proto.so.1",
@@ -89,6 +90,8 @@ class SglangDependencyTests(unittest.TestCase):
             "python3dist(sglang-kernel) = 0.4.7",
             "python3dist(sglang-kernel-cpu) = 0.4.7",
             "python3dist(fsspec)",
+            "python3dist(msgspec)",
+            "python3dist(partial-json-parser)",
             "python3dist(scikit-build-core)",
         ))
         core = DISTDEPS._namespace_requirements(requirements, "core")
@@ -104,7 +107,11 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertIn("sglang(python3dist(sglang-kernel)) = 0.4.7", core)
         self.assertIn("sglang(python3dist(sglang-kernel-cpu)) = 0.4.7", core)
         self.assertIn("python3dist(fsspec)", core)
+        self.assertIn("python3dist(msgspec)", core)
+        self.assertIn("python3dist(partial-json-parser)", core)
         self.assertIn("sglang-extras(python3dist(fsspec))", extras)
+        self.assertIn("python3dist(msgspec)", extras)
+        self.assertIn("python3dist(partial-json-parser)", extras)
         self.assertIn("sglang(python3dist(torch)) >= 2", extras)
         self.assertIn("sglang(python3dist(sglang-kernel)) = 0.4.7", extras)
         self.assertIn("sglang(python3dist(sglang-kernel-cpu)) = 0.4.7", extras)
@@ -261,6 +268,23 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertEqual(result.stderr, "fake generator stderr\n")
         self.assertIn("; /buildroot/usr/lib/sglang/extras/lib/libprovider.so", result.stdout)
         self.assertIn("sglang-extras(libarbitrary_backend.so.1)", result.stdout)
+
+    def test_elf_short_generator_options_are_accepted(self):
+        for option, expected in (("-P", "sglang-extras(libarbitrary_backend.so.1)"),
+                                 ("-R", "sglang-extras(libarbitrary_backend.so.1)")):
+            with self.subTest(option=option):
+                result = self.run_generator(
+                    ROOT / "sglang-elfdeps.py",
+                    "; /buildroot/usr/lib/sglang/extras/lib/libprovider.so\n"
+                    "libarbitrary_backend.so.1\n",
+                    [
+                        "--profile", "extras", "--namespace", "sglang-extras",
+                        option, "--multifile",
+                    ],
+                )
+
+                self.assertEqual(result.returncode, 0)
+                self.assertIn(expected, result.stdout)
 
     def test_elf_attrs_cover_private_executables_in_python_trees(self):
         for profile in ("core", "extras"):

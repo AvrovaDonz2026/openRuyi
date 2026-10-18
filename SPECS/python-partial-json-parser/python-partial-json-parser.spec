@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 # SPDX-FileContributor: Li Guan <guanli.oerv@isrc.iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
@@ -23,6 +25,7 @@ BuildOption(install):  -l %{pypi_name} -L
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
+BuildRequires:  python3dist(pdm-backend)
 BuildRequires:  python3dist(rich)
 
 Provides:       python3-%{srcname} = %{version}-%{release}
@@ -34,6 +37,16 @@ information instead of natural language. The easiest way is to use JSON.
 
 %generate_buildrequires
 %pyproject_buildrequires
+
+%check -a
+PYTHONPATH="%{buildroot}%{python3_sitelib}" \
+%{python3} -s - <<'PY'
+import importlib.metadata
+from partial_json_parser import loads
+
+assert importlib.metadata.version("partial-json-parser") == "0.2.1.1.post7"
+assert loads('{"ok": true}') == {"ok": True}
+PY
 
 %files -f %{pyproject_files}
 %doc README.md
