@@ -66,7 +66,6 @@ BuildRequires:  cmake >= 3.18
 BuildRequires:  clang
 BuildRequires:  file
 BuildRequires:  patchelf
-BuildRequires:  libomp-devel
 BuildRequires:  pkgconfig(numa)
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
@@ -79,6 +78,7 @@ BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
 %ifarch riscv64
 BuildRequires:  clang(major) = %{llvm_maj_ver}
 BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
+BuildRequires:  libomp-devel(major) = %{llvm_maj_ver}
 BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif

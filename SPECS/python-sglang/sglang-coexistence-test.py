@@ -284,7 +284,8 @@ def validate_private(result, expected, roots, private_module, private_versions):
         raise RuntimeError("private probe loaded no native .so from private roots")
     system_torch_native = [
         path for path in result.get("native_paths", [])
-        if ("/torch/" in path or "/torch_" in path) and not under_any(path, roots)
+        if re.search(r"/(?:libtorch|libc10)[^/]*\.so(?:\.[0-9]+)*$", path)
+        and not under_any(path, roots)
     ]
     if system_torch_native:
         raise RuntimeError("system Torch native library loaded: %s" % system_torch_native[0])

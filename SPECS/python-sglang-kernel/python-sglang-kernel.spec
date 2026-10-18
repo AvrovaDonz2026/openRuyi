@@ -8,11 +8,27 @@
 %global srcname sglang
 %global kernel_version 0.4.7
 
+# This CUDA-only recipe is reserved until a matching CUDA Torch provider and
+# target validation are available.  It is intentionally not buildable.
+%{error:CUDA SGLang Kernel flavor is reserved and is not supported by this SPEC}
+
 %global flavor @BUILD_FLAVOR@%{nil}
 %if "%{flavor}" == "cuda"
+%bcond cuda 1
 %{error:CUDA SGLang Kernel flavor is reserved and is not supported by this SPEC}
+%else
+%bcond cuda 0
 %endif
 %if "%{flavor}" == "rocm"
+%bcond rocm 1
+%{error:ROCm SGLang Kernel flavor is reserved and is not supported by this SPEC}
+%else
+%bcond rocm 0
+%endif
+%if %{with cuda}
+%{error:CUDA SGLang Kernel flavor is reserved and is not supported by this SPEC}
+%endif
+%if %{with rocm}
 %{error:ROCm SGLang Kernel flavor is reserved and is not supported by this SPEC}
 %endif
 
