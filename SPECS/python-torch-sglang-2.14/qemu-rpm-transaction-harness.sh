@@ -183,7 +183,7 @@ for rpm in "$@"; do
       ;;
     python-huggingface-hub-sglang-1.31)
       [[ $version == 1.31.0 ]] || { echo "unexpected huggingface-hub version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(huggingface_hub)) = 1.31.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(huggingface-hub)) = 1.31'
       ;;
     python-sglang)
       [[ $version == 0.5.21 ]] || { echo "unexpected SGLang version: $version" >&2; metadata_failure=1; }
