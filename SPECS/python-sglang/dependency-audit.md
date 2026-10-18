@@ -6,15 +6,15 @@ SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 SPDX-License-Identifier: MulanPSL-2.0
 -->
 
-# SGLang 0.5.21 dependency isolation (audit 2026-10-16)
+# SGLang 0.5.21 dependency isolation (audit 2026-10-19)
 
 The v0.5.21 CPU metadata used by this recipe selects Transformers 5.19.0.
 The private Transformers 5.19.0 compatibility package is selected alongside
 Tokenizers 0.23.2, Hugging
 Face Hub 1.31.0 and Click 8.4.2. This downstream choice is based on the
 private compatibility package set and the declared `BuildRequires`/`Requires`;
-the final target RPM build, dependency transaction and runtime compatibility
-remain to be verified.
+the final OBS-signed RISC-V binary build, dependency transaction and runtime
+compatibility remain to be verified.
 
 The CPU recipe uses the upstream `python/pyproject_cpu.toml`. Existing
 openRuyi packages remain the shared dependency providers when they satisfy its
@@ -134,12 +134,15 @@ Before this stack is ready for mainline review, the final recipes MUST pass:
 6. Applicable repository pre-commit checks and SRPM/binary RPM review checks.
 
 A scratch LLVM/RISC-V probe has produced an executable that ran in a QEMU
-guest. This is toolchain evidence only, not a package build result. The
-included QEMU smoke script installs the CPU Torch, TorchAudio and TorchVision
-RPMs and exercises import and small CPU operators; it does not validate the
-production SGLang RPM, complete inference, Triton kernel execution, or a full
-dependency transaction. Full production Torch 2.14 distributed support,
-SGLang CPU inference and the final coexistence transaction have not yet passed.
+guest. This is toolchain evidence only, not a package build result. The current
+QEMU RPM transaction harness checks the supplied Torch, TorchAudio, TorchVision,
+TorchCodec, Triton and SGLang metadata, installs the candidate transaction,
+checks private module versions and native paths, preserves the system RPM and
+Python baselines, and exercises Torch distributed Gloo, TorchCodec/FFmpeg and
+the SGLang CPU launcher when those candidate RPMs are supplied. It does not
+constitute a real OBS-signed RISC-V binary build or prove complete inference
+compatibility. Full production Torch 2.14 distributed support, SGLang CPU
+inference and the final OBS-signed coexistence transaction remain unverified.
 
 The CUDA flavor is unsupported on RISC-V: its SPEC is restricted to
 `x86_64` and `aarch64`, and CUDA recipes requiring NVIDIA's toolkit cannot be
