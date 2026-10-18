@@ -39,7 +39,7 @@ PRIVATE_SONAME = re.compile(
 SYSTEM_SONAME = re.compile(
     r"^(?:linux-vdso|ld-linux(?:-[^.]*)?|ld-musl(?:-[^.]*)?|lib(?:absl|anl|"
     r"atomic|avcodec|avdevice|avfilter|avformat|avutil|blas|bz2|c|cpuinfo|"
-    r"crypt|crypto|dl|expat|ffi|fmt|foxi_loader|freetype|gcc_s|gfortran|gomp|jpeg[0-9]*|"
+    r"crypt|crypto|dl|expat|ffi|fmt|foxi_loader|freetype|gcc_s|gfortran|gomp|gtest|gmock|jpeg[0-9]*|"
     r"lapack|lcms2|lzma|m|"
     r"nsl|numa|omp|onnx|onnxruntime|openblas(?:64)?|png[0-9]*|protobuf(?:-lite)?|"
     r"pthread|pthreadpool|python[0-9]+(?:\.[0-9]+)*|quadmath|resolv|rt|sharpyuv|"

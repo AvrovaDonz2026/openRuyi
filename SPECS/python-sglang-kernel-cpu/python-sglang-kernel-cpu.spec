@@ -54,6 +54,11 @@ Conflicts:      python-sglang-kernel
 BuildOption(prep):  -n sglang-%{version_upstream}
 BuildOption(install):  -l sgl_kernel
 %ifarch riscv64
+%if "%{openruyi_riscv_arch}" == "-march=rva23u64"
+%global sglang_cpu_march rva23u64
+%else
+%global sglang_cpu_march rva20u64
+%endif
 # Keep CMake's compiler driver and target triple aligned with the LLVM 22
 # toolchain used for the RISC-V package build.
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
@@ -114,7 +119,7 @@ export CXX="%{llvm_bindir}/clang++"
 export LD="%{llvm_bindir}/ld.lld"
 export AR="%{llvm_bindir}/llvm-ar"
 export RANLIB="%{llvm_bindir}/llvm-ranlib"
-export CMAKE_ARGS="-DSGLANG_CPU_TARGET_ARCH=riscv64 -DSGLANG_CPU_MARCH=rva23u64"
+export CMAKE_ARGS="-DSGLANG_CPU_TARGET_ARCH=riscv64 -DSGLANG_CPU_MARCH=%{sglang_cpu_march}"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
 export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
