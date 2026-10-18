@@ -11,6 +11,7 @@
 %global compat_name python-apache-tvm-ffi-0.1
 %ifarch riscv64
 %global llvm_maj_ver 22
+%global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
 %endif
 
 Name:           %{compat_name}
@@ -32,6 +33,12 @@ BuildOption(check):  -e tvm_ffi.utils._build_optional_torch_c_dlpack
 # Native shared libraries
 BuildOption(check):  -e tvm_ffi.lib.libtvm_ffi
 BuildOption(check):  -e tvm_ffi.lib.libtvm_ffi_testing
+%ifarch riscv64
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%endif
 
 BuildRequires:  cmake
 BuildRequires:  file
@@ -60,14 +67,15 @@ learning systems, including Python and C++ bindings used by XGrammar.
 
 %build -p
 %ifarch riscv64
-export CC=clang
-export CXX=clang++
-export LD=ld.lld
-export AR=llvm-ar
-export RANLIB=llvm-ranlib
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export LD="%{llvm_bindir}/ld.lld"
+export AR="%{llvm_bindir}/llvm-ar"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
-export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
 %install -a

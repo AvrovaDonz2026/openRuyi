@@ -27,6 +27,7 @@
 %ifarch riscv64
 %global llvm_maj_ver 22
 %global toolchain clang
+%global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
 %endif
 
 %if %{with rocm}
@@ -47,10 +48,25 @@ BuildRequires:  file
 BuildRequires:  patchelf
 %sglang_python_compat core
 BuildSystem:    pyproject
+%if %{without rocm}
+# The private CPU TorchAudio provider is currently validated only as part of
+# the RISC-V SGLang closure.  Keep unsupported CPU transactions out of OBS
+# until their dependency closure and target validation are complete.
+ExclusiveArch:  riscv64
+%else
+# ROCm remains a reserved source flavor for the future completed build.
+ExclusiveArch:  x86_64 aarch64
+%endif
 
 BuildOption(prep):  -n audio-%{version}
 # libtorchaudio is a shared library loaded by torchaudio, not a Python module.
 BuildOption(check):  -e %{srcname}.lib.libtorchaudio
+%ifarch riscv64
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%endif
 
 BuildRequires:  cmake
 BuildRequires:  gcc-c++
@@ -98,14 +114,15 @@ export USE_CUDA=0
 export USE_ROCM=0
 %endif
 %ifarch riscv64
-export CC=clang
-export CXX=clang++
-export LD=ld.lld
-export AR=llvm-ar
-export RANLIB=llvm-ranlib
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export LD="%{llvm_bindir}/ld.lld"
+export AR="%{llvm_bindir}/llvm-ar"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
-export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
 %install -a

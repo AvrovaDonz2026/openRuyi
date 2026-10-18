@@ -25,6 +25,9 @@
 
 %global bootstrap_llvm_maj_ver 22
 %global bootstrap_llvm_bindir %{_libdir}/llvm%{bootstrap_llvm_maj_ver}/bin
+%ifarch riscv64
+%global llvm_bindir %{bootstrap_llvm_bindir}
+%endif
 
 # Build the bundled LLVM and the Triton extension with clang
 %global toolchain clang
@@ -104,9 +107,15 @@ export PATH="%{bootstrap_llvm_bindir}:${PATH}"
 export CC="%{bootstrap_llvm_bindir}/clang"
 export CXX="%{bootstrap_llvm_bindir}/clang++"
 %ifarch riscv64
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export LD="%{llvm_bindir}/ld.lld"
+export AR="%{llvm_bindir}/llvm-ar"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
-export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
 llvm_src="$(pwd)/llvm-project-%{llvm_commit}"
@@ -133,6 +142,9 @@ cmake -S "$llvm_src/llvm" -B "$llvm_src/build" -G Ninja \
     -DCMAKE_INSTALL_PREFIX="$llvm_install" \
     -DCMAKE_C_COMPILER="$CC" \
     -DCMAKE_CXX_COMPILER="$CXX" \
+%ifarch riscv64
+    -DLLVM_DEFAULT_TARGET_TRIPLE="%{_target_platform}" \
+%endif
     -DLLVM_USE_LINKER=lld \
     -DLLVM_ENABLE_PROJECTS="mlir;lld" \
     -DLLVM_TARGETS_TO_BUILD="$llvm_targets" \

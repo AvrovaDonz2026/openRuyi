@@ -19,6 +19,7 @@
 %ifarch riscv64
 %global llvm_maj_ver 22
 %global toolchain clang
+%global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
 %endif
 
 # Select the upstream platform metadata for each build flavor.
@@ -93,6 +94,12 @@ BuildRequires:  python3dist(setuptools-scm)
 BuildRequires:  python3dist(wheel)
 
 %ifarch riscv64
+# Keep CMake's compiler driver and target triple aligned with the LLVM 22
+# toolchain used for the RISC-V package build.
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}
 BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
@@ -186,14 +193,15 @@ export SGLANG_BUILD_RUST_EXTS=none
 %endif
 %ifarch riscv64
 # Select LLVM for native extensions. Cross-build sysroots are supplied externally.
-export CC=clang
-export CXX=clang++
-export LD=ld.lld
-export AR=llvm-ar
-export RANLIB=llvm-ranlib
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export LD="%{llvm_bindir}/ld.lld"
+export AR="%{llvm_bindir}/llvm-ar"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
-export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
 %install -p

@@ -11,6 +11,7 @@
 %ifarch riscv64
 %global llvm_maj_ver 22
 %global toolchain clang
+%global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
 %endif
 # ROCm remains a source-level flavor for a future completed build.  No OBS
 # multibuild entry is enabled while its dependency closure is unvalidated.
@@ -56,6 +57,12 @@ BuildOption(check):  -e xgrammar.kernels.apply_token_bitmask_mlx
 BuildOption(check):  -e xgrammar.contrib.mlxlm
 # Native shared library
 BuildOption(check):  -e xgrammar.libxgrammar_bindings
+%ifarch riscv64
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%endif
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
@@ -94,14 +101,15 @@ sed -i 's/-Werror//g' CMakeLists.txt
 
 %build -p
 %ifarch riscv64
-export CC=clang
-export CXX=clang++
-export LD=ld.lld
-export AR=llvm-ar
-export RANLIB=llvm-ranlib
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export LD="%{llvm_bindir}/ld.lld"
+export AR="%{llvm_bindir}/llvm-ar"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
-export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
 %install -a
