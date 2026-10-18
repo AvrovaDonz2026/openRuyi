@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 # SPDX-FileContributor: Yifan Xu <xuyifan@iscas.ac.cn>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
 #
@@ -112,8 +113,6 @@ cmake -S "$llvm_src/llvm" -B "$llvm_src/build" -G Ninja \
     -DCMAKE_C_COMPILER="$CC" \
     -DCMAKE_CXX_COMPILER="$CXX" \
 %ifarch riscv64
-    -DCMAKE_SYSTEM_NAME=Linux \
-    -DCMAKE_SYSTEM_PROCESSOR=riscv64 \
     -DCMAKE_C_COMPILER_TARGET="%{_target_platform}" \
     -DCMAKE_CXX_COMPILER_TARGET="%{_target_platform}" \
     -DLLVM_DEFAULT_TARGET_TRIPLE="%{_target_platform}" \

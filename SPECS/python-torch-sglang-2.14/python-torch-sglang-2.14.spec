@@ -111,8 +111,6 @@ BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
-BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_NAME=Linux
-BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
 %endif
 # packages: torch, torchgen, functorch; torchrun is installed separately below.
 BuildOption(install):  -l '*torch*' functorch
