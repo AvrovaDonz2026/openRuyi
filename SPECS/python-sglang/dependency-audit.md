@@ -23,10 +23,10 @@ requirements. The compatibility packages install under
 `%{_libdir}/sglang/core/python%{python3_version}/site-packages`, rather than
 replacing the distribution's Python modules or development files.
 
-CPU is the only SGLang backend enabled by the current source tree. The ROCm
-branches remain in the private Torch, TorchAudio, TorchVision and XGrammar
-recipes as a reserved flavor, but their `_multibuild` entries are deliberately
-absent. The ROCm dependency closure, target build and device validation are
+CPU is the only SGLang backend enabled by the current source tree. ROCm
+branches remain in selected private Torch and TorchVision recipes as a
+reserved flavor, but their `_multibuild` entries are deliberately absent. The
+ROCm dependency closure, target build and device validation are
 not complete, so no ROCm RPM is scheduled or claimed as built. The conditional
 requirements continue to name `torch-rocm`; they MUST NOT fall back to the CPU
 provider when the flavor is enabled in a future change.

@@ -133,7 +133,6 @@ BuildRequires:  cmake(onnxruntime)
 BuildRequires:  cmake(sleef)
 BuildRequires:  cmake(zlib)
 BuildRequires:  compiler-rt
-BuildRequires:  cpuinfo
 BuildRequires:  eigen3
 BuildRequires:  foxi-devel
 BuildRequires:  fp16-devel
@@ -142,6 +141,8 @@ BuildRequires:  libomp-devel
 BuildRequires:  libstdc++-devel
 BuildRequires:  lld
 BuildRequires:  ninja
+BuildRequires:  pkgconfig(libcpuinfo)
+BuildRequires:  pkgconfig(libuv)
 BuildRequires:  pkgconfig(nlohmann_json)
 BuildRequires:  pkgconfig(numa)
 BuildRequires:  pkgconfig(openblas64)
@@ -179,6 +180,7 @@ BuildRequires:  abseil-cpp-devel
 # by the distribution, including during cross or emulated RISC-V builds.
 BuildRequires:  clang(major) = %{llvm_major}
 BuildRequires:  compiler-rt(major) = %{llvm_major}
+BuildRequires:  libomp-devel(major) = %{llvm_major}
 BuildRequires:  lld(major) = %{llvm_major}
 BuildRequires:  llvm(major) = %{llvm_major}
 %endif
@@ -616,6 +618,7 @@ PYTHONDONTWRITEBYTECODE=1 \
 %{_sglang_private_sitearch}/torch/bin/FileStoreTest
 %{_sglang_private_sitearch}/torch/bin/HashStoreTest
 %if %{without rocm}
+%{_sglang_private_sitearch}/torch/bin/ProcessGroupGlooAsyncTest
 %{_sglang_private_sitearch}/torch/bin/ProcessGroupGlooTest
 %endif
 %{_sglang_private_sitearch}/torch/bin/TCPStoreTest

@@ -35,7 +35,7 @@ def request_json(url, payload=None, timeout=5):
         return response.status, json.loads(response.read()) if data else None
 
 
-def make_fixture(root, timeout):
+def make_fixture(root, timeout, python_command=None):
     vocab = {"<pad>": 0, "<bos>": 1, "<eos>": 2, "<unk>": 3}
     vocab.update({f"token{i}": i + 4 for i in range(28)})
     config = {
@@ -75,14 +75,19 @@ tok.save(str(root / "tokenizer.json"))
     "pad_token": "<pad>"
 }), encoding="utf-8")
 """
+    python_command = python_command or os.environ.get(
+        "SGLANG_SMOKE_PYTHON", "/usr/bin/sglang-python"
+    )
     subprocess.run(
-        ["/usr/bin/sglang-python", "-c", code, str(root)],
+        [python_command, "-c", code, str(root)],
         check=True,
         timeout=timeout,
     )
 
 
 def terminate(process, timeout=5):
+    if process is None:
+        return
     try:
         os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:
@@ -130,7 +135,8 @@ def main():
             "TOKENIZERS_PARALLELISM": "false",
         })
         command = [
-            "/usr/bin/sglang", "serve", "--model-path", str(model),
+            os.environ.get("SGLANG_SMOKE_SERVER", "/usr/bin/sglang"),
+            "serve", "--model-path", str(model),
             "--load-format", "dummy", "--device", "cpu",
             "--attention-backend", "torch_native", "--tp-size", "1",
             "--dtype", "float32", "--disable-overlap-schedule",
@@ -138,12 +144,12 @@ def main():
             "--host", "127.0.0.1", "--port", str(port),
         ]
         with log_path.open("w", encoding="utf-8") as log:
-            process = subprocess.Popen(
-                command, env=env, stdout=log, stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
-            base = f"http://127.0.0.1:{port}"
             try:
+                process = subprocess.Popen(
+                    command, env=env, stdout=log, stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+                base = f"http://127.0.0.1:{port}"
                 while time.monotonic() < deadline:
                     if process.poll() is not None:
                         tail = log_path.read_text(encoding="utf-8", errors="replace")[-4000:]

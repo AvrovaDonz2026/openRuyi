@@ -37,10 +37,14 @@ PRIVATE_SONAME = re.compile(
 # A private ELF can introduce a new SONAME at any time.  Treat known system
 # libraries as the exception rather than maintaining a closed private list.
 SYSTEM_SONAME = re.compile(
-    r"^(?:linux-vdso|ld-linux(?:-[^.]*)?|ld-musl(?:-[^.]*)?|lib(?:anl|"
-    r"atomic|blas|bz2|c|crypt|dl|expat|ffi|gcc_s|gomp|lapack|lzma|m|"
-    r"nsl|numa|omp|openblas(?:64)?|pthread|quadmath|resolv|rt|stdc\+\+|"
-    r"util|uuid|z|zstd))(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
+    r"^(?:linux-vdso|ld-linux(?:-[^.]*)?|ld-musl(?:-[^.]*)?|lib(?:absl|anl|"
+    r"atomic|avcodec|avdevice|avfilter|avformat|avutil|blas|bz2|c|cpuinfo|"
+    r"crypt|crypto|dl|expat|ffi|fmt|foxi_loader|freetype|gcc_s|gomp|jpeg[0-9]*|"
+    r"lapack|lcms2|lzma|m|"
+    r"nsl|numa|omp|onnx|onnxruntime|openblas(?:64)?|png[0-9]*|protobuf(?:-lite)?|"
+    r"pthread|pthreadpool|python[0-9]+(?:\.[0-9]+)*|quadmath|resolv|rt|sharpyuv|"
+    r"sleef(?:dft|gnuabi|quad)?|ssl|stdc\+\+|swresample|swscale|tiff|tinfo|unwind|"
+    r"util|uuid|uv|webp(?:decoder|demux|mux)?|xml2|z|zstd))(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
 )
 SONAME = re.compile(r"^(?:lib|ld-)[^/]+\.so(?:\.[0-9]+)*$")
 
