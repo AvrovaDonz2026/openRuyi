@@ -32,7 +32,9 @@ requirements continue to name `torch-rocm`; they MUST NOT fall back to the CPU
 provider when the flavor is enabled in a future change.
 
 The packaged CPU closure is currently limited to `riscv64`, where the private
-Torch, Triton and CPU-kernel providers have been target-tested. The upstream
+Torch, TorchAudio, TorchVision, Triton and CPU-kernel recipes are scoped for
+the target architecture. Their complete binary build and runtime validation
+remain required before publication. The upstream
 CPU metadata also mentions Linux ARM, but this repository does not yet provide
 an ARM-compatible Triton RPM; publishing the SGLang RPM there would leave an
 unsatisfied runtime dependency. x86_64 is likewise held back until the

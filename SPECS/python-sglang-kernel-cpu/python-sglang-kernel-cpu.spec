@@ -29,6 +29,7 @@
 %endif
 %ifarch riscv64
 %global llvm_maj_ver 22
+%global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
 %endif
 
 Name:           python-%{srcname}
@@ -52,6 +53,14 @@ Conflicts:      python-sglang-kernel
 
 BuildOption(prep):  -n sglang-%{version_upstream}
 BuildOption(install):  -l sgl_kernel
+%ifarch riscv64
+# Keep CMake's compiler driver and target triple aligned with the LLVM 22
+# toolchain used for the RISC-V package build.
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%endif
 
 BuildRequires:  cmake >= 3.18
 BuildRequires:  clang
@@ -99,15 +108,16 @@ cd python/sglang/kernels/aot
 %build -p
 cd python/sglang/kernels/aot
 %ifarch riscv64
-export CC=clang
-export CXX=clang++
-export LD=ld.lld
-export AR=llvm-ar
-export RANLIB=llvm-ranlib
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export LD="%{llvm_bindir}/ld.lld"
+export AR="%{llvm_bindir}/llvm-ar"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
 export CMAKE_ARGS="-DSGLANG_CPU_TARGET_ARCH=riscv64 -DSGLANG_CPU_MARCH=rva23u64"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
-export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
 %install -a

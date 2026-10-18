@@ -89,6 +89,15 @@ Source1:        pytorch-smoke-test.py
 # Native two-process Gloo distributed smoke test for the %check phase.
 Source2:        pytorch-distributed-smoke.py
 BuildSystem:    pyproject
+%if %{without rocm}
+# The private CPU Torch provider is currently validated only as part of the
+# RISC-V SGLang closure.  Keep unsupported CPU transactions out of OBS until
+# their dependency closure and target validation are complete.
+ExclusiveArch:  riscv64
+%else
+# ROCm remains a reserved source flavor for the future completed build.
+ExclusiveArch:  x86_64 aarch64
+%endif
 
 BuildOption(prep):  -n pytorch-v%{version}
 # Native builds use the upstream CMake cache definition; cross builds use the
