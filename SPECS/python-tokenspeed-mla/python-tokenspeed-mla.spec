@@ -17,8 +17,10 @@ URL:            https://github.com/lightseekorg/tokenspeed
 VCS:            git:https://github.com/lightseekorg/tokenspeed.git
 #!RemoteAsset:  sha256:5a9cb82ca52bba8c7fd1a79ceaff8a19d6e9cfe0faed60f739c98e333d12d38f
 Source0:        https://github.com/lightseekorg/tokenspeed/archive/%{commit}.tar.gz#/%{srcname}-%{commit}.tar.gz
-BuildArch:      noarch
 BuildSystem:    pyproject
+# This package contains only Python sources but is coupled to NVIDIA
+# Blackwell-only runtime providers and must not resolve on RISC-V.
+ExclusiveArch:  x86_64 aarch64
 
 BuildOption(prep):  -n %{srcname}-%{commit}/tokenspeed-mla
 BuildOption(install):  -l tokenspeed_mla

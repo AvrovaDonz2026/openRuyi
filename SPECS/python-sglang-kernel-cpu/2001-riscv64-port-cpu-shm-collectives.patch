@@ -72,7 +72,7 @@ index 83b0b6b..6f15899 100644
  #else
  #error "unsupported architecture"
  #endif
- 
+
  #include <ATen/ATen.h>
 +#include <atomic>
 +#include <cassert>
@@ -81,18 +81,18 @@ index 83b0b6b..6f15899 100644
  #include <stddef.h>
 @@ -121,14 +125,18 @@ char** allgather_into_tensor_buffer[2];
  char** reduce_scatter_buffer[2];
- 
+
  void wait_buffer_state_until_2(int index, enum coll_state state0, enum coll_state state1, int state_group) {
 -  volatile enum coll_state* state_ptr = &(workspace[index]->states[state_group]);
 +  enum coll_state* state_ptr = &(workspace[index]->states[state_group]);
- 
+
    while (1) {
 -    volatile enum coll_state cur_state = *state_ptr;
 +    enum coll_state cur_state = __atomic_load_n(state_ptr, __ATOMIC_ACQUIRE);
      if (cur_state == state0 || cur_state == state1) break;
    }
  }
- 
+
 +static inline void publish_buffer_state(enum coll_state* state_ptr, enum coll_state state) {
 +  __atomic_store_n(state_ptr, state, __ATOMIC_RELEASE);
 +}
@@ -101,12 +101,12 @@ index 83b0b6b..6f15899 100644
      int start_elements,
      int num_elements,
 @@ -275,7 +283,7 @@ void symmetric_naive_all_reduce(char* data_ptr, c10::ScalarType scalar_type, siz
- 
+
    parallel_memcpy(symmetric_buffer[current_buffer][world_rank], data_ptr, chunk_size);
    std::atomic_thread_fence(std::memory_order_release);
 -  workspace[world_rank]->states[state_group] = copy_current;
 +  publish_buffer_state(&workspace[world_rank]->states[state_group], copy_current);
- 
+
    for (int i = 0; i < world_size; i++) {
      // wait until the other rank copy the buffer
 @@ -324,7 +332,7 @@ void distributed_naive_reduce(char* data_ptr, c10::ScalarType scalar_type, size_
@@ -115,7 +115,7 @@ index 83b0b6b..6f15899 100644
    std::atomic_thread_fence(std::memory_order_release);
 -  workspace[world_rank]->states[state_group] = copy_current;
 +  publish_buffer_state(&workspace[world_rank]->states[state_group], copy_current);
- 
+
    for (int i = 0; i < world_size; i++) {
      // wait until all the other ranks copy the buffer
 @@ -340,7 +348,7 @@ void distributed_naive_reduce(char* data_ptr, c10::ScalarType scalar_type, size_
@@ -124,16 +124,16 @@ index 83b0b6b..6f15899 100644
    std::atomic_thread_fence(std::memory_order_release);
 -  workspace[world_rank]->states[state_group] = reduce_current;
 +  publish_buffer_state(&workspace[world_rank]->states[state_group], reduce_current);
- 
+
    for (int i = 0; i < world_size; i++) {
      // wait until all the other ranks reduce the buffer
 @@ -411,7 +419,7 @@ void naive_all_gather(char* result_ptr, char* data_ptr, size_t res_stride, size_
- 
+
    parallel_memcpy(buffer[current_buffer][world_rank], data_ptr, chunk_size);
    std::atomic_thread_fence(std::memory_order_release);
 -  workspace[world_rank]->states[STATE_GROUP] = copy_current;
 +  publish_buffer_state(&workspace[world_rank]->states[STATE_GROUP], copy_current);
- 
+
    for (int i = 0; i < world_size; i++) {
      // wait until all the other ranks copy the buffer
 @@ -485,7 +493,7 @@ void naive_reduce_scatter(
@@ -142,6 +142,6 @@ index 83b0b6b..6f15899 100644
    std::atomic_thread_fence(std::memory_order_release);
 -  workspace[world_rank]->states[state_group] = copy_current;
 +  publish_buffer_state(&workspace[world_rank]->states[state_group], copy_current);
- 
+
    // Step 2: wait for all ranks to copy in
    for (int i = 0; i < world_size; i++) {
