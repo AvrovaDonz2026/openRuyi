@@ -1,3 +1,10 @@
+# SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+#
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 [package]
 edition = "2021"
 rust-version = "1.56.1"
