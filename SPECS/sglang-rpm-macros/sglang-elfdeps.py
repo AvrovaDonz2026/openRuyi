@@ -39,12 +39,12 @@ PRIVATE_SONAME = re.compile(
 SYSTEM_SONAME = re.compile(
     r"^(?:linux-vdso|ld-linux(?:-[^.]*)?|ld-musl(?:-[^.]*)?|lib(?:absl|anl|"
     r"atomic|avcodec|avdevice|avfilter|avformat|avutil|blas|bz2|c|cpuinfo|"
-    r"crypt|crypto|dl|expat|ffi|fmt|foxi_loader|freetype|gcc_s|gomp|jpeg[0-9]*|"
+    r"crypt|crypto|dl|expat|ffi|fmt|foxi_loader|freetype|gcc_s|gfortran|gomp|jpeg[0-9]*|"
     r"lapack|lcms2|lzma|m|"
     r"nsl|numa|omp|onnx|onnxruntime|openblas(?:64)?|png[0-9]*|protobuf(?:-lite)?|"
     r"pthread|pthreadpool|python[0-9]+(?:\.[0-9]+)*|quadmath|resolv|rt|sharpyuv|"
     r"sleef(?:dft|gnuabi|quad)?|ssl|stdc\+\+|swresample|swscale|tiff|tinfo|unwind|"
-    r"util|uuid|uv|webp(?:decoder|demux|mux)?|xml2|z|zstd))(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
+    r"util|uuid|uv|webp(?:decoder|demux|mux)?|mvec|xml2|z|zstd))(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
 )
 SONAME = re.compile(r"^(?:lib|ld-)[^/]+\.so(?:\.[0-9]+)*$")
 
@@ -99,7 +99,8 @@ def main() -> int:
     parser.add_argument("--namespace", required=True)
     parser.add_argument("--generator", default="/usr/lib/rpm/elfdeps")
     args, passthrough = parser.parse_known_args()
-    if not any(flag in passthrough for flag in ("--provides", "--requires")):
+    if not any(flag in passthrough for flag in
+               ("--provides", "-P", "--requires", "-R")):
         parser.error("one of --provides or --requires is required")
     command = [args.generator, *passthrough]
     provides = "--provides" in passthrough or "-P" in passthrough
