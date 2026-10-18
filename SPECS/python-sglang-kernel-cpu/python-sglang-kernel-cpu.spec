@@ -8,6 +8,25 @@
 %global srcname sglang-kernel-cpu
 %global toolchain clang
 %global version_upstream 0.5.21
+%global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "cuda"
+%bcond cuda 1
+%{error:CUDA SGLang CPU kernel flavor is reserved and is not supported by this SPEC}
+%else
+%bcond cuda 0
+%endif
+%if "%{flavor}" == "rocm"
+%bcond rocm 1
+%{error:ROCm SGLang CPU kernel flavor is reserved and is not supported by this SPEC}
+%else
+%bcond rocm 0
+%endif
+%if %{with cuda}
+%{error:CUDA SGLang CPU kernel flavor is reserved and is not supported by this SPEC}
+%endif
+%if %{with rocm}
+%{error:ROCm SGLang CPU kernel flavor is reserved and is not supported by this SPEC}
+%endif
 %ifarch riscv64
 %global llvm_maj_ver 22
 %endif

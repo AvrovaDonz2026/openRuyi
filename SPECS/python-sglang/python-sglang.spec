@@ -28,10 +28,21 @@
 %bcond cuda 0
 %endif
 
+# Keep the ROCm flavor unbuildable even when a caller enables it directly
+# instead of selecting BUILD_FLAVOR=rocm.
+%if "%{flavor}" == "rocm"
+%bcond rocm 1
+%else
+%bcond rocm 0
+%endif
+
 # Keep the reserved CUDA flavor unbuildable even when a caller overrides the
 # bcond directly instead of selecting BUILD_FLAVOR=cuda.
 %if %{with cuda}
 %{error:CUDA SGLang flavor is reserved and is not supported by this SPEC}
+%endif
+%if %{with rocm}
+%{error:ROCm SGLang flavor is reserved and is not supported by this SPEC}
 %endif
 
 %if %{with cuda}
