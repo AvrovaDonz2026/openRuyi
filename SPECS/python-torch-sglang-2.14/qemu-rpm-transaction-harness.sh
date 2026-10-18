@@ -15,6 +15,7 @@ gpg_key=${RPM_GPG_KEY:-}
 gpg_fingerprint=${RPM_GPG_FINGERPRINT:-}
 coexistence_script=${COEXISTENCE_SCRIPT:-/usr/libexec/sglang/sglang-coexistence-test.py}
 cpu_smoke_script=${CPU_SMOKE_SCRIPT:-/usr/libexec/sglang/sglang-cpu-engine-smoke.py}
+offline_repo_source=${DNF_OFFLINE_REPO:-}
 while (( $# > 0 )); do
   case $1 in
     --install) install=1 ;;
@@ -212,20 +213,56 @@ echo 'SHORTCIRCUITED_RESULT=PASS'
 echo '== offline DNF repository check =='
 repo_dir="$tmp/repo"
 mkdir -p "$repo_dir"
-cp -- "$@" "$repo_dir/"
-if [[ -z $gpg_key ]]; then
+if [[ -n $offline_repo_source ]]; then
+  [[ -d $offline_repo_source ]] || {
+    echo "DNF_OFFLINE_REPO is not a directory: $offline_repo_source" >&2
+    exit 1
+  }
+  cp -a -- "$offline_repo_source"/. "$repo_dir/"
+else
+  cp -- "$@" "$repo_dir/"
+fi
+dnf_ready=0
+dnf_args=(--disablerepo='*'
+  --repofrompath=openruyi-qemu-local,"file://$repo_dir"
+    --setopt=openruyi-qemu-local.gpgcheck=1
+    --setopt=openruyi-qemu-local.repo_gpgcheck=0
+    --setopt=install_weak_deps=False --setopt=metadata_expire=0)
+if (( install )); then
+  [[ -n $gpg_key && -n $gpg_fingerprint ]] || {
+    echo 'signed installation requires --gpg-key and --gpg-fingerprint' >&2
+    exit 1
+  }
+  command -v createrepo_c >/dev/null || {
+    echo 'createrepo_c is required for --install' >&2
+    exit 1
+  }
+  command -v dnf >/dev/null || {
+    echo 'dnf is required for --install' >&2
+    exit 1
+  }
+  createrepo_c --quiet "$repo_dir"
+  dnf_ready=1
+  dnf_preview_args=(--assumeno "${dnf_args[@]}")
+  set +e
+  dnf "${dnf_preview_args[@]}" install "${candidate_names[@]}"
+  dnf_rc=$?
+  set -e
+  echo "DNF_OFFLINE_RC=$dnf_rc"
+  if (( dnf_rc != 0 )); then
+    echo 'DNF_OFFLINE_RESULT=FAIL' >&2
+    exit "$dnf_rc"
+  fi
+  echo 'DNF_OFFLINE_RESULT=PASS'
+elif [[ -z $gpg_key ]]; then
   echo 'DNF_OFFLINE_RESULT=SKIPPED (signed RPM key unavailable; scratch mode)'
 elif ! command -v createrepo_c >/dev/null || ! command -v dnf >/dev/null; then
   echo 'DNF_OFFLINE_RESULT=SKIPPED (createrepo_c or dnf unavailable)'
 else
   createrepo_c --quiet "$repo_dir"
-  dnf_args=(--assumeno --disablerepo='*'
-    --repofrompath=openruyi-qemu-local,"file://$repo_dir"
-    --setopt=openruyi-qemu-local.gpgcheck=1
-    --setopt=openruyi-qemu-local.repo_gpgcheck=0
-    --setopt=install_weak_deps=False --setopt=metadata_expire=0)
+  dnf_preview_args=(--assumeno "${dnf_args[@]}")
   set +e
-  dnf "${dnf_args[@]}" install "${candidate_names[@]}"
+  dnf "${dnf_preview_args[@]}" install "${candidate_names[@]}"
   dnf_rc=$?
   set -e
   echo "DNF_OFFLINE_RC=$dnf_rc"
@@ -250,30 +287,45 @@ fi
 
 coexistence_baseline="$tmp/coexistence-baseline.json"
 coexistence_enabled=0
-if contains_candidate python-sglang && [[ -f $coexistence_script ]]; then
+if contains_candidate python-sglang; then
+  [[ -f $coexistence_script ]] || {
+    echo "COEXISTENCE=FAIL (missing $coexistence_script)" >&2
+    exit 1
+  }
+  [[ -f $cpu_smoke_script ]] || {
+    echo "CPU_ENGINE_SMOKE=FAIL (missing $cpu_smoke_script)" >&2
+    exit 1
+  }
   python3 -s "$coexistence_script" --baseline-json "$coexistence_baseline" --snapshot
   coexistence_enabled=1
   echo 'COEXISTENCE_BASELINE=PASS'
-elif contains_candidate python-sglang; then
-  echo "COEXISTENCE=SKIPPED (missing $coexistence_script)"
 fi
 
 echo '== transaction test =='
-set +e
-rpm -Uvh "${rpm_signature_args[@]}" --replacepkgs --test "$@"
-test_rc=$?
-set -e
-echo "RPM_TEST_RC=$test_rc"
-if (( test_rc != 0 )); then
-  echo 'RPM_TRANSACTION_TEST=FAIL' >&2
-  echo "HARNESS_RESULT test_rc=$test_rc install=$install"
-  exit "$test_rc"
+if (( install )); then
+  # The DNF preview above is the dependency transaction test.  A direct
+  # rpm --test cannot resolve dependencies from the temporary repository.
+  test_rc=0
+  echo 'RPM_TRANSACTION_TEST=SKIPPED (DNF preview is authoritative)'
+else
+  set +e
+  rpm -Uvh "${rpm_signature_args[@]}" --replacepkgs --test "$@"
+  test_rc=$?
+  set -e
+  echo "RPM_TEST_RC=$test_rc"
+  if (( test_rc != 0 )); then
+    echo 'RPM_TRANSACTION_TEST=FAIL' >&2
+    echo "HARNESS_RESULT test_rc=$test_rc install=$install"
+    exit "$test_rc"
+  fi
+  echo 'RPM_TRANSACTION_TEST=PASS'
 fi
-echo 'RPM_TRANSACTION_TEST=PASS'
 
 if (( install )); then
   echo '== install transaction =='
-  rpm -Uvh "${rpm_signature_args[@]}" --replacepkgs "$@"
+  (( dnf_ready )) || { echo 'DNF transaction was not prepared' >&2; exit 1; }
+  dnf --assumeyes "${dnf_args[@]}" install "${candidate_names[@]}"
+  echo 'DNF_INSTALL_RESULT=PASS'
   echo '== verify installed packages =='
   for rpm in "$@"; do
     name=$(rpm -qp --qf '%{NAME}' "$rpm")
@@ -508,12 +560,8 @@ PY
       --private-root "$private_root"
     echo 'COEXISTENCE=PASS'
   fi
-  if [[ -f $cpu_smoke_script ]]; then
-    python3 -s "$cpu_smoke_script"
-    echo 'CPU_ENGINE_SMOKE=PASS'
-  else
-    echo "CPU_ENGINE_SMOKE=SKIPPED (missing $cpu_smoke_script)"
-  fi
+  python3 -s "$cpu_smoke_script"
+  echo 'CPU_ENGINE_SMOKE=PASS'
 else
   echo 'SGLANG_SMOKE=SKIPPED (python-sglang RPM not supplied)'
 fi
