@@ -82,7 +82,7 @@ export CXX=clang++
 export LD=ld.lld
 export AR=llvm-ar
 export RANLIB=llvm-ranlib
-export CMAKE_ARGS="-DSGLANG_CPU_TARGET_ARCH=riscv64 -DSGLANG_CPU_MARCH=rv64gc"
+export CMAKE_ARGS="-DSGLANG_CPU_TARGET_ARCH=riscv64 -DSGLANG_CPU_MARCH=rva23u64"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
 export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
