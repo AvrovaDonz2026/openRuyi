@@ -7,12 +7,28 @@
 #
 # Run inside the riscv64 validation guest. Arguments are RPM files already
 # staged in the guest. The transaction is only installed when --install is
-# passed; metadata, dependency, and import checks always run.
+# passed; metadata, dependency, signature, and import checks always run.
 set -Eeuo pipefail
 
 install=0
-if [[ ${1:-} == --install ]]; then install=1; shift; fi
-(( $# > 0 )) || { echo "usage: $0 [--install] RPM..." >&2; exit 2; }
+gpg_key=${RPM_GPG_KEY:-}
+gpg_fingerprint=${RPM_GPG_FINGERPRINT:-}
+coexistence_script=${COEXISTENCE_SCRIPT:-/usr/libexec/sglang/sglang-coexistence-test.py}
+cpu_smoke_script=${CPU_SMOKE_SCRIPT:-/usr/libexec/sglang/sglang-cpu-engine-smoke.py}
+while (( $# > 0 )); do
+  case $1 in
+    --install) install=1 ;;
+    --gpg-key) shift; [[ $# -gt 0 ]] || { echo '--gpg-key requires a file' >&2; exit 2; }; gpg_key=$1 ;;
+    --gpg-fingerprint) shift; [[ $# -gt 0 ]] || { echo '--gpg-fingerprint requires a value' >&2; exit 2; }; gpg_fingerprint=$1 ;;
+    --coexistence-script) shift; [[ $# -gt 0 ]] || { echo '--coexistence-script requires a file' >&2; exit 2; }; coexistence_script=$1 ;;
+    --cpu-smoke-script) shift; [[ $# -gt 0 ]] || { echo '--cpu-smoke-script requires a file' >&2; exit 2; }; cpu_smoke_script=$1 ;;
+    --) shift; break ;;
+    -*) echo "unknown option: $1" >&2; exit 2 ;;
+    *) break ;;
+  esac
+  shift
+done
+(( $# > 0 )) || { echo "usage: $0 [--install] [--gpg-key FILE] [--gpg-fingerprint FPR] RPM..." >&2; exit 2; }
 for rpm in "$@"; do [[ -f $rpm ]] || { echo "missing RPM: $rpm" >&2; exit 2; }; done
 
 candidate_names=()
@@ -41,6 +57,13 @@ tmp_root=${TMPDIR:-/var/tmp}
 tmp=$(mktemp -d "$tmp_root/openruyi-rpm-harness.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 
+rpm_snapshot() {
+  rpm -qa --qf '%{NAME}\t%{EPOCHNUM}:%{VERSION}-%{RELEASE}\t%{ARCH}\n' | LC_ALL=C sort
+}
+
+rpm_before=$(rpm_snapshot)
+printf '%s\n' "$rpm_before" > "$tmp/rpm-before.txt"
+
 echo '== system =='
 uname -a
 rpm --version
@@ -63,6 +86,41 @@ PY
 
 system_before=$(system_snapshot)
 printf '%s\n' "$system_before" > "$tmp/system-before.txt"
+
+if [[ -z $gpg_key ]]; then
+  for candidate in /etc/pki/rpm-gpg/RPM-GPG-KEY-openruyi \
+                   /usr/share/openruyi-repos/RPM-GPG-KEY-openruyi; do
+    if [[ -f $candidate ]]; then gpg_key=$candidate; break; fi
+  done
+fi
+
+echo '== RPM signature verification =='
+if (( install )) && [[ -z $gpg_fingerprint ]]; then
+  echo 'signed installation requires --gpg-fingerprint' >&2
+  exit 1
+fi
+if [[ -n $gpg_key ]]; then
+  [[ -f $gpg_key ]] || { echo "missing RPM GPG key: $gpg_key" >&2; exit 1; }
+  command -v gpg >/dev/null || { echo 'gpg is required for RPM key fingerprint verification' >&2; exit 1; }
+  imported_fingerprint=$(gpg --batch --show-keys --with-colons "$gpg_key" |
+    awk -F: '$1 == "fpr" { print toupper($10); exit }')
+  [[ -n $imported_fingerprint ]] || { echo "cannot read fingerprint from $gpg_key" >&2; exit 1; }
+  if [[ -n $gpg_fingerprint ]]; then
+    expected_fingerprint=${gpg_fingerprint^^}
+    [[ $imported_fingerprint == "$expected_fingerprint" ]] || {
+      echo "RPM GPG fingerprint mismatch: $imported_fingerprint (expected $expected_fingerprint)" >&2
+      exit 1
+    }
+  else
+    expected_fingerprint=$imported_fingerprint
+  fi
+  rpm --import "$gpg_key"
+  echo "RPM_GPG_FINGERPRINT=$expected_fingerprint"
+  for rpm in "$@"; do rpm -K --verbose "$rpm"; done
+  echo 'RPM_SIGNATURE_RESULT=PASS'
+else
+  echo 'RPM_SIGNATURE_RESULT=SKIPPED (provide --gpg-key and --gpg-fingerprint for signed validation)'
+fi
 
 echo '== candidate metadata =='
 for rpm in "$@"; do
@@ -151,9 +209,58 @@ done
 echo 'ShortCircuited: ABSENT'
 echo 'SHORTCIRCUITED_RESULT=PASS'
 
+echo '== offline DNF repository check =='
+repo_dir="$tmp/repo"
+mkdir -p "$repo_dir"
+cp -- "$@" "$repo_dir/"
+if [[ -z $gpg_key ]]; then
+  echo 'DNF_OFFLINE_RESULT=SKIPPED (signed RPM key unavailable; scratch mode)'
+elif ! command -v createrepo_c >/dev/null || ! command -v dnf >/dev/null; then
+  echo 'DNF_OFFLINE_RESULT=SKIPPED (createrepo_c or dnf unavailable)'
+else
+  createrepo_c --quiet "$repo_dir"
+  dnf_args=(--assumeno --disablerepo='*'
+    --repofrompath=openruyi-qemu-local,"file://$repo_dir"
+    --setopt=openruyi-qemu-local.gpgcheck=1
+    --setopt=openruyi-qemu-local.repo_gpgcheck=0
+    --setopt=install_weak_deps=False --setopt=metadata_expire=0)
+  set +e
+  dnf "${dnf_args[@]}" install "${candidate_names[@]}"
+  dnf_rc=$?
+  set -e
+  echo "DNF_OFFLINE_RC=$dnf_rc"
+  if (( dnf_rc != 0 )); then
+    echo 'DNF_OFFLINE_RESULT=FAIL' >&2
+    exit "$dnf_rc"
+  fi
+  echo 'DNF_OFFLINE_RESULT=PASS'
+fi
+
+rpm_signature_args=()
+if [[ -z $gpg_key ]]; then
+  if (( install )); then
+    echo 'signed installation requires --gpg-key and --gpg-fingerprint' >&2
+    exit 1
+  fi
+  rpm_signature_args+=(--nosignature)
+  echo 'RPM_SIGNATURE_MODE=SCRATCH_NOSIGNATURE'
+else
+  echo 'RPM_SIGNATURE_MODE=SIGNED'
+fi
+
+coexistence_baseline="$tmp/coexistence-baseline.json"
+coexistence_enabled=0
+if contains_candidate python-sglang && [[ -f $coexistence_script ]]; then
+  python3 -s "$coexistence_script" --baseline-json "$coexistence_baseline" --snapshot
+  coexistence_enabled=1
+  echo 'COEXISTENCE_BASELINE=PASS'
+elif contains_candidate python-sglang; then
+  echo "COEXISTENCE=SKIPPED (missing $coexistence_script)"
+fi
+
 echo '== transaction test =='
 set +e
-rpm -Uvh --nosignature --replacepkgs --test "$@"
+rpm -Uvh "${rpm_signature_args[@]}" --replacepkgs --test "$@"
 test_rc=$?
 set -e
 echo "RPM_TEST_RC=$test_rc"
@@ -166,7 +273,7 @@ echo 'RPM_TRANSACTION_TEST=PASS'
 
 if (( install )); then
   echo '== install transaction =='
-  rpm -Uvh --nosignature --replacepkgs "$@"
+  rpm -Uvh "${rpm_signature_args[@]}" --replacepkgs "$@"
   echo '== verify installed packages =='
   for rpm in "$@"; do
     name=$(rpm -qp --qf '%{NAME}' "$rpm")
@@ -181,6 +288,15 @@ if (( install )); then
     exit 1
   fi
   echo 'SYSTEM_BASELINE=UNCHANGED'
+  rpm_after=$(rpm_snapshot)
+  printf '%s\n' "$rpm_after" > "$tmp/rpm-after.txt"
+  removed_rpms=$(comm -23 "$tmp/rpm-before.txt" "$tmp/rpm-after.txt")
+  if [[ -n $removed_rpms ]]; then
+    echo 'RPM_BASELINE=REMOVED' >&2
+    printf '%s\n' "$removed_rpms" >&2
+    exit 1
+  fi
+  echo 'RPM_BASELINE=UNCHANGED'
 else
   echo '== install skipped (pass --install to mutate guest) =='
   echo 'INSTALL_RESULT=SKIPPED'
@@ -188,6 +304,9 @@ else
   echo 'TORCH_TENSOR_SMOKE=SKIPPED'
   echo 'GLOO_SMOKE=SKIPPED'
   echo 'SGLANG_SMOKE=SKIPPED'
+  echo 'COEXISTENCE=SKIPPED'
+  echo 'CPU_ENGINE_SMOKE=SKIPPED'
+  echo 'RPM_BASELINE=SKIPPED'
   echo "HARNESS_RESULT test_rc=$test_rc install=$install"
   exit "$test_rc"
 fi
@@ -383,6 +502,18 @@ subprocess.run(["/usr/bin/sglang", "--help"], check=True, timeout=60,
                stdout=subprocess.DEVNULL)
 PY
   echo 'SGLANG_SMOKE=PASS'
+  if (( coexistence_enabled )); then
+    private_root=${private_site%/python*/site-packages}
+    python3 -s "$coexistence_script" --baseline-json "$coexistence_baseline" \
+      --private-root "$private_root"
+    echo 'COEXISTENCE=PASS'
+  fi
+  if [[ -f $cpu_smoke_script ]]; then
+    python3 -s "$cpu_smoke_script"
+    echo 'CPU_ENGINE_SMOKE=PASS'
+  else
+    echo "CPU_ENGINE_SMOKE=SKIPPED (missing $cpu_smoke_script)"
+  fi
 else
   echo 'SGLANG_SMOKE=SKIPPED (python-sglang RPM not supplied)'
 fi

@@ -6,9 +6,19 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname torchcodec
+
+# TorchCodec is packaged only for the validated SGLang CPU provider.  Keep a
+# future accelerator flavor from silently resolving to the CPU dependency.
+%global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "rocm"
+%{error:ROCm SGLang TorchCodec flavor is reserved and is not supported by this SPEC}
+%endif
+%global torch_capability torch-cpu
+
 %ifarch riscv64
 %global llvm_maj_ver 22
 %global toolchain clang
+%global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
 %endif
 
 Name:           python-%{srcname}
@@ -23,10 +33,17 @@ VCS:            git:https://github.com/meta-pytorch/torchcodec.git
 #!RemoteAsset:  sha256:f0cc21c1f99439cff30eb43080e9bc8e43c6b9505b4f327cb42ee132075bcec4
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz#/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
-# The CPU Torch/SGLang closure is published only for these targets.
-ExclusiveArch:  x86_64 riscv64
+# The private CPU Torch/SGLang closure is currently validated only on RISC-V.
+ExclusiveArch:  riscv64
 
 BuildOption(install):  -l %{srcname}
+
+%ifarch riscv64
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
+BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
+BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%endif
 
 BuildRequires:  cmake
 BuildRequires:  patchelf
@@ -47,14 +64,14 @@ BuildRequires:  file
 BuildRequires:  pkgconfig(pybind11)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
-BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
+BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(wheel)
 
 Requires:       ffmpeg%{?_isa} >= 4
 Requires:       ffmpeg%{?_isa} < 9
-Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
+Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
 
 %description
 TorchCodec provides PyTorch bindings for decoding and encoding audio and video
@@ -71,14 +88,15 @@ export I_CONFIRM_THIS_IS_NOT_A_LICENSE_VIOLATION=1
 export ENABLE_CUDA=0
 export TORCHCODEC_DISABLE_COMPILE_WARNING_AS_ERROR=ON
 %ifarch riscv64
-export CC=clang
-export CXX=clang++
-export LD=ld.lld
-export AR=llvm-ar
-export RANLIB=llvm-ranlib
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export LD="%{llvm_bindir}/ld.lld"
+export AR="%{llvm_bindir}/llvm-ar"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
-export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
 %install -a

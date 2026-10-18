@@ -104,12 +104,14 @@ BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
 BuildRequires:  hipcc
 BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
-BuildRequires:  python-torch-sglang-2.14-rocm-devel
+BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
+BuildRequires:  python-torch-sglang-2.14-rocm-devel = 2.14.0
 BuildRequires:  rocm-device-libs
 BuildRequires:  rocm-llvm-macros
 %else
 BuildRequires:  gcc-c++
-BuildRequires:  python-torch-sglang-2.14-devel
+BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
+BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
 %ifarch riscv64
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}

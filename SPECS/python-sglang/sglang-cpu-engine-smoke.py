@@ -123,6 +123,9 @@ def main():
         env.update({
             "SGLANG_USE_CPU_ENGINE": "1",
             "HF_HUB_OFFLINE": "1",
+            "HF_DATASETS_OFFLINE": "1",
+            "TRANSFORMERS_OFFLINE": "1",
+            "HF_HUB_DISABLE_TELEMETRY": "1",
             "OMP_NUM_THREADS": "1",
             "TOKENIZERS_PARALLELISM": "false",
         })

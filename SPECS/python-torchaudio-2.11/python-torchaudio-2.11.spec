@@ -81,9 +81,9 @@ BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
 BuildRequires:  python3dist(wheel)
 # Could not find a package configuration file provided by "Torch"
 %if %{with rocm}
-BuildRequires:  python-torch-sglang-2.14-rocm-devel
+BuildRequires:  python-torch-sglang-2.14-rocm-devel = 2.14.0
 %else
-BuildRequires:  python-torch-sglang-2.14-devel
+BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
 %endif
 %ifarch riscv64
 BuildRequires:  clang
