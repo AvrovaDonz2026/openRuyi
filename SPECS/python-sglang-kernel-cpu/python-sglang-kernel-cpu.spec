@@ -44,7 +44,10 @@ VCS:            git:https://github.com/sgl-project/sglang.git
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version_upstream}.tar.gz#/sglang-%{version_upstream}.tar.gz
 Source1:        sglang-kernel-cpu-smoke.py
 BuildSystem:    pyproject
-ExclusiveArch:  x86_64 riscv64
+# The private CPU kernel is currently validated only as part of the RISC-V
+# SGLang closure.  Do not publish an x86_64 provider while the corresponding
+# SGLang CPU metadata still requires unavailable intel-openmp capability.
+ExclusiveArch:  riscv64
 Conflicts:      python-sglang-kernel
 
 BuildOption(prep):  -n sglang-%{version_upstream}
