@@ -11,6 +11,12 @@
 # ROCm remains a source-level flavor for a future completed build.  No OBS
 # multibuild entry is enabled while its dependency closure is unvalidated.
 %global flavor @BUILD_FLAVOR@%{nil}
+%if "%{flavor}" == "cuda"
+%{error:CUDA SGLang TorchAudio flavor is reserved and is not supported by this SPEC}
+%bcond cuda 1
+%else
+%bcond cuda 0
+%endif
 %if "%{flavor}" == "rocm"
 %{error:ROCm SGLang TorchAudio flavor is reserved and is not supported by this SPEC}
 %bcond rocm 1
@@ -20,6 +26,9 @@
 %global torch_capability torch-cpu
 %endif
 
+%if %{with cuda}
+%{error:CUDA SGLang TorchAudio flavor is reserved and is not supported by this SPEC}
+%endif
 %if %{with rocm}
 %{error:ROCm SGLang TorchAudio flavor is reserved and is not supported by this SPEC}
 %endif
