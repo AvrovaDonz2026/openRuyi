@@ -51,6 +51,9 @@ BuildRequires:  crate(anyhow-1/default) >= 1.0.95
 BuildRequires:  crate(bytemuck-1/default) >= 1.21.0
 BuildRequires:  crate(derivre-0.3/ahash) >= 0.3.12
 BuildRequires:  crate(derivre-0.3/compress) >= 0.3.12
+# derivre 0.3.12 requires hashbrown 0.17.1; keep the offline build
+# transaction from selecting the older distribution provider 0.17.0.
+BuildRequires:  crate(hashbrown-0.17) >= 0.17.1
 BuildRequires:  crate(indexmap-2/default) >= 2.7.1
 BuildRequires:  crate(jsonschema-0.29/default) >= 0.29.0
 BuildRequires:  crate(lazy-static-1/default) >= 1.5.0
