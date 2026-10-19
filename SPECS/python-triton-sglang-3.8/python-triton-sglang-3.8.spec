@@ -152,7 +152,9 @@ link_jobs=$(( 1 + mem_gb / 16 ))
 %ifarch x86_64
 llvm_targets="X86;AMDGPU;NVPTX"
 %elifarch riscv64
-llvm_targets="RISCV;X86;AMDGPU;NVPTX"
+# The RISC-V package is CPU-only.  Keep the bundled LLVM limited to the host
+# and RISC-V targets required by the import-time host-codegen references.
+llvm_targets="RISCV;X86"
 %else
 %{error:unsupported architecture for SGLang Triton}
 %endif
