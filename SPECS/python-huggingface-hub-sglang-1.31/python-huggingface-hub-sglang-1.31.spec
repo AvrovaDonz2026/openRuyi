@@ -25,8 +25,8 @@ BuildSystem:    pyproject
 # pythondistdeps normalizes the automatic capability to ``1.31`` by removing
 # trailing zero components. Keep an exact-version capability for consumers
 # whose RPM requirement is written as >= 1.31.0.
-Provides:       sglang(python3dist(huggingface-hub)) = %{version}
-Provides:       sglang(python%{__default_python3_version}dist(huggingface-hub)) = %{version}
+Provides:       sglang(python3dist(huggingface-hub)) = 1.31.0
+Provides:       sglang(python3.14dist(huggingface-hub)) = 1.31.0
 
 BuildOption(install):  -l huggingface_hub +auto
 # The default import scan traverses optional OAuth, MCP, and provider modules;
