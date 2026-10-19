@@ -99,6 +99,18 @@ assert_metadata_line() {
   fi
 }
 
+assert_metadata_line_any() {
+  local rpm=$1 field=$2 line expected
+  shift 2
+  while IFS= read -r line; do
+    for expected in "$@"; do
+      [[ $line == "$expected" ]] && return 0
+    done
+  done < <(rpm -qp "--$field" "$rpm")
+  echo "metadata mismatch: $(basename "$rpm") $field lacks one of: $*" >&2
+  metadata_failure=1
+}
+
 tmp_root=${TMPDIR:-/var/tmp}
 tmp=$(mktemp -d "$tmp_root/openruyi-rpm-harness.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
@@ -224,7 +236,10 @@ for rpm in "$@"; do
       ;;
     python-transformers-sglang-5.19)
       [[ $version == 5.19.0 ]] || { echo "unexpected transformers version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(transformers)) = 5.19.0'
+      # RPM may normalize the equivalent 5.19.0 capability to 5.19.
+      assert_metadata_line_any "$rpm" provides \
+        'sglang(python3dist(transformers)) = 5.19' \
+        'sglang(python3dist(transformers)) = 5.19.0'
       ;;
     python-huggingface-hub-sglang-1.31)
       [[ $version == 1.31.0 ]] || { echo "unexpected huggingface-hub version: $version" >&2; metadata_failure=1; }
@@ -233,7 +248,9 @@ for rpm in "$@"; do
     python-sglang)
       [[ $version == 0.5.21 ]] || { echo "unexpected SGLang version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(transformers)) = 5.19.0'
+      assert_metadata_line_any "$rpm" requires \
+        'sglang(python3dist(transformers)) = 5.19' \
+        'sglang(python3dist(transformers)) = 5.19.0'
       ;;
     python-triton-sglang-3.8)
       [[ $version == 3.8.0 ]] || { echo "unexpected Triton version: $version" >&2; metadata_failure=1; }
