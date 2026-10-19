@@ -22,6 +22,12 @@ VCS:            git:https://github.com/huggingface/huggingface_hub
 Source0:        https://files.pythonhosted.org/packages/source/h/%{srcname}/%{pypi_name}-%{version}.tar.gz
 BuildSystem:    pyproject
 
+# pythondistdeps normalizes the automatic capability to ``1.31`` by removing
+# trailing zero components. Keep an exact-version capability for consumers
+# whose RPM requirement is written as >= 1.31.0.
+Provides:       sglang(python3dist(huggingface-hub)) = %{version}
+Provides:       sglang(python%{__default_python3_version}dist(huggingface-hub)) = %{version}
+
 BuildOption(install):  -l huggingface_hub +auto
 # The default import scan traverses optional OAuth, MCP, and provider modules;
 # the focused smoke test below exercises the local API without network access.

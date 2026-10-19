@@ -29,6 +29,14 @@
 # for a future completed build: its OBS multibuild entry is intentionally
 # absent until the dependency closure and target validation are complete.
 %global flavor @BUILD_FLAVOR@%{nil}
+# CUDA is also reserved until a provider-backed flavor and target validation
+# are available; do not silently resolve it to the CPU capability.
+%if "%{flavor}" == "cuda"
+%{error:CUDA SGLang Torch flavor is reserved and is not supported by this SPEC}
+%bcond cuda 1
+%else
+%bcond cuda 0
+%endif
 %if "%{flavor}" == "rocm"
 %{error:ROCm SGLang Torch flavor is reserved and is not supported by this SPEC}
 %bcond rocm 1
@@ -36,8 +44,11 @@
 %bcond rocm 0
 %endif
 
-# Keep the reserved ROCm flavor unbuildable when a caller enables the bcond
-# directly instead of selecting BUILD_FLAVOR=rocm.
+# Keep reserved accelerator flavors unbuildable when a caller enables a bcond
+# directly instead of selecting BUILD_FLAVOR.
+%if %{with cuda}
+%{error:CUDA SGLang Torch flavor is reserved and is not supported by this SPEC}
+%endif
 %if %{with rocm}
 %{error:ROCm SGLang Torch flavor is reserved and is not supported by this SPEC}
 %endif
