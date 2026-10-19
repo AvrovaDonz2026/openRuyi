@@ -7,15 +7,18 @@
 %define go_import_path  gopkg.in/h2non/gock.v1
 
 Name:           go-gopkg-h2non-gock-v1
-Version:        1.1.2
+Version:        1.2.0
 Release:        %autorelease
 Summary:        HTTP traffic mocking library for Go
 License:        MIT
 URL:            https://github.com/h2non/gock
-#!RemoteAsset:  sha256:d40d29d5ca6e2ff0d519943e70fef6b7c6ce3ba2203be374b46cfcbc356c5470
+#!RemoteAsset:  sha256:0db31a91f50714066a40ae4d9ab1b488d10e3475235579564d9156c1a7559417
 Source0:        https://github.com/h2non/gock/archive/v%{version}.tar.gz#/%{_name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    golangmodules
+
+# Avoid relying on sub-millisecond scheduler timing in the context test.
+Patch2000:      2000-tests-make-pre-expired-context-deterministic.patch
 
 BuildRequires:  go
 BuildRequires:  go-rpm-macros
@@ -29,12 +32,6 @@ Requires:       go(github.com/h2non/parth)
 %description
 gock intercepts and mocks HTTP traffic in Go tests with request matching,
 response stubbing and configurable mock lifecycles.
-
-%check
-# Compile the complete test suite before tolerating TestResponderPreExpiredContext,
-# whose error behavior differs with the distro's newer Go context implementation.
-%buildsystem_golangmodules_check -run '^$'
-%__go test %{shrink:%{go_test_flags_default}} ./... || :
 
 %files
 %doc README*
