@@ -75,7 +75,7 @@ contains_candidate() {
 # The SGLang CPU transaction is validated as one private runtime closure.  A
 # partial closure would make the conditional smoke checks look successful while
 # leaving dependency resolution to an unrelated system package.
-if contains_candidate python-sglang || contains_candidate python-torchcodec; then
+if contains_candidate python-sglang || contains_candidate python-torchcodec-sglang-0.12; then
   contains_candidate python-torch-sglang-2.14 || {
     echo 'SGLang/TorchCodec transaction requires python-torch-sglang-2.14' >&2
     exit 2
@@ -84,8 +84,8 @@ if contains_candidate python-sglang || contains_candidate python-torchcodec; the
     echo 'SGLang/TorchCodec transaction requires python-sglang' >&2
     exit 2
   }
-  contains_candidate python-torchcodec || {
-    echo 'SGLang/TorchCodec transaction requires python-torchcodec' >&2
+  contains_candidate python-torchcodec-sglang-0.12 || {
+    echo 'SGLang/TorchCodec transaction requires python-torchcodec-sglang-0.12' >&2
     exit 2
   }
 fi
@@ -228,7 +228,7 @@ for rpm in "$@"; do
       ;;
     python-huggingface-hub-sglang-1.31)
       [[ $version == 1.31.0 ]] || { echo "unexpected huggingface-hub version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(huggingface-hub)) = 1.31'
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(huggingface-hub)) = 1.31.0'
       ;;
     python-sglang)
       [[ $version == 0.5.21 ]] || { echo "unexpected SGLang version: $version" >&2; metadata_failure=1; }
@@ -239,7 +239,7 @@ for rpm in "$@"; do
       [[ $version == 3.8.0 ]] || { echo "unexpected Triton version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" provides 'sglang(python3dist(triton)) = 3.8.0'
       ;;
-    python-torchcodec)
+    python-torchcodec-sglang-0.12)
       [[ $version == 0.12.0 ]] || { echo "unexpected TorchCodec version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torchcodec)) = 0.12.0'
       assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
@@ -442,12 +442,6 @@ if (( install )); then
   echo 'SYSTEM_BASELINE=UNCHANGED'
   rpm_after=$(rpm_snapshot)
   printf '%s\n' "$rpm_after" > "$tmp/rpm-after.txt"
-  removed_rpms=$(comm -23 "$tmp/rpm-before.txt" "$tmp/rpm-after.txt")
-  if [[ -n $removed_rpms ]]; then
-    echo 'RPM_BASELINE=REMOVED' >&2
-    printf '%s\n' "$removed_rpms" >&2
-    exit 1
-  fi
   # Candidate packages are expected to be added or replaced.  Every other
   # installed NEVRA must remain identical so a private transaction cannot
   # silently upgrade or remove an existing system package.
@@ -457,6 +451,12 @@ if (( install )); then
     "$candidate_names_file" "$tmp/rpm-before.txt" | LC_ALL=C sort > "$tmp/rpm-before-system.txt"
   awk -F '\t' 'NR == FNR { names[$1] = 1; next } !names[$1]' \
     "$candidate_names_file" "$tmp/rpm-after.txt" | LC_ALL=C sort > "$tmp/rpm-after-system.txt"
+  removed_rpms=$(comm -23 "$tmp/rpm-before-system.txt" "$tmp/rpm-after-system.txt")
+  if [[ -n $removed_rpms ]]; then
+    echo 'RPM_BASELINE=REMOVED' >&2
+    printf '%s\n' "$removed_rpms" >&2
+    exit 1
+  fi
   if ! cmp -s "$tmp/rpm-before-system.txt" "$tmp/rpm-after-system.txt"; then
     echo 'RPM_BASELINE=CHANGED (non-candidate package set)' >&2
     diff -u "$tmp/rpm-before-system.txt" "$tmp/rpm-after-system.txt" >&2 || true
@@ -502,7 +502,7 @@ if [[ -n $private_site ]]; then
       python-huggingface-hub-sglang-1.31) expected_modules+="huggingface_hub," ;;
       python-sglang) expected_modules+="sglang," ;;
       python-triton-sglang-3.8) expected_modules+="triton," ;;
-      python-torchcodec) expected_modules+="torchcodec," ;;
+      python-torchcodec-sglang-0.12) expected_modules+="torchcodec," ;;
     esac
   done
   expected_modules=${expected_modules%,}
@@ -677,7 +677,7 @@ else
   echo 'TRITON_SMOKE=SKIPPED (Triton RPM not supplied)'
 fi
 
-if contains_candidate python-torchcodec; then
+if contains_candidate python-torchcodec-sglang-0.12; then
   echo '== TorchCodec smoke =='
   PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" python3 -s - <<'PY'
 from torchcodec._core import get_ffmpeg_library_versions

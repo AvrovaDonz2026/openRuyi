@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname torchcodec
+%global compat_name python-torchcodec-sglang-0.12
 
 # TorchCodec is packaged only for the validated SGLang CPU provider.  CUDA and
 # ROCm flavors are reserved until matching providers and target validation are
@@ -38,7 +39,7 @@
 %global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
 %endif
 
-Name:           python-%{srcname}
+Name:           %{compat_name}
 BuildRequires:  sglang-rpm-macros
 %sglang_python_compat core
 Version:        0.12.0
