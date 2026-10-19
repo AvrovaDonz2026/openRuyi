@@ -57,7 +57,7 @@ Name:           %{compat_name}
 BuildRequires:  sglang-rpm-macros
 BuildRequires:  file
 BuildRequires:  patchelf
-BuildRequires:  git
+BuildRequires:  git-core
 %sglang_python_compat
 Version:        3.8.0
 Release:        %autorelease
