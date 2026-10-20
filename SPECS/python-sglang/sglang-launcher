@@ -3,6 +3,7 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MulanPSL-2.0
 
 set -e
@@ -11,4 +12,4 @@ unset LD_LIBRARY_PATH LD_PRELOAD
 export PYTHONNOUSERSITE=1
 export PYTHONSAFEPATH=1
 export PYTHONPATH='@PRIVATE_SITELIB@'
-exec '@PRIVATE_LIBEXEC@/sglang' "$@"
+exec @PYTHON3@ -sP '@PRIVATE_LIBEXEC@/sglang' "$@"

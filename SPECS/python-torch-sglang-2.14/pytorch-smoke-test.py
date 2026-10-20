@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 CHEN Xuan <chenxuan@iscas.ac.cn>
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MIT
 #
 # Functional smoke test for the built python-torch, run in the %check phase

@@ -1,3 +1,12 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: Gui-Yue <xiangwei.riscv@isrc.iscas.ac.cn>
+# SPDX-FileContributor: yyjeqhc <jialin.oerv@isrc.iscas.ac.cn>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
+
+Upstream-Reference: https://github.com/huggingface/tokenizers/tree/v0.22.2
+Upstream-Status: Downstream (remove test-only Rust dependencies for offline packaging)
+
 diff --git a/tokenizers/Cargo.toml b/tokenizers/Cargo.toml
 index e316d97..57b0ffb 100644
 --- a/tokenizers/Cargo.toml

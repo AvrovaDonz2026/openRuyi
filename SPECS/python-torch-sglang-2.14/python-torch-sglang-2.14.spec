@@ -4,6 +4,7 @@
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
 #
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname torch
@@ -190,6 +191,7 @@ BuildRequires:  abseil-cpp-devel
 %ifarch riscv64
 # Keep the C++ toolchain in lockstep with the LLVM 22 headers and runtime used
 # by the distribution, including during cross or emulated RISC-V builds.
+BuildRequires:  cmake(LLVM) = %{llvm_major}
 BuildRequires:  clang(major) = %{llvm_major}
 BuildRequires:  compiler-rt(major) = %{llvm_major}
 BuildRequires:  libomp-devel(major) = %{llvm_major}
@@ -362,10 +364,20 @@ if [ -d third_party/nccl ]; then
     mv third_party/nccl .
 fi
 
+# Keep the license file required by the upstream PEP 639 metadata after the
+# unused third-party sources are removed. The PeachPy sources themselves are
+# not part of the CPU build.
+mkdir -p .license-files/python-peachpy
+cp third_party/python-peachpy/LICENSE.rst .license-files/python-peachpy/
+
 # Remove unused third-party sources
 rm -rf third_party/*
 # Put stuff back
 mv miniz-%{miniz_version} third_party
+
+mkdir -p third_party/python-peachpy
+mv .license-files/python-peachpy/LICENSE.rst third_party/python-peachpy/
+rm -rf .license-files
 
 %if %{without system_flatbuffers}
 mv flatbuffers third_party
