@@ -289,7 +289,6 @@ validation of %{name}. This is not the complete upstream Python test suite.
 1001-default-to-hipblaslt-on-gfx110x.patch
 2002-use-system-googletest.patch
 2003-use-system-fmt.patch
-2004-use-system-pyproject-build-dependencies.patch
 2005-use-system-cmake-dependencies.patch
 # Remove git submodule checks
 2006-skip-unused-submodule-prebuild-checks.patch
