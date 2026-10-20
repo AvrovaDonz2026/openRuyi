@@ -3,6 +3,7 @@
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 #
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname timm

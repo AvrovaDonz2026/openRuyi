@@ -2,11 +2,15 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global upstream_name sglang
 %global transformers_compat_version 5.19.0
+# The OpenRuyi Python dependency macro normalizes this capability to 5.19;
+# keep the upstream/Python metadata version above for source and import checks.
+%global transformers_compat_rpm_version 5.19
 %global timm_compat_version 1.0.28
 # Keep the CUDA conditionals for a future provider-backed flavor.  This source
 # package intentionally has no multibuild entry until a CUDA Torch provider is
@@ -127,7 +131,7 @@ BuildRequires:  sglang(python3dist(torchvision)) = 0.29.0
 BuildRequires:  sglang(python3dist(triton)) = 3.8.0
 BuildRequires:  sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 BuildRequires:  sglang(python3dist(mistral-common)) >= 1.11.5
-BuildRequires:  sglang(python3dist(transformers)) = %{transformers_compat_version}
+BuildRequires:  sglang(python3dist(transformers)) = %{transformers_compat_rpm_version}
 BuildRequires:  sglang(python3dist(timm)) = %{timm_compat_version}
 %ifnarch aarch64 armv7hl
 # pyproject_cpu.toml excludes torchcodec on Linux ARM (aarch64, arm64, armv7l).
@@ -144,7 +148,7 @@ Requires:       sglang(python3dist(triton)) = 3.8.0
 Requires:       sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
 Requires:       sglang(python3dist(mistral-common)) >= 1.11.5
-Requires:       sglang(python3dist(transformers)) = %{transformers_compat_version}
+Requires:       sglang(python3dist(transformers)) = %{transformers_compat_rpm_version}
 Requires:       sglang(python3dist(timm)) = %{timm_compat_version}
 %ifnarch aarch64 armv7hl
 Requires:       sglang(python3dist(torchcodec)) = 0.12.0
@@ -225,6 +229,7 @@ install -Dpm0755 %{SOURCE5} %{buildroot}%{_libexecdir}/sglang/sglang-coexistence
 sed -i \
   -e 's|@PRIVATE_SITELIB@|%{_sglang_private_sitelib}|g' \
   -e 's|@PRIVATE_LIBEXEC@|%{_sglang_private_libexec}|g' \
+  -e 's|@PYTHON3@|%{python3}|g' \
   %{buildroot}%{_bindir}/sglang %{buildroot}%{_bindir}/sglang-python
 sed -i \
   -e 's|@EXTRAS_SITELIB@|%{_libdir}/sglang/extras/python%{python3_version}/site-packages|g' \
@@ -232,6 +237,11 @@ sed -i \
   %{buildroot}%{_bindir}/sglang-extras-python
 
 %check -a
+for launcher in %{SOURCE1} %{SOURCE2} \
+  "%{buildroot}%{_bindir}/sglang" \
+  "%{buildroot}%{_bindir}/sglang-python"; do
+  bash -n "$launcher"
+done
 cd %{buildroot}
 %if %{with cuda}
 PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'

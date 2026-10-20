@@ -4,6 +4,7 @@
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 # SPDX-FileContributor: zhangjinqiang <jinqiang.oerv@isrc.iscas.ac.cn>
 #
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname grpcio-status
@@ -45,6 +46,16 @@ gRPC status codes.
 
 %generate_buildrequires
 %sglang_pyproject_buildrequires
+
+%check -a
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} - <<'PY'
+import importlib
+import importlib.metadata
+
+assert importlib.metadata.version("grpcio-status") == "%{version}"
+importlib.import_module("grpc_status")
+importlib.import_module("grpc_status.rpc_status")
+PY
 
 %files -f %{pyproject_files}
 %doc README.rst

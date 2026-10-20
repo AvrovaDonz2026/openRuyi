@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-Upstream-Status: Downstream
-Upstream-Reference: https://github.com/guidance-ai/llguidance/tree/v1.7.6
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
+Upstream-Status: Downstream (packaging-only feature and workspace reduction)
+Upstream-Reference: https://github.com/microsoft/llguidance/tree/v1.7.6
 
 diff -urN a/Cargo.toml b/Cargo.toml
 --- a/Cargo.toml	2006-07-24 09:21:28.000000000 +0800

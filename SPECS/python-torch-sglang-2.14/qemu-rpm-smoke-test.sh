@@ -3,9 +3,11 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MIT
 #
 # Install the CPU Torch stack in a riscv64 QEMU guest and exercise native ops.
+# This validates CPU behavior only; it does not validate CUDA or ROCm runtime.
 # Usage: qemu-rpm-smoke-test.sh TORCH_RPM TORCHAUDIO_RPM TORCHVISION_RPM
 set -Eeuo pipefail
 
@@ -29,8 +31,17 @@ remote_dir=/tmp/openruyi-torch-stack-smoke-$$
 
 cleanup() {
     local status=$?
+    local cleanup_status=0
     trap - EXIT HUP INT TERM
-    ssh_guest "rm -rf -- '$remote_dir'" || :
+    if ssh_guest "rm -rf -- '$remote_dir'"; then
+        echo "REMOTE_CLEANUP=PASS ($remote_dir)"
+    else
+        cleanup_status=$?
+        echo "REMOTE_CLEANUP=FAIL (SSH could not remove $remote_dir)" >&2
+    fi
+    if (( status == 0 && cleanup_status != 0 )); then
+        status=$cleanup_status
+    fi
     exit "$status"
 }
 
@@ -75,6 +86,14 @@ expected_packages=$(printf '%s\n' \
     'python-torchaudio-2.11 riscv64' \
     'python-torchvision-0.29 riscv64' | LC_ALL=C sort)
 actual_packages=$(rpm -qp --qf '%{NAME} %{ARCH}\n' "$remote_dir"/*.rpm | LC_ALL=C sort)
+reserved_packages=$(rpm -qp --qf '%{NAME}\n' "$remote_dir"/*.rpm |
+    awk '/-(cuda|rocm)$/ { print }')
+if [[ -n "$reserved_packages" ]]; then
+    printf 'reserved accelerator RPM candidates are not testable:\n%s\n' \
+        "$reserved_packages" >&2
+    echo 'RESERVED_FLAVOR_RESULT=FAIL' >&2
+    exit 1
+fi
 if [[ "$actual_packages" != "$expected_packages" ]]; then
     printf 'unexpected CPU compatibility RPM set:\n%s\n' "$actual_packages" >&2
     exit 1

@@ -3,6 +3,7 @@
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 # SPDX-FileContributor: Yifan Xu <xuyifan@iscas.ac.cn>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 

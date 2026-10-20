@@ -4,6 +4,7 @@
 # SPDX-FileContributor: Yifan Xu <xuyifan@iscas.ac.cn>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -205,7 +206,9 @@ export TRITON_BUILD_WITH_CLANG_LLD=ON
 %ifarch riscv64
 export TRITON_BUILD_PROTON=OFF
 export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=OFF
-export TRITON_CODEGEN_BACKENDS=amd
+# 2003-disable-nvidia-backend.patch treats an empty list as CPU-only while
+# retaining the NVIDIA dialect libraries needed by the common compiler code.
+export TRITON_CODEGEN_BACKENDS=""
 %elifarch x86_64
 export TRITON_BUILD_PROTON=ON
 export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=ON

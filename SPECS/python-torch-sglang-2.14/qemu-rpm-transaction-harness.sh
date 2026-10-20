@@ -3,12 +3,18 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MIT
 #
 # Run inside the riscv64 validation guest. Arguments are RPM files already
-# staged in the guest. The transaction is only installed when --install is
-# passed; metadata, dependency, signature, and import checks always run.
+# staged in the guest. This harness validates the CPU/private-runtime path;
+# reserved CUDA and ROCm candidates are rejected before any transaction. No
+# GPU runtime is claimed. The transaction is only installed when --install is passed.
+# Without --install, this is an intentional metadata/transaction-check-only
+# run and exits with EX_SKIP (77) after reporting the checks as skipped.
 set -Eeuo pipefail
+
+EX_SKIP=77
 
 install=0
 gpg_key=${RPM_GPG_KEY:-}
@@ -42,6 +48,7 @@ for rpm in "$@"; do [[ -f $rpm ]] || { echo "missing RPM: $rpm" >&2; exit 2; }; 
 
 candidate_names=()
 candidate_paths=()
+candidate_files=()
 for rpm in "$@"; do
   path=$(basename -- "$rpm")
   if ((${#candidate_paths[@]} > 0)); then
@@ -53,6 +60,7 @@ for rpm in "$@"; do
   fi
   candidate_names+=("$(rpm -qp --qf '%{NAME}' "$rpm")")
   candidate_paths+=("$path")
+  candidate_files+=("$rpm")
 done
 
 for ((index = 0; index < ${#candidate_names[@]}; index++)); do
@@ -63,6 +71,39 @@ for ((index = 0; index < ${#candidate_names[@]}; index++)); do
     fi
   done
 done
+
+# Accelerator packages are reserved flavors in the corresponding SPECs.
+# Reject them here so a manually staged future candidate cannot be reported as
+# a validated runtime by this CPU-focused harness.  Check both the normalized
+# package name and the advertised capability: a renamed RPM must not bypass
+# the guard.
+reserved_flavor_failure=0
+for ((index = 0; index < ${#candidate_names[@]}; index++)); do
+  name=${candidate_names[index]}
+  rpm=${candidate_files[index]}
+  reserved_flavor=
+  case "$name" in
+    *-cuda) reserved_flavor=CUDA ;;
+    *-rocm) reserved_flavor=ROCm ;;
+  esac
+  if [[ -z $reserved_flavor ]]; then
+    while IFS= read -r capability; do
+      case "$capability" in
+        sglang\(python3dist\(*-cuda\)\)* ) reserved_flavor=CUDA; break ;;
+        sglang\(python3dist\(*-rocm\)\)* ) reserved_flavor=ROCm; break ;;
+      esac
+    done < <(rpm -qp --provides "$rpm")
+  fi
+  if [[ -n $reserved_flavor ]]; then
+    echo "reserved $reserved_flavor candidate is not testable: $name" >&2
+    reserved_flavor_failure=1
+  fi
+done
+if (( reserved_flavor_failure )); then
+  echo 'RESERVED_FLAVOR_RESULT=FAIL' >&2
+  exit 1
+fi
+echo 'RESERVED_FLAVOR_RESULT=PASS (no reserved accelerator candidates)'
 
 contains_candidate() {
   local wanted=$1 name
@@ -425,7 +466,7 @@ else
   echo "RPM_TEST_RC=$test_rc"
   if (( test_rc != 0 )); then
     echo 'RPM_TRANSACTION_TEST=FAIL' >&2
-    echo "HARNESS_RESULT test_rc=$test_rc install=$install"
+    echo "HARNESS_RESULT=FAIL test_rc=$test_rc install=$install"
     exit "$test_rc"
   fi
   echo 'RPM_TRANSACTION_TEST=PASS'
@@ -490,8 +531,8 @@ else
   echo 'COEXISTENCE=SKIPPED'
   echo 'CPU_ENGINE_SMOKE=SKIPPED'
   echo 'RPM_BASELINE=SKIPPED'
-  echo "HARNESS_RESULT test_rc=$test_rc install=$install"
-  exit "$test_rc"
+  echo "HARNESS_RESULT=SKIPPED test_rc=$test_rc install=$install"
+  exit "$EX_SKIP"
 fi
 echo 'INSTALL_RESULT=PASS'
 
@@ -730,5 +771,5 @@ else
   echo 'SGLANG_SMOKE=SKIPPED (python-sglang RPM not supplied)'
 fi
 
-echo "HARNESS_RESULT test_rc=$test_rc install=$install"
+echo "HARNESS_RESULT=PASS test_rc=$test_rc install=$install"
 exit "$test_rc"

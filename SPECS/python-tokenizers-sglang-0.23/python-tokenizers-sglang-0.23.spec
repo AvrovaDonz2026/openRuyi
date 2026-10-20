@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -85,7 +86,6 @@ BuildRequires:  crate(unicode-categories-0.1/default)
 BuildRequires:  crate(unicode-normalization-alignments-0.1/default)
 BuildRequires:  crate(unicode-segmentation-1/default)
 BuildRequires:  crate(onig-6/default)
-BuildRequires:  crate(tempfile-3/default)
 
 %description
 Tokenizers provides fast and production-ready tokenization implementations for
