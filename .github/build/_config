@@ -12,13 +12,6 @@ Release: <CI_CNT>.<B_CNT>%%{?dist}
 
 PublishFilter: .*-bootstrap.*
 
-# Reserve CUDA-only SGLang sources until their Torch provider and target
-# validation are available.  These exclusions apply to the pbuild CI;
-# the OBS project configuration requires matching BuildFlags separately.
-BuildFlags: excludebuild:python-sglang-kernel
-BuildFlags: excludebuild:python-sgl-deep-ep
-BuildFlags: excludebuild:python-sgl-deep-gemm
-
 Preinstall: rpm-build
 Preinstall: gcc-c++
 
