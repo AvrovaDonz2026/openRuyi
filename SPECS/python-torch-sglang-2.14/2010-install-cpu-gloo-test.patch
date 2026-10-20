@@ -13,11 +13,6 @@ diff --git a/test/cpp/c10d/CMakeLists.txt b/test/cpp/c10d/CMakeLists.txt
 index aa98db5..ffb7b8c 100644
 --- a/test/cpp/c10d/CMakeLists.txt
 +++ b/test/cpp/c10d/CMakeLists.txt
-@@ -121,6 +121,6 @@ elseif(USE_ROCM)
-   endif()
- else()
-   if(USE_GLOO AND USE_C10D_GLOO)
+@@ -124 +124 @@
 -    c10d_add_test(ProcessGroupGlooTest.cpp LINK_LIBRARIES torch_cpu gtest_main INSTALL_TEST OFF)
 +    c10d_add_test(ProcessGroupGlooTest.cpp LINK_LIBRARIES torch_cpu gtest_main INSTALL_TEST ${INSTALL_TEST})
-   endif()
- endif()
