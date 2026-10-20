@@ -147,8 +147,10 @@ compile_jobs=$(nproc)
 # RISC-V.  Keep the default guest build within the memory envelope used by
 # OpenRuyi's constrained OBS workers; larger workers may still compile in
 # parallel.
-if [ "$mem_gb" -le 16 ]; then
+if [ "$mem_gb" -le 4 ]; then
     mem_jobs=1
+elif [ "$mem_gb" -le 8 ]; then
+    mem_jobs=2
 else
     mem_jobs=$(( 1 + mem_gb / 2 ))
 fi
