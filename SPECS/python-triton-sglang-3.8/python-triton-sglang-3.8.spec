@@ -143,7 +143,15 @@ llvm_install="$(pwd)/llvm-install"
 
 mem_gb=$(awk '/MemTotal/ {print int($2/1024/1024)}' /proc/meminfo)
 compile_jobs=$(nproc)
-mem_jobs=$(( 1 + mem_gb / 2 ))
+# LLVM/MLIR translation units can exceed 1 GiB of resident memory on
+# RISC-V.  Keep the default guest build within the memory envelope used by
+# OpenRuyi's constrained OBS workers; larger workers may still compile in
+# parallel.
+if [ "$mem_gb" -le 16 ]; then
+    mem_jobs=1
+else
+    mem_jobs=$(( 1 + mem_gb / 2 ))
+fi
 [ "$mem_jobs" -lt "$compile_jobs" ] && compile_jobs=$mem_jobs
 [ "$compile_jobs" -lt 1 ] && compile_jobs=1
 link_jobs=$(( 1 + mem_gb / 16 ))
