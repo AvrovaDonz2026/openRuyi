@@ -1,42 +1,50 @@
-From 8c19d164c63d7f360e8a42dd83d5c33b8637c892 Mon Sep 17 00:00:00 2001
+From 7ff9a47724683efdd52777a9e8cbcf64bceeb0c1 Mon Sep 17 00:00:00 2001
 From: misaka00251 <liuxin@iscas.ac.cn>
-Date: Fri, 14 Aug 2026 15:51:05 +0800
-Subject: [PATCH] Fix RVA23 host triple detection in rustup test
+Date: Thu, 22 Oct 2026 01:21:17 +0800
+Subject: [PATCH 1/2] Fix RVA23 host triple detection in rustup test
 
-Signed-off-by: misaka00251 <liuxin@iscas.ac.cn>
 ---
- src/cli/self_update.rs | 12 +++++------
+ src/cli/self_update.rs | 14 ++++++------
  src/test.rs            | 48 +-----------------------------------------
- 2 files changed, 7 insertions(+), 53 deletions(-)
+ 2 files changed, 8 insertions(+), 54 deletions(-)
 
 diff --git a/src/cli/self_update.rs b/src/cli/self_update.rs
-index e37dc25..f4a06cc 100644
+index 88bc516..cf0fde3 100644
 --- a/src/cli/self_update.rs
 +++ b/src/cli/self_update.rs
-@@ -1453,23 +1453,23 @@ mod tests {
+@@ -1330,7 +1330,7 @@ mod tests {
+     use crate::config::Cfg;
+     use crate::dist::{PartialToolchainDesc, Profile};
+     use crate::test::{Env, test_dir, with_rustup_home};
+-    use crate::{for_host, process::TestProcess};
++    use crate::process::TestProcess;
+ 
+     #[test]
+     fn default_toolchain_is_stable() {
+@@ -1351,23 +1351,23 @@ mod tests {
                  no_update_toolchain: false,
              };
  
-+            let default_host_triple = cfg.get_default_host_triple().unwrap();
++            let default_host_tuple = cfg.default_host_tuple().unwrap();
              assert_eq!(
                  "stable"
                      .parse::<PartialToolchainDesc>()
                      .unwrap()
--                    .resolve(&cfg.get_default_host_triple().unwrap())
-+                    .resolve(&default_host_triple)
+-                    .resolve(&cfg.default_host_tuple().unwrap())
++                    .resolve(&default_host_tuple)
                      .unwrap(),
-                 opts.install(&mut cfg)
+                 opts.select_toolchain(&mut cfg)
                      .unwrap() // result
                      .unwrap() // option
              );
              assert_eq!(
 -                for_host!(
 -                    r"info: profile set to default
--info: default host triple is {0}
+-info: default host tuple is {0}
 -"
 +                format!(
 +                    "info: profile set to default\n\
-+                    info: default host triple is {default_host_triple}\n"
++                    info: default host tuple is {default_host_tuple}\n"
                  ),
 -                &String::from_utf8(tp.stderr()).unwrap()
 +                String::from_utf8(tp.stderr()).unwrap()
@@ -44,12 +52,12 @@ index e37dc25..f4a06cc 100644
              Ok(())
          })
 diff --git a/src/test.rs b/src/test.rs
-index 99e57e2..e5167ba 100644
+index 3cc7901..832d649 100644
 --- a/src/test.rs
 +++ b/src/test.rs
-@@ -144,53 +144,7 @@ pub fn this_host_triple() -> String {
+@@ -149,53 +149,7 @@ pub fn this_host_tuple() -> String {
          let tp = TestProcess::default();
-         return TargetTriple::from_host(&tp.process).unwrap().to_string();
+         return TargetTuple::from_host(&tp.process).unwrap().to_string();
      }
 -    let arch = if cfg!(target_arch = "x86") {
 -        "i686"
@@ -101,7 +109,7 @@ index 99e57e2..e5167ba 100644
 +    env!("TARGET").to_owned()
  }
  
- // Format a string with this host triple.
+ // Format a string with this host tuple.
 -- 
-2.55.0
+2.56.0
 

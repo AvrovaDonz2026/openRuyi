@@ -1,0 +1,25 @@
+From 3f4fa3cf5fec9b97609165b719e0358507eea062 Mon Sep 17 00:00:00 2001
+From: misaka00251 <liuxin@iscas.ac.cn>
+Date: Thu, 22 Oct 2026 01:43:03 +0800
+Subject: [PATCH 2/2] Relax dependency on libz-sys
+
+---
+ Cargo.toml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Cargo.toml b/Cargo.toml
+index 592ae37..78c70bd 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -129,7 +129,7 @@ version = "0.61"
+ # <https://github.com/madler/zlib/issues/1168> is resolved.
+ # See: <https://github.com/rust-lang/rustup/issues/4760>
+ [target.'cfg(target_os = "freebsd")'.dependencies]
+-libz-sys = "=1.1.24"
++libz-sys = "1.1.24"
+ 
+ [dev-dependencies]
+ enum-map = "3.0.0"
+-- 
+2.56.0
+
