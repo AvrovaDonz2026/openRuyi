@@ -251,6 +251,20 @@ absent with `-march=rv64gc`. qemu-user microbenchmarks are not representative
 of real vector-unit throughput, so on-hardware measurement remains the way to
 quantify the speedup.
 
+A `at::Half` (fp16) specialization followed the same pattern (2026-10-21):
+widen f16->f32 (`vfwcvt`), accumulate in fp32, narrow back (`vfncvt`),
+bit-identical to the scalar template's RNE conversion (153063/153063 elements
+exact under qemu-riscv64). Data moves as `uint16_t` + `vreinterpret` bit-cast
+so `at::Half` storage needs no `_Float16` aliasing. Guarded by
+`#if __riscv_zvfh` (value check -- GCC defines the macro as 0 when the
+extension is off, so `defined()` alone is insufficient); Zvfh ships in
+`-march=rva23u64`, and without it fp16 falls back to scalar. The V guard was
+likewise tightened from `defined(__riscv_v)` to `#if __riscv_v`. Both
+specializations were compile-checked with clang 18 (the build compiler
+family) at `-march=rv64gcv_zvfh` / `rv64gcv` / `rv64gc`, confirming the
+expected instruction selection per march, and the final header passed the full
+functional test under qemu-riscv64.
+
 ## Required target validation
 
 Before this stack is ready for mainline review, the final recipes MUST pass:
