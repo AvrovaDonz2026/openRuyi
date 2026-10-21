@@ -79,7 +79,7 @@ BuildRequires:  file
 BuildRequires:  gcc-c++
 BuildRequires:  ninja
 BuildRequires:  patchelf
-BuildRequires:  python3dist(scikit-build-core) >= 0.10
+BuildRequires:  sglang(python3dist(scikit-build-core)) >= 0.10
 BuildRequires:  sglang(python3dist(apache-tvm-ffi)) >= 0.1.11
 # The private native binding is built and tested with the SGLang Torch 2.14
 # provider; keep this RPM edge exact while upstream Python metadata remains
