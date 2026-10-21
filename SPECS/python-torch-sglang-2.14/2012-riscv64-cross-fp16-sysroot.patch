@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+Upstream-Status: Downstream
+Upstream-Reference: https://github.com/pytorch/pytorch/blob/v2.14.0/cmake/Dependencies.cmake
+
+PyTorch hardcodes the system FP16 header at /usr/include/fp16.h. In a
+cross-build, that path refers to the build host instead of the target sysroot.
+Keep the native path unchanged and use CMAKE_SYSROOT for cross builds.
+
+diff --git a/cmake/Dependencies.cmake b/cmake/Dependencies.cmake
+index 5c5f3246b..000000000 100644
+--- a/cmake/Dependencies.cmake
++++ b/cmake/Dependencies.cmake
+@@ -815,3 +815,9 @@ elseif(NOT TARGET fp16 AND USE_SYSTEM_FP16)
+-  add_library(fp16 STATIC "/usr/include/fp16.h")
++  if(CMAKE_CROSSCOMPILING AND CMAKE_SYSROOT)
++    set(_fp16_header "${CMAKE_SYSROOT}/usr/include/fp16.h")
++  else()
++    set(_fp16_header "/usr/include/fp16.h")
++  endif()
++  add_library(fp16 STATIC "${_fp16_header}")
++  unset(_fp16_header)
+   set_target_properties(fp16 PROPERTIES LINKER_LANGUAGE C)
+ endif()

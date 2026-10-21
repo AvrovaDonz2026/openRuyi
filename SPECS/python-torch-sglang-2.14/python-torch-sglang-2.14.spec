@@ -94,7 +94,10 @@ URL:            https://pytorch.org/
 VCS:            git:https://github.com/pytorch/pytorch.git
 # The PyPI package is wheels-only(binary package)
 # The GitHub tag archive excludes submodules
-# The official release asset includes the third_party C++ sources needed for a distro source build
+# The official release asset includes the third_party C++ sources needed for a
+# distro source build.  Its protobuf submodule is absent, so use the declared
+# system protobuf/Abseil dependencies below instead of the upstream custom
+# protobuf default.
 #!RemoteAsset:  sha256:e4bc64b802db095a8a53e216e5aba168eba629b99dd397cfa44e72d9c84e7657
 Source0:        https://github.com/pytorch/pytorch/releases/download/v%{version}/pytorch-v%{version}.tar.gz
 # Functional smoke test for the just-built torch, run by the check phase.
@@ -305,6 +308,8 @@ validation of %{name}. This is not the complete upstream Python test suite.
 2010-install-cpu-gloo-test.patch
 # Avoid compiling and dispatching RVV code for the rva20 baseline.
 2011-gate-rvv-kernel-on-vector-target.patch
+# Resolve the system FP16 header from the target sysroot for cross builds.
+2012-riscv64-cross-fp16-sysroot.patch
 
 %description
 PyTorch is a Python package that provides two high-level features:
