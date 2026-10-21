@@ -4,16 +4,16 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global crate_name webpki-root-certs
-%global full_version 1.0.7
+%global full_version 1.0.10
 %global pkgname webpki-root-certs-1
 
 Name:           rust-webpki-root-certs-1
-Version:        1.0.7
+Version:        1.0.10
 Release:        %autorelease
 Summary:        Rust crate "webpki-root-certs"
 License:        CDLA-Permissive-2.0
 URL:            https://github.com/rustls/webpki-roots
-#!RemoteAsset:  sha256:f31141ce3fc3e300ae89b78c0dd67f9708061d1d2eda54b8209346fd6be9a92c
+#!RemoteAsset:  sha256:58ec80e73fd8baf57bf0d9615554c75348bda990d6d5bbeab964dd068319fecb
 Source:         https://static.crates.io/crates/%{crate_name}/%{full_version}/download#/%{name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    rustcrates
@@ -21,6 +21,7 @@ BuildSystem:    rustcrates
 BuildRequires:  rust-rpm-macros
 
 Requires:       crate(rustls-pki-types-1) >= 1.8.0
+
 Provides:       crate(%{pkgname}) = %{version}
 Provides:       crate(%{pkgname}/default) = %{version}
 
