@@ -237,6 +237,20 @@ path: the 11 excluded x86-only ops (int4/int8 GEMM, MoE, mamba conv,
 qkv_proj) are all behind `cpu_has_amx_support()` / `use_intel_amx_backend()`
 gates or explicit asserts, so they fail loudly rather than being called.
 
+The 2001 patch gained an RVV-vectorized `float` specialization of
+`reduce_buffers` (2026-10-21, qemu-verified): when the build enables the V
+extension (`-march=rva23u64`, i.e. `__riscv_v` defined), fp32 reductions use
+`vle32.v`/`vfadd.vv`/`vse32.v` at LMUL=8 with rank-major summation order,
+bit-identical to the scalar template (exact-equality check under
+qemu-riscv64, world sizes 2/4/8, sizes 1..100000). Non-V builds
+(`-march=rva20u64`) keep the scalar OpenMP template via `#if` guard;
+fp16/bf16 stay scalar (V has no native bf16 arithmetic, Zvfh not guaranteed).
+The patched header was compile-checked with the real riscv64 cross-compiler
+(gcc 13.3): vector instructions confirmed present with `-march=rv64gcv`,
+absent with `-march=rv64gc`. qemu-user microbenchmarks are not representative
+of real vector-unit throughput, so on-hardware measurement remains the way to
+quantify the speedup.
+
 ## Required target validation
 
 Before this stack is ready for mainline review, the final recipes MUST pass:

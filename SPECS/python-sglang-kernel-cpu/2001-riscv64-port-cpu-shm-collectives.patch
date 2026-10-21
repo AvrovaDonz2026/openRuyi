@@ -45,6 +45,38 @@ index 0000000..30a3163
 +  }
 +}
 +
++#if defined(__riscv_v)
++#include <riscv_vector.h>
++
++// RVV-vectorized fp32 sum reduction across ranks. Summation order is
++// rank-major, bit-identical to the scalar template above (verified under
++// qemu-riscv64). Enabled only when the V extension is on (e.g.
++// -march=rva23u64); rva20u64 and other non-V builds keep the scalar path.
++// fp16/bf16 stay scalar: V lacks native bf16 arithmetic and Zvfh is not
++// guaranteed by the baseline -march.
++template <>
++inline void reduce_buffers<float>(
++    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
++  auto* output = reinterpret_cast<float*>(to_buffer);
++  int i = start_elements;
++  int n = num_elements;
++  while (n > 0) {
++    const size_t vl = __riscv_vsetvl_e32m8(static_cast<size_t>(n));
++    vfloat32m8_t acc =
++        __riscv_vle32_v_f32m8(reinterpret_cast<const float*>(buffers[0]) + i, vl);
++    for (int rank = 1; rank < world_size; ++rank) {
++      acc = __riscv_vfadd_vv_f32m8(
++          acc,
++          __riscv_vle32_v_f32m8(reinterpret_cast<const float*>(buffers[rank]) + i, vl),
++          vl);
++    }
++    __riscv_vse32_v_f32m8(output + i, acc, vl);
++    i += static_cast<int>(vl);
++    n -= static_cast<int>(vl);
++  }
++}
++#endif
++
 +inline void reduce_bf16_buffers(
 +    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
 +  reduce_buffers<at::BFloat16>(start_elements, num_elements, to_buffer, buffers, world_size);
