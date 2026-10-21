@@ -8,7 +8,7 @@
 Name:           ca-certificates-mozilla
 # Version number is NSS_BUILTINS_LIBRARY_VERSION in this file:
 # http://hg.mozilla.org/projects/nss/file/default/lib/ckfw/builtins/nssckbi.h
-Version:        2.84
+Version:        2.92
 Release:        %autorelease
 Summary:        CA certificates for OpenSSL
 License:        MPL-2.0
@@ -91,4 +91,4 @@ update-ca-trust || true
 %{_datadir}/pki/trust/
 
 %changelog
-%{?autochangelog}
+%autochangelog
