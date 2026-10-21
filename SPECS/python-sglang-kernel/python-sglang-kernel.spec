@@ -73,7 +73,7 @@ BuildRequires:  patchelf
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
-BuildRequires:  python3dist(scikit-build-core) >= 0.10
+BuildRequires:  sglang(python3dist(scikit-build-core)) >= 0.10
 BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
 BuildRequires:  python3dist(wheel)
 
