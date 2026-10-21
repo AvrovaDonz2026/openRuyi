@@ -4,16 +4,16 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global crate_name quote
-%global full_version 1.0.45
+%global full_version 1.0.47
 %global pkgname quote-1
 
 Name:           rust-quote-1
-Version:        1.0.45
+Version:        1.0.47
 Release:        %autorelease
 Summary:        Rust crate "quote"
 License:        MIT OR Apache-2.0
 URL:            https://github.com/dtolnay/quote
-#!RemoteAsset:  sha256:41f2619966050689382d2b44f664f4bc593e129785a36d6ee376ddf37259b924
+#!RemoteAsset:  sha256:1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001
 Source:         https://static.crates.io/crates/%{crate_name}/%{full_version}/download#/%{name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    rustcrates
@@ -21,6 +21,7 @@ BuildSystem:    rustcrates
 BuildRequires:  rust-rpm-macros
 
 Requires:       crate(proc-macro2-1) >= 1.0.80
+
 Provides:       crate(%{pkgname}) = %{version}
 
 %description
