@@ -52,8 +52,8 @@ index 0000000..30a3163
 +// rank-major, bit-identical to the scalar template above (verified under
 +// qemu-riscv64). Enabled only when the V extension is on (e.g.
 +// -march=rva23u64); rva20u64 and other non-V builds keep the scalar path.
-+// fp16/bf16 stay scalar: V lacks native bf16 arithmetic and Zvfh is not
-+// guaranteed by the baseline -march.
++// fp16 has its own Zvfh-gated specialization below; bf16 stays scalar (V
++// has no native bf16 arithmetic).
 +template <>
 +inline void reduce_buffers<float>(
 +    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {

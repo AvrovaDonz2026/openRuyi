@@ -243,8 +243,7 @@ extension (`-march=rva23u64`, i.e. `__riscv_v` defined), fp32 reductions use
 `vle32.v`/`vfadd.vv`/`vse32.v` at LMUL=8 with rank-major summation order,
 bit-identical to the scalar template (exact-equality check under
 qemu-riscv64, world sizes 2/4/8, sizes 1..100000). Non-V builds
-(`-march=rva20u64`) keep the scalar OpenMP template via `#if` guard;
-fp16/bf16 stay scalar (V has no native bf16 arithmetic, Zvfh not guaranteed).
+(`-march=rva20u64`) keep the scalar OpenMP template via `#if` guard.
 The patched header was compile-checked with the real riscv64 cross-compiler
 (gcc 13.3): vector instructions confirmed present with `-march=rv64gcv`,
 absent with `-march=rv64gc`. qemu-user microbenchmarks are not representative
@@ -264,6 +263,14 @@ specializations were compile-checked with clang 18 (the build compiler
 family) at `-march=rv64gcv_zvfh` / `rv64gcv` / `rv64gc`, confirming the
 expected instruction selection per march, and the final header passed the full
 functional test under qemu-riscv64.
+
+A source-level audit of the patched `csrc/cpu` tree (2026-10-21) found no
+remaining unguarded x86-isms: the intrinsic uses in `gemm.cpp`, `decode.cpp`,
+`gemm_fp8.cpp` and `preprocessor.cpp` all sit behind
+`#if defined(CPU_CAPABILITY_AVX512)` (a compiler-feature macro, off on
+RISC-V) with generic `at::vec` fallbacks, and the 2000 patch's
+`SGLANG_CPU_X86_ONLY_SOURCES` removal list covers every x86-only translation
+unit. This matches the upstream ARM64 build, which follows the same pattern.
 
 ## Required target validation
 
