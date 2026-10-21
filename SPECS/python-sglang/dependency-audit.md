@@ -203,6 +203,40 @@ for the existing distribution versions. The recipe includes API
 smoke checks for these substitutions. They do not establish complete inference
 compatibility and remain explicit downstream changes for review.
 
+## RISC-V SHM bootstrap integration (2026-10-21)
+
+Patch `2003-riscv64-shm-bootstrap.patch` closes a gap between the two RISC-V
+patches already in the tree. The 2001 patch ports the shared-memory
+collectives to RISC-V and the 2002 patch makes `is_shm_available()` report
+them as usable via `cpu_has_riscv_shm_support()`, but
+`_init_cpu_threads_env()` in `sglang/srt/distributed/bootstrap.py` still
+gated the transport initialization on Intel AMX or ARM64 hosts only. On
+RISC-V the SHM workspace (`torch.ops.sgl_kernel.initialize`) was therefore
+never created, while tensor-parallel collectives would still select
+`torch.ops.sgl_kernel.shm_allreduce` and dereference the uninitialized
+workspace. The new patch gates the initialization on the same
+`cpu_has_riscv_shm_support()` capability, so the transport is set up exactly
+when the collective path can be selected; without the kernel operators both
+sides consistently fall back to `torch.distributed`. All three runtime
+patches were re-verified to apply cleanly to the v0.5.21 tag in dependency
+order (2002, then 2003).
+
+`sglang-cpu-engine-smoke.py` gained an opt-in `--tp-size` argument (default
+1, so the `%check` transaction is unchanged). Running it with `--tp-size 2`
+on RISC-V hardware exercises the fixed bootstrap path end to end; this run
+remains outstanding and is the recommended next target validation.
+
+Patch `2001-riscv64-port-cpu-shm-collectives.patch` was also extended: the
+RISC-V `parallel_memcpy` and the scalar `reduce_buffers` loop are now
+OpenMP-parallel (chunked 1 MiB copies, `parallel for` reductions), mirroring
+the x86_64 implementation's threading instead of serial fallbacks. The new
+header was syntax-checked with stub ATen types both with and without
+`-fopenmp`. A full audit of the CPU operator surface (83 registered ops, 72
+available on RISC-V) found no other reachable runtime gaps on the CPU engine
+path: the 11 excluded x86-only ops (int4/int8 GEMM, MoE, mamba conv,
+qkv_proj) are all behind `cpu_has_amx_support()` / `use_intel_amx_backend()`
+gates or explicit asserts, so they fail loudly rather than being called.
+
 ## Required target validation
 
 Before this stack is ready for mainline review, the final recipes MUST pass:

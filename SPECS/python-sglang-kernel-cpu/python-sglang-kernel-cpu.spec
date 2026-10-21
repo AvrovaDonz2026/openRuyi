@@ -98,7 +98,7 @@ Provides:       sglang(python3dist(sglang-kernel)) = %{version}
 %patchlist
 # RISC-V source selection and explicit cross-target ISA handling.
 2000-riscv64-cpu-target-selection.patch
-# Portable scalar shared-memory collectives and acquire/release state hand-off.
+# Portable shared-memory collectives (OpenMP-parallel) and acquire/release state hand-off.
 2001-riscv64-port-cpu-shm-collectives.patch
 
 %description

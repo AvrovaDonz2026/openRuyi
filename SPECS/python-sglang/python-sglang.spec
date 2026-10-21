@@ -154,6 +154,8 @@ Requires:       sglang(python3dist(torchcodec)) = 0.12.0
 %patchlist
 # RISC-V torch-native runtime fallback and capability-gated unsupported AOT operators.
 2002-riscv64-cpu-runtime-fallback.patch
+# Initialize the SHM collective transport on RISC-V hosts that provide it.
+2003-riscv64-shm-bootstrap.patch
 
 %description
 SGLang is a fast serving framework for large language models and vision-language
