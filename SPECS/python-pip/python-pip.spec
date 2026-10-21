@@ -18,32 +18,32 @@
 # %%{_rpmconfigdir}/pythonbundles.py --namespace 'python%%{1}dist' src/pip/_vendor/vendor.txt
 %global bundled() %{expand:
 Provides:       bundled(python%{1}dist(cachecontrol)) = 0.14.4
-Provides:       bundled(python%{1}dist(certifi)) = 2026.2.25
-Provides:       bundled(python%{1}dist(distlib)) = 0.4
+Provides:       bundled(python%{1}dist(certifi)) = 2026.6.17
+Provides:       bundled(python%{1}dist(distlib)) = 0.4.2
 Provides:       bundled(python%{1}dist(distro)) = 1.9
-Provides:       bundled(python%{1}dist(idna)) = 3.11
+Provides:       bundled(python%{1}dist(idna)) = 3.18
 Provides:       bundled(python%{1}dist(msgpack)) = 1.1.2
 Provides:       bundled(python%{1}dist(packaging)) = 26.2
-Provides:       bundled(python%{1}dist(platformdirs)) = 4.5.1
-Provides:       bundled(python%{1}dist(pygments)) = 2.19.2
+Provides:       bundled(python%{1}dist(platformdirs)) = 4.10
+Provides:       bundled(python%{1}dist(pygments)) = 2.20
 Provides:       bundled(python%{1}dist(pyproject-hooks)) = 1.2
-Provides:       bundled(python%{1}dist(requests)) = 2.33.1
+Provides:       bundled(python%{1}dist(requests)) = 2.34.2
 Provides:       bundled(python%{1}dist(resolvelib)) = 1.2.1
 Provides:       bundled(python%{1}dist(rich)) = 14.2
 Provides:       bundled(python%{1}dist(setuptools)) = 70.3
-Provides:       bundled(python%{1}dist(tomli)) = 2.3.1
+Provides:       bundled(python%{1}dist(tomli)) = 2.4.1
 Provides:       bundled(python%{1}dist(tomli-w)) = 1.2
 Provides:       bundled(python%{1}dist(truststore)) = 0.10.4
-Provides:       bundled(python%{1}dist(urllib3)) = 2.6.3
+Provides:       bundled(python%{1}dist(urllib3)) = 2.7
 }
 
 Name:           python-%{srcname}
-Version:        26.2
+Version:        26.2.2
 Release:        %autorelease
 Summary:        A tool for installing and managing Python packages
 License:        MIT AND Python-2.0.1 AND Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND ISC AND MPL-2.0 AND (Apache-2.0 OR BSD-2-Clause)
 URL:            https://pip.pypa.io/
-#!RemoteAsset:  sha256:991c94e174822f025b167e55ffd3dc113c46fa1bb8c260d09e25aad8f1916aa0
+#!RemoteAsset:  sha256:b505949bb27827b32f54c9f1f5ca660a6fae3fde61cbe0a971975a3ed34a7ee1
 Source0:        https://github.com/pypa/%{srcname}/archive/%{version}/%{srcname}-%{version}.tar.gz
 BuildArch:      noarch
 
