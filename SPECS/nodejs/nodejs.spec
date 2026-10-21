@@ -6,8 +6,8 @@
 # Enabling LTO will cause the compilation to fail.
 %global _lto_cflags           %{nil}
 %global nodejs_major          24
-%global nodejs_minor          13
-%global nodejs_patch          0
+%global nodejs_minor          22
+%global nodejs_patch          1
 %global nodejs_abi            %{nodejs_major}.%{nodejs_minor}
 %global nodejs_soversion      137
 %global nodejs_version        %{nodejs_major}.%{nodejs_minor}.%{nodejs_patch}
@@ -20,10 +20,10 @@
 %global v8_version            %{v8_major}.%{v8_minor}.%{v8_build}.%{v8_patch}
 
 %global punycode_version      2.1.0
-%global npm_version           11.6.2
+%global npm_version           11.19.1
 
 %global uvwasi_version        0.0.23
-%global histogram_version     0.11.9
+%global histogram_version     0.11.10
 
 Name:           nodejs
 Version:        %{nodejs_version}
@@ -32,7 +32,7 @@ Summary:        JavaScript runtime
 License:        MIT AND Apache-2.0 AND ISC AND BSD AND AFL-2.1
 URL:            https://nodejs.org/
 VCS:            git:https://github.com/nodejs/node
-#!RemoteAsset:  sha256:320fe909cbb347dcf516201e4964ef177b8138df9a7f810d0d54950481b3158b
+#!RemoteAsset:  sha256:4f5379796280cdaeb0c2f358fd04b6a16cc4fb7dfa83b5a8c91a9d963b435231
 Source0:        https://nodejs.org/dist/v%{version}/node-v%{version}.tar.xz
 Source1:        nodejs_native.attr
 BuildSystem:    autotools
@@ -40,13 +40,8 @@ BuildSystem:    autotools
 # Disable RVV in highway due to broken and disabled RVV runtime dispatch.
 # patch from https://github.com/felixonmars/archriscv-packages/blob/e94cabe9480fb92bc732070d815eb03434838c54/nodejs/hwy-broken-rvv.diff
 Patch0:         hwy-broken-rvv.diff
-Patch1:         v8-riscv-fix-trampoline.patch
-Patch2:         v8-riscv-fix-trampoline-release.patch
-# patch from https://github.com/nodejs/node/pull/61666
-Patch3:         v8-riscv-fix-sp.patch
-# from https://github.com/felixonmars/archriscv-packages/blob/master/nodejs-lts-krypton/{60588,60591}.diff
-Patch4:         60588.diff
-Patch5:         60591.diff
+# https://github.com/nodejs/node/pull/66895
+Patch1:         0001-fix-build-with-shared-brotli.patch
 
 BuildRequires:  chrpath
 BuildRequires:  gcc-c++
@@ -258,4 +253,4 @@ touch %{SOURCE1} %{buildroot}%{_sysconfdir}/npmrc
 %{_pkgdocdir}/npm/docs
 
 %changelog
-%{?autochangelog}
+%autochangelog
