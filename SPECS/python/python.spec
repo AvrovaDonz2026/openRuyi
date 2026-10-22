@@ -37,14 +37,14 @@
 # This needs to be manually updated when we update Python.
 # Explore the sources tarball (you need the version before %%prep is executed):
 #  $ tar -tf Python-%%{upstream_version}.tar.xz | grep whl
-%global pip_version 26.2.1
+%global pip_version 26.2.2
 %global setuptools_version 79.0.1
 # All of those also include a list of indirect bundled libs:
 # pip
 #  $ %%{_rpmconfigdir}/pythonbundles.py <(unzip -p Lib/ensurepip/_bundled/pip-*.whl pip/_vendor/vendor.txt)
 %global pip_bundled_provides %{expand:
 Provides: bundled(python3dist(cachecontrol)) = 0.14.4
-Provides: bundled(python3dist(certifi)) = 2026.6.17
+Provides: bundled(python3dist(certifi)) = 2026.10.19
 Provides: bundled(python3dist(distlib)) = 0.4.2
 Provides: bundled(python3dist(distro)) = 1.9
 Provides: bundled(python3dist(idna)) = 3.18
@@ -107,12 +107,12 @@ Name:           python-bootstrap
 Name:           python
 %endif
 
-Version:        3.14.7
+Version:        3.14.9
 Release:        %autorelease
 Summary:        Python 3 Interpreter
 License:        Python-2.0.1
 URL:            https://www.python.org
-#!RemoteAsset:  sha256:3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81
+#!RemoteAsset:  sha256:e02d9ac21cebda6e46435369744a92c65cc7cd8669697694122cf97ffacd1e53
 Source0:        %{url}/ftp/python/%{version}/Python-%{version}.tar.xz
 BuildSystem:    autotools
 
@@ -156,6 +156,7 @@ BuildRequires:  pkgconfig(libzstd)
 # Python 3.12 removed the deprecated imp module,
 # the first compatible version of pip is 23.1.2.
 BuildRequires:  python-pip-wheel >= 23.1.2
+BuildRequires:  python-setuptools-wheel
 %endif
 
 %if %{without bootstrap}
