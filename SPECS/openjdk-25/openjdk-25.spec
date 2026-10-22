@@ -9,8 +9,8 @@
 
 %global majorver        25
 %global minorver        0
-%global securityver     4
-%global buildver        7
+%global securityver     5
+%global buildver        8
 %global newjavaver      %{majorver}.%{minorver}.%{securityver}
 %global _jvmdir         %_libdir/jvm
 
@@ -23,7 +23,7 @@ Summary:        OpenJDK 25 Runtime Environment
 License:        GPL-2.0-with-classpath-exception
 URL:            https://openjdk.org
 VCS:            git:https://github.com/openjdk/jdk25u
-#!RemoteAsset:  sha256:7ac9dc76bc201e1a03e8a7bff750fb226cd7373182293bc1860c33317d47b2df
+#!RemoteAsset:  sha256:e4cc23905feaec9d91033262d4f36a2932e145f80ed66638d61ab522f89ed8b1
 Source0:        https://github.com/openjdk/jdk%{majorver}u/archive/refs/tags/jdk-%{newjavaver}+%{buildver}.tar.gz
 %if %{with bootstrap}
 #!RemoteAsset:  sha256:3fc35759502b620f010a9cd2b3da8454f8a49a156ceaebb00de1fd8335682d40
@@ -31,6 +31,10 @@ Source1:        https://github.com/adoptium/temurin25-binaries/releases/download
 #!RemoteAsset:  sha256:ee04de95ab9da7287d40bd2173076ecc2a6dd662f007bedfc6eb0380c0ef90e8
 Source2:        https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25%2B36/OpenJDK25U-jdk_x64_linux_hotspot_25_36.tar.gz
 %endif
+
+# CVE-2026-91403: backport JDK-8395142 until the 25u emergency release is tagged.
+# Upstream: https://github.com/openjdk/jdk27u/commit/09f7e238d8f3c9d0c4cba3b0531c7e4b473fdff1
+Patch0:         1000-CA-Enhancements.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
