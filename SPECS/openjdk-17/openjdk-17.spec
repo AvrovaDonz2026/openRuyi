@@ -9,8 +9,8 @@
 
 %global majorver        17
 %global minorver        0
-%global securityver     20
-%global buildver        8
+%global securityver     21
+%global buildver        9
 %global newjavaver      %{majorver}.%{minorver}.%{securityver}
 %global _jvmdir         %_libdir/jvm
 
@@ -23,7 +23,7 @@ Summary:        OpenJDK 17 Runtime Environment
 License:        GPL-2.0-with-classpath-exception
 URL:            https://openjdk.org
 VCS:            git:https://github.com/openjdk/jdk17u
-#!RemoteAsset:  sha256:553420058f849043d7bf7715771a5851046043e7d977626d43ee0e3a67b23ddf
+#!RemoteAsset:  sha256:d91412620f9a5b645e78c4a041189c88d6f0dc9a4bdf1490e764bc0ae75e8496
 Source0:        https://github.com/openjdk/jdk%{majorver}u/archive/refs/tags/jdk-%{newjavaver}+%{buildver}.tar.gz
 %if %{with bootstrap}
 #!RemoteAsset:  sha256:42cc01235222a27576de8331a532da200ce36c9d155c93e9e0b4d565dcaf684a
@@ -31,6 +31,10 @@ Source1:        https://github.com/adoptium/temurin17-binaries/releases/download
 #!RemoteAsset:  sha256:166774efcf0f722f2ee18eba0039de2d685b350ee14d7b69e6f83437dafd2af1
 Source2:        https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.16%2B8/OpenJDK17U-jdk_x64_linux_hotspot_17.0.16_8.tar.gz
 %endif
+
+# CVE-2026-91403: backport JDK-8395142 until the 17u emergency release is tagged.
+# Upstream: https://github.com/openjdk/jdk27u/commit/09f7e238d8f3c9d0c4cba3b0531c7e4b473fdff1
+Patch0:         1000-CA-Enhancements.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
