@@ -9,8 +9,8 @@
 
 %global majorver        21
 %global minorver        0
-%global securityver     12
-%global buildver        8
+%global securityver     13
+%global buildver        9
 %global newjavaver      %{majorver}.%{minorver}.%{securityver}
 %global _jvmdir         %_libdir/jvm
 
@@ -23,7 +23,7 @@ Summary:        OpenJDK 21 Runtime Environment
 License:        GPL-2.0-with-classpath-exception
 URL:            https://openjdk.org
 VCS:            git:https://github.com/openjdk/jdk21u
-#!RemoteAsset:  sha256:4061da54ee3b69a7b95a5403f3b170e1f6a08b192bde995a5cf607626c839626
+#!RemoteAsset:  sha256:f6c60bec46d006f9d7aa5e004108e364cec56469a81e3c619a2cac42ed2ca1a5
 Source0:        https://github.com/openjdk/jdk%{majorver}u/archive/refs/tags/jdk-%{newjavaver}+%{buildver}.tar.gz
 %if %{with bootstrap}
 #!RemoteAsset:  sha256:8171d95189e675e297b5cb96c7ac6247ab4e9f48da82b13f491fc46ef5d97836
@@ -31,6 +31,10 @@ Source1:        https://github.com/adoptium/temurin21-binaries/releases/download
 #!RemoteAsset:  sha256:f2dc5418092c43003db8f9005c4a286e1c0104fea96ccdd49e8ebd037cac9219
 Source2:        https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8%2B9/OpenJDK21U-jdk_x64_linux_hotspot_21.0.8_9.tar.gz
 %endif
+
+# CVE-2026-91403: backport JDK-8395142 until the 21u emergency release is tagged.
+# Upstream: https://github.com/openjdk/jdk27u/commit/09f7e238d8f3c9d0c4cba3b0531c7e4b473fdff1
+Patch0:         1000-CA-Enhancements.patch
 
 BuildRequires:  autoconf
 BuildRequires:  automake
