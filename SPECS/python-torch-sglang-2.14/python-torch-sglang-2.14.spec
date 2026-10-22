@@ -127,6 +127,12 @@ BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+# PyTorch's FindBLAS.cmake only checks whether a shared BLAS link can be
+# formed.  Cross-linking therefore reports optional half/bfloat16 GEMM entry
+# points even when the target OpenBLAS provider does not export them.  Keep
+# those optional kernels disabled until a provider advertises the symbols.
+BuildOption(build):  -Ccmake.define.BLAS_HAS_SBGEMM:BOOL=OFF
+BuildOption(build):  -Ccmake.define.BLAS_HAS_SHGEMM:BOOL=OFF
 %endif
 # packages: torch, torchgen, functorch; torchrun is installed separately below.
 BuildOption(install):  -l '*torch*' functorch
