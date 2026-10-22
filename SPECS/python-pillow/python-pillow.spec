@@ -7,12 +7,12 @@
 %global srcname pillow
 
 Name:           python-%{srcname}
-Version:        12.0.0
+Version:        13.0.0
 Release:        %autorelease
 Summary:        Python image processing library
 License:        MIT
 URL:            http://python-pillow.github.io/
-#!RemoteAsset:  sha256:87d4f8125c9988bfbed67af47dd7a953e2fc7b0cc1e7800ec6d2080d490bb353
+#!RemoteAsset:  sha256:cdcd1ba258178f7356d74170c9a81ba4eab6a5d55748bc402a5a2a6fe6be3510
 Source0:        https://files.pythonhosted.org/packages/source/p/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 
