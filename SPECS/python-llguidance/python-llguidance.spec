@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: Kimmy <yucheng.or@isrc.iscas.ac.cn>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 # SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0

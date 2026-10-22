@@ -118,6 +118,9 @@ tar -xf %{SOURCE7} --strip-components=1 -C third-party/flashmla/csrc/cutlass
 %sglang_pyproject_buildrequires
 
 %build -p
+echo 'CUDA SGLang Kernel is a reserved flavor and is not buildable until a matching CUDA provider is published.' >&2
+exit 1
+
 export PYTHONPATH="%{_sglang_private_sitelib}${PYTHONPATH:+:$PYTHONPATH}"
 export CMAKE_PREFIX_PATH="%{_sglang_private_sitelib}/torch/share/cmake${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 
