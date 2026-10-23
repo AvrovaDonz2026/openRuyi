@@ -245,11 +245,13 @@ for rpm in "$@"; do
     python-torch-sglang-2.14)
       [[ $version == 2.14.0 ]] || { echo "unexpected Torch version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-cpu)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-cpu)) = 2.14'
       assert_metadata_line "$rpm" requires 'python3dist(typing-extensions) >= 4.10.0'
       ;;
     python-torch-sglang-2.14-rocm)
       [[ $version == 2.14.0 ]] || { echo "unexpected Torch version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-rocm)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-rocm)) = 2.14'
       ;;
     python-torchaudio-2.11)
       [[ $version == 2.11.0 ]] || { echo "unexpected TorchAudio version: $version" >&2; metadata_failure=1; }
@@ -482,7 +484,7 @@ if (( install )); then
     name=$(rpm -qp --qf '%{NAME}' "$rpm")
     expected_nevra=$(rpm -qp --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' "$rpm")
     installed_nevra=$(rpm -q --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}\n' "$name" |
-      LC_ALL=C sort | tail -n 1)
+      LC_ALL=C sort)
     [[ $installed_nevra == "$expected_nevra" ]] || {
       echo "installed NEVRA mismatch for $name: $installed_nevra (expected $expected_nevra)" >&2
       exit 1

@@ -246,12 +246,12 @@ reserved, currently unbuildable sources with explicit architecture limits and
 execution is likewise outside this CPU audit and has not been validated on
 RISC-V.
 
-The pbuild CI configuration in `.github/build/_config` excludes
-`python-sglang-kernel`, `python-sgl-deep-ep`, and `python-sgl-deep-gemm` with
-`BuildFlags: excludebuild:PACKAGE` entries. `scripts/update-package` synchronizes
-package sources, not this configuration. Before synchronizing the reserved
-sources, the OBS project configuration MUST include matching exclusions; its
-live configuration has not been verified. Recipe comments and architecture
-limits alone do not disable builds. Without the exclusions, OBS can schedule
-the standalone CUDA sources and fail dependency resolution because no
-`torch-cuda` provider is published.
+The local pbuild CI configuration in `.github/build/_config` currently has no
+SGLang-specific build exclusions. `scripts/update-package` synchronizes
+package sources, not this configuration. The live OBS project configuration
+MUST exclude `python-sglang-kernel`, `python-sgl-deep-ep`, and
+`python-sgl-deep-gemm` until their CUDA dependency closure is buildable; its
+current state has not been verified. Recipe comments and architecture limits
+alone do not disable builds. Without matching OBS exclusions, the build service
+can schedule the reserved CUDA sources and fail dependency resolution because
+no `torch-cuda` provider is published.
