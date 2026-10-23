@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 # SPDX-FileContributor: Gui-Yue <xiangwei.riscv@isrc.iscas.ac.cn>
 # SPDX-FileContributor: yyjeqhc <jialin.oerv@isrc.iscas.ac.cn>
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 # SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 
 Upstream-Reference: https://github.com/huggingface/tokenizers/tree/v0.22.2
