@@ -7,7 +7,68 @@ SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 SPDX-License-Identifier: MulanPSL-2.0
 -->
 
-# SGLang 0.5.21 dependency isolation (audit 2026-10-19)
+# SGLang 0.5.21 dependency isolation (audit 2026-10-23)
+
+## Current status (2026-10-23)
+
+The retained wheel3 capability-rebuild report is identified as
+`torch-elfcap-rebuild-20261023/REPORT.md` (a local staging artifact, not a
+repository file). It
+identifies runtime NEVRA
+`python-torch-sglang-2.14-2.14.0-999.or.wheel3.riscv64` at
+the artifact named
+`python-torch-sglang-2.14-2.14.0-999.or.wheel3.riscv64.rpm`,
+SHA256 `2890f52f6f1e86e636810bc53d50a8184d0397b515fce343b31d0b096925f4a2`;
+the matching devel NEVRA is
+`python-torch-sglang-2.14-devel-2.14.0-999.or.wheel3.riscv64`, SHA256
+`c412a2bf94b29a5b4594d0285b2f9698e3efb098056dd5172f58e3f0153a8d70`. This
+report says the build used cached `sglang-rpm-macros-0.1-999.or`, distinct
+from the fixed source macros version `0.1-1000`. The report confirms the
+namespaced ELF Provides below, but does not report whether the RPM still has
+the old `sglang(libutf8_validity.so.33.2.0()(64bit))` Requires; do not infer
+that it was removed. This candidate MUST NOT be described as rebuilt with the
+fixed macros.
+The report confirms namespaced private ELF capabilities, including
+`sglang(libtorch_cpu.so()(64bit))` and
+`sglang(libtorch_python.so()(64bit))`.
+
+This wheel3 pair is distinct from the wheel1 pair referenced by the closure
+audit: runtime NEVRA
+`python-torch-sglang-2.14-2.14.0-999.or.wheel1.riscv64`, SHA256
+`893a0806ffad2e725ae125d6c93f68a8a08eb69b4f59d0686f067dd3b4b68f5a`, from
+the artifact set `torch-wheel-fixed-rpm-luna`. The
+closure-audit artifact names that wheel1 pair as a reusable provisional
+candidate; its hash MUST NOT be substituted for the wheel3 hash above. A
+separate wheel3 candidate built with the fixed source macros `0.1-1000` was
+previously recorded in a status summary, but its artifact and report are
+currently not available for local verification. The previously summarized
+`torch-elfcap-rebuild-current/REPORT.md` is also absent from the accessible
+artifact tree. Its exact artifact NEVRA, source and validation therefore
+remain unconfirmed; those summary hashes are not treated as verified values
+or conflated with either retained pair above.
+
+The RISC-V Torchaudio 2.11.0 build, recorded under artifact set
+`torchaudio-sglang-luna-20261023`, produced SRPM
+`python-torchaudio-2.11-2.11.0-999.or.src.rpm` (SHA256
+`b829c1069afcff9a9d4ca8a697b2be9c10557630cc3b740555479ebf839e34f1`) and RPM
+`python-torchaudio-2.11-2.11.0-999.or.riscv64.rpm` (SHA256
+`61c040a5fde4d13a6ecc4a57b43d711d1cd391add5c03a9efd1cd0a5c04c367b`).
+The build log records `%check` importing Torchaudio modules and completing
+successfully. Its build input was the wheel1 Torch runtime/devel pair. This
+does not validate co-installation with the wheel3 candidates or a complete
+SGLang transaction.
+
+These are unsigned local staging artifacts, not production Torch or OBS-
+signed packages. No complete transaction preflight has passed with the
+current provider set. TorchVision, Triton, the SGLang CPU kernel, timm, and the
+main SGLang package still lack validated current RISC-V RPMs; XGrammar,
+LLGuidance and TorchCodec are also not complete. No complete QEMU
+installation, coexistence test, SGLang import, or CPU inference smoke has been
+run. These remain release blockers; neither wheel-derived candidate MUST be
+read as a completed SGLang transaction. The pre-fix candidate-set preflight
+log is retained as
+`wheel3-transaction-preflight-20261023.log` (a local staging artifact, not a
+repository file).
 
 The v0.5.21 CPU metadata used by this recipe selects Transformers 5.19.0.
 The private Transformers 5.19.0 compatibility package is selected alongside
@@ -68,9 +129,9 @@ the Rust feature RPMs, Click and Hub candidates. Maturin produced a
 `rpm -K --nosignature` reported `digests OK`, the native extension was an
 `ELF 64-bit ... UCB RISC-V ... double-float ABI` shared object, and a RISC-V
 chroot import/encode test returned version `0.23.2` and IDs `[0, 1]` for a
-WordLevel tokenizer. The build log is retained at
-`/private/tmp/openruyi-build/tokenizers-build-final.log` and the extracted
-RPM metadata at `/private/tmp/openruyi-build/artifacts/tokenizers/rpm-metadata.txt`.
+WordLevel tokenizer. The build log is identified as
+`tokenizers-build-final.log` and the extracted RPM metadata as
+`tokenizers/rpm-metadata.txt` (local staging artifacts, not repository files).
 These are unsigned local validation artifacts; OBS signing, the full Torch
 closure, and the final co-install/inference transaction remain outstanding.
 
@@ -83,8 +144,9 @@ private installation path contained `transformers/__init__.py`; the package
 provided `sglang(python3dist(transformers)) = 5.19` and
 `sglang(python3.14dist(transformers)) = 5.19`. Its metadata requires the
 private Hub range `>= 1.31, < 3` and Tokenizers `>= 0.23.1, < 0.24`, along
-with the listed shared providers. The verification record is retained at
-`/private/tmp/openruyi-build/transformers-verification.txt`; this remains an
+with the listed shared providers. The verification record is identified as
+`transformers-verification.txt` (a local staging artifact, not a repository
+file); this remains an
 unsigned local artifact and does not establish an OBS-signed package or a
 complete SGLang/Torch transaction.
 

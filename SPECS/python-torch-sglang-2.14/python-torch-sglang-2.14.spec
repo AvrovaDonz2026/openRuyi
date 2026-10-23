@@ -322,8 +322,6 @@ validation of %{name}. This is not the complete upstream Python test suite.
 2010-install-cpu-gloo-test.patch
 # Avoid compiling and dispatching RVV code for the rva20 baseline.
 2011-gate-rvv-kernel-on-vector-target.patch
-# Resolve the system FP16 header from the target sysroot for cross builds.
-2012-riscv64-cross-fp16-sysroot.patch
 
 %description
 PyTorch is a Python package that provides two high-level features:

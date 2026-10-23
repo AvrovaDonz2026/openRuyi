@@ -33,6 +33,7 @@ SYSTEM_SONAMES = (
     "libsleefdft.so.3", "libsleefquad.so.3", "libonnx.so.1", "libonnx_proto.so.1",
     "libonnxruntime.so.1", "libonnxruntime_providers_shared.so.1", "libfoxi_loader.so.1",
     "libprotobuf.so.32", "libprotobuf-lite.so.32", "libabsl_strings.so.2407",
+    "libutf8_validity.so.0", "libutf8_range_lib.so.0", "libupb.so.1",
 )
 
 
@@ -366,6 +367,30 @@ class SglangDependencyTests(unittest.TestCase):
         for capability in ("libarbitrary_backend.so.1", "libsglang_backend.so.1"):
             with self.subTest(capability=capability):
                 self.assertTrue(ELFDEPS._private(capability))
+
+    def test_elf_protobuf_system_sonames_stay_global(self):
+        result = self.run_generator(
+            ROOT / "sglang-elfdeps.py",
+            "; /buildroot/usr/lib/sglang/core/lib/libconsumer.so\n"
+            "libutf8_validity.so.0\n"
+            "libutf8_range_lib.so.0\n"
+            "libupb.so.1\n"
+            "libupb_message.so.1\n",
+            [
+                "--profile", "core", "--namespace", "sglang",
+                "--requires", "--multifile",
+            ],
+        )
+
+        self.assertEqual(result.returncode, 0)
+        for capability in (
+            "libutf8_validity.so.0", "libutf8_range_lib.so.0",
+            "libupb.so.1", "libupb_message.so.1",
+        ):
+            with self.subTest(capability=capability):
+                self.assertIn(capability, result.stdout)
+                self.assertNotIn(f"sglang({capability})", result.stdout)
+                self.assertFalse(ELFDEPS._private(capability))
 
     def test_elf_provides_namespace_system_soname_collisions(self):
         result = self.run_generator(

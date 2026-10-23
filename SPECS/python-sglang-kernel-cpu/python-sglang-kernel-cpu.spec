@@ -9,6 +9,7 @@
 %global srcname sglang-kernel-cpu
 %global toolchain clang
 %global version_upstream 0.5.21
+%global sglang_private_build_deps scikit-build-core
 %global flavor @BUILD_FLAVOR@%{nil}
 %if "%{flavor}" == "cuda"
 %bcond cuda 1
@@ -79,6 +80,7 @@ BuildRequires:  python-rpm-macros
 BuildRequires:  sglang(python3dist(scikit-build-core)) >= 0.10
 BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
 BuildRequires:  python3dist(wheel)
+BuildRequires:  python3dist(ninja) >= 1.5
 BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
 
 %ifarch riscv64

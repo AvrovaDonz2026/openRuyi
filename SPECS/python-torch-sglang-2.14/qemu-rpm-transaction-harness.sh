@@ -64,7 +64,7 @@ for rpm in "$@"; do
       exit 2
     done
   fi
-  candidate_names+=("$(rpm -qp --qf '%{NAME}' "$rpm")")
+  candidate_names+=("$(rpm -qp --qf '%{NAME}' -- "$rpm")")
   candidate_paths+=("$path")
   candidate_files+=("$rpm")
 done
@@ -98,7 +98,7 @@ for ((index = 0; index < ${#candidate_names[@]}; index++)); do
         sglang\(python3dist\(*-cuda\)\)* ) reserved_flavor=CUDA; break ;;
         sglang\(python3dist\(*-rocm\)\)* ) reserved_flavor=ROCm; break ;;
       esac
-    done < <(rpm -qp --provides "$rpm")
+    done < <(rpm -qp --provides -- "$rpm")
   fi
   if [[ -n $reserved_flavor ]]; then
     echo "reserved $reserved_flavor candidate is not testable: $name" >&2
@@ -111,6 +111,43 @@ if (( reserved_flavor_failure )); then
 fi
 echo 'RESERVED_FLAVOR_RESULT=PASS (no reserved accelerator candidates)'
 
+# Private payload paths encode the Python ABI selected when the RPMs were
+# built. Check it against the guest before dependency resolution or install so
+# an incompatible rootfs fails without attempting the transaction.
+candidate_private_python_abi=
+for candidate_rpm in "${candidate_files[@]}"; do
+  while IFS= read -r payload_path; do
+    [[ $payload_path =~ ^/usr/lib(64)?/sglang/(core|extras)/python([0-9]+\.[0-9]+)/site-packages(/.*)?$ ]] || continue
+    payload_python_abi=${BASH_REMATCH[3]}
+    if [[ -n $candidate_private_python_abi && $candidate_private_python_abi != "$payload_python_abi" ]]; then
+      echo "candidate RPMs use multiple private Python ABIs: $candidate_private_python_abi and $payload_python_abi" >&2
+      exit 1
+    fi
+    candidate_private_python_abi=$payload_python_abi
+  done < <(rpm -qp --qf '[%{FILENAMES}\n]' -- "$candidate_rpm")
+done
+if [[ -n $candidate_private_python_abi ]]; then
+  echo '== private Python ABI preflight =='
+  [[ -x /usr/bin/python3 ]] || {
+    echo "guest lacks the Python $candidate_private_python_abi interpreter required by the candidate payloads" >&2
+    echo 'PRIVATE_PYTHON_ABI=FAIL' >&2
+    exit 1
+  }
+  guest_python_abi=$(env -i PATH=/usr/bin:/bin /usr/bin/python3 -I -c \
+    'import sys; print("%d.%d" % sys.version_info[:2])')
+  if [[ $guest_python_abi != "$candidate_private_python_abi" ]]; then
+    echo "guest Python ABI mismatch: guest=$guest_python_abi candidates=$candidate_private_python_abi" >&2
+    echo 'PRIVATE_PYTHON_ABI=FAIL' >&2
+    exit 1
+  fi
+  if ! rpm -q --whatprovides "python(abi) = $candidate_private_python_abi" >/dev/null; then
+    echo "guest RPM database lacks python(abi) = $candidate_private_python_abi" >&2
+    echo 'PRIVATE_PYTHON_ABI=FAIL' >&2
+    exit 1
+  fi
+  echo "PRIVATE_PYTHON_ABI=PASS ($candidate_private_python_abi)"
+fi
+
 contains_candidate() {
   local wanted=$1 name
   for name in "${candidate_names[@]}"; do
@@ -121,30 +158,156 @@ contains_candidate() {
 
 # The SGLang CPU transaction is validated as one private runtime closure.  A
 # partial closure would make the conditional smoke checks look successful while
-# leaving dependency resolution to an unrelated system package.
-if contains_candidate python-sglang || contains_candidate python-torchcodec-sglang-0.12; then
-  contains_candidate python-torch-sglang-2.14 || {
-    echo 'SGLang/TorchCodec transaction requires python-torch-sglang-2.14' >&2
+# leaving dependency resolution to an unrelated system package.  Any candidate
+# that advertises an SGLang private Python capability must trigger this check.
+private_runtime_candidate=0
+for ((index = 0; index < ${#candidate_names[@]}; index++)); do
+  name=${candidate_names[index]}
+  rpm=${candidate_files[index]}
+  case "$name" in
+    python-sglang*|python-torch-sglang*|python-torchaudio*|python-torchvision*|python-triton-sglang*)
+      private_runtime_candidate=1
+      break
+      ;;
+  esac
+  while IFS= read -r capability; do
+    if [[ $capability == sglang\(python3dist\(*\)\)* ]]; then
+      private_runtime_candidate=1
+      break 2
+    fi
+  done < <(rpm -qp --provides -- "$rpm")
+done
+if (( private_runtime_candidate )); then
+  required_cpu_candidates=(
+    python-torch-sglang-2.14
+    python-torchaudio-2.11
+    python-torchvision-0.29
+    python-tokenizers-sglang-0.23
+    python-transformers-sglang-5.19
+    python-huggingface-hub-sglang-1.31
+    python-click-sglang-8.4
+    python-mistral-common-1.12
+    python-timm-sglang-1.0
+    python-xgrammar-0.2
+    python-llguidance-1.7
+    python-apache-tvm-ffi-0.1
+    python-grpcio-sglang-1.84
+    python-grpcio-health-checking-sglang-1.84
+    python-grpcio-reflection-sglang-1.84
+    python-smg-grpc-proto
+    python-smg-grpc-servicer
+    python-triton-sglang-3.8
+    python-sglang-kernel-cpu
+    python-sglang
+    python-torchcodec-sglang-0.12
+  )
+  missing_cpu_candidates=()
+  for required_candidate in "${required_cpu_candidates[@]}"; do
+    contains_candidate "$required_candidate" || missing_cpu_candidates+=("$required_candidate")
+  done
+  if ((${#missing_cpu_candidates[@]} > 0)); then
+    printf 'missing CPU SGLang RPM candidate: %s\n' "${missing_cpu_candidates[@]}" >&2
+    echo 'CPU_SGLANG_CLOSURE=FAIL' >&2
     exit 2
+  fi
+
+  # Resolve the private Python capability graph from candidate RPM metadata
+  # alone. DNF can see already-installed packages, so its transaction result
+  # cannot establish that this candidate set contains the complete closure.
+  candidate_private_provides=()
+  candidate_private_requires=()
+  for candidate_rpm in "${candidate_files[@]}"; do
+    while IFS= read -r capability; do
+      [[ $capability == sglang\(* ]] && candidate_private_provides+=("$capability")
+    done < <(rpm -qp --provides -- "$candidate_rpm")
+    while IFS= read -r capability; do
+      [[ $capability == *sglang\(* ]] && candidate_private_requires+=("$capability")
+    done < <(rpm -qp --requires -- "$candidate_rpm")
+  done
+  missing_private_capabilities=()
+  unverified_private_capabilities=()
+  rpm_vercmp() {
+    local left=$1 right=$2 result
+    # RPM version strings cannot contain Lua string delimiters or code syntax.
+    [[ $left =~ ^[A-Za-z0-9._+~^:-]+$ && $right =~ ^[A-Za-z0-9._+~^:-]+$ ]] || return 2
+    result=$(rpm --eval "%{lua:print(rpm.vercmp(\"$left\", \"$right\"))}") || return 2
+    [[ $result =~ ^-?[0-9]+$ ]] || return 2
+    printf '%s\n' "$result"
   }
-  contains_candidate python-sglang || {
-    echo 'SGLang/TorchCodec transaction requires python-sglang' >&2
+
+  private_requirement_satisfied() {
+    local requirement=$1 requirement_name operator required_version
+    local provided_capability provided_name provided_version comparison
+    local versioned=0
+    if [[ $requirement =~ ^(sglang\([^[:space:]]+\))[[:space:]]+(=|\>=|\>|\<=|\<)[[:space:]]+([A-Za-z0-9._+~^:-]+)$ ]]; then
+      requirement_name=${BASH_REMATCH[1]}
+      operator=${BASH_REMATCH[2]}
+      required_version=${BASH_REMATCH[3]}
+      versioned=1
+    elif [[ $requirement =~ ^sglang\([^[:space:]]+\)$ ]]; then
+      requirement_name=$requirement
+    else
+      return 2
+    fi
+
+    for provided_capability in "${candidate_private_provides[@]}"; do
+      if [[ $provided_capability =~ ^(sglang\([^[:space:]]+\))[[:space:]]+=[[:space:]]+([A-Za-z0-9._+~^:-]+)$ ]]; then
+        provided_name=${BASH_REMATCH[1]}
+        provided_version=${BASH_REMATCH[2]}
+      elif [[ $provided_capability =~ ^sglang\([^[:space:]]+\)$ ]]; then
+        provided_name=$provided_capability
+        provided_version=
+      else
+        continue
+      fi
+      [[ $provided_name == "$requirement_name" ]] || continue
+      if (( ! versioned )); then return 0; fi
+      [[ -n $provided_version ]] || continue
+      comparison=$(rpm_vercmp "$provided_version" "$required_version") || return 2
+      case $operator in
+        '=')  (( comparison == 0 )) && return 0 ;;
+        '>=') (( comparison >= 0 )) && return 0 ;;
+        '>')  (( comparison > 0 )) && return 0 ;;
+        '<=') (( comparison <= 0 )) && return 0 ;;
+        '<')  (( comparison < 0 )) && return 0 ;;
+      esac
+    done
+    return 1
+  }
+
+  for required_capability in "${candidate_private_requires[@]}"; do
+    [[ -n $required_capability ]] || continue
+    if [[ $required_capability != *sglang\(* ]]; then continue; fi
+    if private_requirement_satisfied "$required_capability"; then
+      continue
+    else
+      result=$?
+    fi
+    if (( result == 2 )); then
+      unverified_private_capabilities+=("$required_capability")
+    else
+      missing_private_capabilities+=("$required_capability")
+    fi
+  done
+  if ((${#unverified_private_capabilities[@]} > 0)); then
+    printf 'UNVERIFIED private requirement expression: %s\n' \
+      "${unverified_private_capabilities[@]}" >&2
+  fi
+  if ((${#missing_private_capabilities[@]} > 0 || ${#unverified_private_capabilities[@]} > 0)); then
+    if ((${#missing_private_capabilities[@]} > 0)); then
+      printf 'missing candidate provider for private requirement: %s\n' \
+        "${missing_private_capabilities[@]}" >&2
+    fi
+    echo 'CPU_SGLANG_CLOSURE=FAIL' >&2
     exit 2
-  }
-  contains_candidate python-sglang-kernel-cpu || {
-    echo 'SGLang transaction requires python-sglang-kernel-cpu' >&2
-    exit 2
-  }
-  contains_candidate python-torchcodec-sglang-0.12 || {
-    echo 'SGLang/TorchCodec transaction requires python-torchcodec-sglang-0.12' >&2
-    exit 2
-  }
+  fi
+  echo 'CPU_SGLANG_CLOSURE=PASS (all required candidates and private capability providers supplied)'
 fi
 
 metadata_failure=0
 assert_metadata_line() {
   local rpm=$1 field=$2 expected=$3
-  if ! rpm -qp "--$field" "$rpm" | grep -Fqx -- "$expected"; then
+  if ! rpm -qp "--$field" -- "$rpm" | grep -Fqx -- "$expected"; then
     echo "metadata mismatch: $(basename "$rpm") $field lacks: $expected" >&2
     metadata_failure=1
   fi
@@ -157,7 +320,7 @@ assert_metadata_line_any() {
     for expected in "$@"; do
       [[ $line == "$expected" ]] && return 0
     done
-  done < <(rpm -qp "--$field" "$rpm")
+  done < <(rpm -qp "--$field" -- "$rpm")
   echo "metadata mismatch: $(basename "$rpm") $field lacks one of: $*" >&2
   metadata_failure=1
 }
@@ -204,28 +367,47 @@ if [[ -z $gpg_key ]]; then
 fi
 
 echo '== RPM signature verification =='
-if (( install )) && [[ -z $gpg_fingerprint ]]; then
-  echo 'signed installation requires --gpg-fingerprint' >&2
+if (( install )) && [[ -z $gpg_key || -z $gpg_fingerprint ]]; then
+  echo 'signed installation requires --gpg-key and --gpg-fingerprint' >&2
+  exit 1
+fi
+if [[ -n $gpg_key && -z $gpg_fingerprint ]]; then
+  echo 'RPM signature validation requires an independently supplied --gpg-fingerprint' >&2
   exit 1
 fi
 if [[ -n $gpg_key ]]; then
   [[ -f $gpg_key ]] || { echo "missing RPM GPG key: $gpg_key" >&2; exit 1; }
   command -v gpg >/dev/null || { echo 'gpg is required for RPM key fingerprint verification' >&2; exit 1; }
-  imported_fingerprint=$(gpg --batch --show-keys --with-colons "$gpg_key" |
-    awk -F: '$1 == "fpr" { print toupper($10); exit }')
-  [[ -n $imported_fingerprint ]] || { echo "cannot read fingerprint from $gpg_key" >&2; exit 1; }
-  if [[ -n $gpg_fingerprint ]]; then
-    expected_fingerprint=$(LC_ALL=C printf '%s' "$gpg_fingerprint" | LC_ALL=C tr '[:lower:]' '[:upper:]')
-    [[ $imported_fingerprint == "$expected_fingerprint" ]] || {
-      echo "RPM GPG fingerprint mismatch: $imported_fingerprint (expected $expected_fingerprint)" >&2
-      exit 1
-    }
-  else
-    expected_fingerprint=$imported_fingerprint
-  fi
-  rpm --import "$gpg_key"
+  key_listing=$(gpg --batch --show-keys --with-colons "$gpg_key") || {
+    echo "cannot read public key from $gpg_key" >&2
+    exit 1
+  }
+  primary_key_count=$(printf '%s\n' "$key_listing" | awk -F: '$1 == "pub" { count++ } END { print count + 0 }')
+  [[ $primary_key_count == 1 ]] || {
+    echo "expected exactly one primary public key in $gpg_key; found $primary_key_count" >&2
+    exit 1
+  }
+  imported_fingerprint=$(printf '%s\n' "$key_listing" |
+    awk -F: '$1 == "pub" { in_primary = 1; next } $1 == "sub" { in_primary = 0 } in_primary && $1 == "fpr" { print toupper($10); exit }')
+  [[ $imported_fingerprint =~ ^([A-F0-9]{40}|[A-F0-9]{64})$ ]] || {
+    echo "cannot read a complete primary-key fingerprint from $gpg_key" >&2
+    exit 1
+  }
+  expected_fingerprint=$(LC_ALL=C printf '%s' "$gpg_fingerprint" | LC_ALL=C tr '[:lower:]' '[:upper:]')
+  [[ $expected_fingerprint =~ ^([A-F0-9]{40}|[A-F0-9]{64})$ ]] || {
+    echo '--gpg-fingerprint must be a complete 40- or 64-hex-digit fingerprint' >&2
+    exit 1
+  }
+  [[ $imported_fingerprint == "$expected_fingerprint" ]] || {
+    echo "RPM GPG fingerprint mismatch: $imported_fingerprint (expected $expected_fingerprint)" >&2
+    exit 1
+  }
+  signature_rpmdb="$tmp/signature-rpmdb"
+  mkdir -p "$signature_rpmdb"
+  rpm --dbpath "$signature_rpmdb" --initdb
+  rpm --dbpath "$signature_rpmdb" --import "$gpg_key"
   echo "RPM_GPG_FINGERPRINT=$expected_fingerprint"
-  for rpm in "$@"; do rpm -K --verbose "$rpm"; done
+  for rpm in "$@"; do rpm --dbpath "$signature_rpmdb" -K --verbose -- "$rpm"; done
   echo 'RPM_SIGNATURE_RESULT=PASS'
 else
   echo 'RPM_SIGNATURE_RESULT=SKIPPED (provide --gpg-key and --gpg-fingerprint for signed validation)'
@@ -234,15 +416,15 @@ fi
 echo '== candidate metadata =='
 for rpm in "$@"; do
   echo "-- $rpm"
-  rpm -qp --qf 'name=%{NAME} version=%{VERSION}-%{RELEASE} arch=%{ARCH}\n' "$rpm"
+  rpm -qp --qf 'name=%{NAME} version=%{VERSION}-%{RELEASE} arch=%{ARCH}\n' -- "$rpm"
   echo 'provides:'
-  rpm -qp --provides "$rpm" | LC_ALL=C sort
+  rpm -qp --provides -- "$rpm" | LC_ALL=C sort
   echo 'requires:'
-  rpm -qp --requires "$rpm" | LC_ALL=C sort
+  rpm -qp --requires -- "$rpm" | LC_ALL=C sort
 
-  name=$(rpm -qp --qf '%{NAME}' "$rpm")
-  version=$(rpm -qp --qf '%{VERSION}' "$rpm")
-  arch=$(rpm -qp --qf '%{ARCH}' "$rpm")
+  name=$(rpm -qp --qf '%{NAME}' -- "$rpm")
+  version=$(rpm -qp --qf '%{VERSION}' -- "$rpm")
+  arch=$(rpm -qp --qf '%{ARCH}' -- "$rpm")
   [[ -n $name && -n $version && -n $arch ]] || {
     echo "incomplete RPM metadata: $rpm" >&2
     metadata_failure=1
@@ -298,6 +480,60 @@ for rpm in "$@"; do
       [[ $version == 1.31.0 ]] || { echo "unexpected huggingface-hub version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" provides 'sglang(python3dist(huggingface-hub)) = 1.31.0'
       ;;
+    python-click-sglang-8.4)
+      [[ $version == 8.4.2 ]] || { echo "unexpected Click version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(click)) = 8.4.2'
+      ;;
+    python-mistral-common-1.12)
+      [[ $version == 1.12.0 ]] || { echo "unexpected Mistral Common version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line_any "$rpm" provides \
+        'sglang(python3dist(mistral-common)) = 1.12' \
+        'sglang(python3dist(mistral-common)) = 1.12.0'
+      ;;
+    python-timm-sglang-1.0)
+      [[ $version == 1.0.28 ]] || { echo "unexpected timm version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(timm)) = 1.0.28'
+      ;;
+    python-xgrammar-0.2)
+      [[ $version == 0.2.7 ]] || { echo "unexpected XGrammar version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(xgrammar)) = 0.2.7'
+      ;;
+    python-llguidance-1.7)
+      [[ $version == 1.7.6 ]] || { echo "unexpected LLGuidance version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(llguidance)) = 1.7.6'
+      ;;
+    python-apache-tvm-ffi-0.1)
+      [[ $version == 0.1.11 ]] || { echo "unexpected TVM FFI version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(apache-tvm-ffi)) = 0.1.11'
+      ;;
+    python-grpcio-sglang-1.84)
+      [[ $version == 1.84.0 ]] || { echo "unexpected gRPC version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio)) = 1.84.0'
+      ;;
+    python-grpcio-tools-sglang-1.84)
+      [[ $version == 1.84.0 ]] || { echo "unexpected grpcio-tools version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio-tools)) = 1.84.0'
+      ;;
+    python-grpcio-health-checking-sglang-1.84)
+      [[ $version == 1.84.0 ]] || { echo "unexpected grpcio-health-checking version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio-health-checking)) = 1.84.0'
+      ;;
+    python-grpcio-reflection-sglang-1.84)
+      [[ $version == 1.84.0 ]] || { echo "unexpected grpcio-reflection version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio-reflection)) = 1.84.0'
+      ;;
+    python-grpcio-status-sglang-1.84)
+      [[ $version == 1.84.0 ]] || { echo "unexpected grpcio-status version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio-status)) = 1.84.0'
+      ;;
+    python-smg-grpc-proto)
+      [[ $version == 0.4.22 ]] || { echo "unexpected SMG gRPC proto version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(smg-grpc-proto)) = 0.4.22'
+      ;;
+    python-smg-grpc-servicer)
+      [[ $version == 0.9.1 ]] || { echo "unexpected SMG gRPC servicer version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(smg-grpc-servicer)) = 0.9.1'
+      ;;
     python-sglang)
       [[ $version == 0.5.21 ]] || { echo "unexpected SGLang version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
@@ -320,6 +556,10 @@ for rpm in "$@"; do
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torchcodec)) = 0.12.0'
       assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
       ;;
+    *)
+      echo "unknown candidate package for metadata validation: $name" >&2
+      metadata_failure=1
+      ;;
   esac
 done
 
@@ -331,7 +571,7 @@ echo 'METADATA_RESULT=PASS'
 
 echo '== ShortCircuited metadata =='
 for rpm in "$@"; do
-  if rpm -qp --requires "$rpm" | grep -Fq 'rpmlib(ShortCircuited)'; then
+  if rpm -qp --requires -- "$rpm" | grep -Fq 'rpmlib(ShortCircuited)'; then
     echo "ShortCircuited: PRESENT in $rpm" >&2
     echo 'SHORTCIRCUITED_RESULT=FAIL' >&2
     exit 1
@@ -378,7 +618,10 @@ if (( install )); then
   }
   createrepo_c --quiet "$repo_dir"
   dnf_ready=1
-  dnf_preview_args=(--assumeyes --setopt=tsflags=test "${dnf_args[@]}")
+  # Candidate signatures were verified against the isolated key database
+  # above. Keep the read-only dependency preview from importing keys into the
+  # guest RPM database; the trusted key is imported immediately before install.
+  dnf_preview_args=(--assumeyes --setopt=tsflags=test "${dnf_args[@]}" --setopt=openruyi-qemu-local.gpgcheck=0)
   set +e
   dnf "${dnf_preview_args[@]}" install "${candidate_paths[@]/#/$repo_dir/}"
   dnf_rc=$?
@@ -388,14 +631,14 @@ if (( install )); then
     echo 'DNF_OFFLINE_RESULT=FAIL' >&2
     exit "$dnf_rc"
   fi
-  echo 'DNF_OFFLINE_RESULT=PASS (RPM transaction test)'
+  echo 'DNF_OFFLINE_RESULT=PASS (offline DNF transaction preview)'
 elif [[ -z $gpg_key ]]; then
   echo 'DNF_OFFLINE_RESULT=SKIPPED (signed RPM key unavailable; scratch mode)'
 elif ! command -v createrepo_c >/dev/null || ! command -v dnf >/dev/null; then
   echo 'DNF_OFFLINE_RESULT=SKIPPED (createrepo_c or dnf unavailable)'
 else
   createrepo_c --quiet "$repo_dir"
-  dnf_preview_args=(--assumeyes --setopt=tsflags=test "${dnf_args[@]}")
+  dnf_preview_args=(--assumeyes --setopt=tsflags=test "${dnf_args[@]}" --setopt=openruyi-qemu-local.gpgcheck=0)
   set +e
   dnf "${dnf_preview_args[@]}" install "${candidate_paths[@]/#/$repo_dir/}"
   dnf_rc=$?
@@ -405,7 +648,7 @@ else
     echo 'DNF_OFFLINE_RESULT=FAIL' >&2
     exit "$dnf_rc"
   fi
-  echo 'DNF_OFFLINE_RESULT=PASS (RPM transaction test)'
+  echo 'DNF_OFFLINE_RESULT=PASS (offline DNF transaction preview)'
 fi
 
 rpm_signature_args=()
@@ -430,40 +673,38 @@ if contains_candidate python-sglang; then
   mkdir -p "$validation_root"
   installed_coexistence_script=$coexistence_script
   installed_cpu_smoke_script=$cpu_smoke_script
-  if [[ ! -f $coexistence_script || ! -f $cpu_smoke_script ]]; then
-    command -v rpm2cpio >/dev/null || {
-      echo 'rpm2cpio is required to extract pre-install validation helpers' >&2
-      exit 1
-    }
-    command -v cpio >/dev/null || {
-      echo 'cpio is required to extract pre-install validation helpers' >&2
-      exit 1
-    }
-    sglang_rpm=
-    sglang_count=0
-    for rpm in "$@"; do
-      if [[ $(rpm -qp --qf '%{NAME}' "$rpm") == python-sglang ]]; then
-        sglang_rpm=$rpm
-        sglang_count=$((sglang_count + 1))
-      fi
-    done
-    (( sglang_count == 1 )) || {
-      echo "expected one python-sglang candidate, found $sglang_count" >&2
-      exit 1
-    }
-    (cd "$validation_root" && rpm2cpio "$sglang_rpm" | cpio -idm --quiet)
-    coexistence_script="$validation_root$coexistence_script"
-    cpu_smoke_script="$validation_root$cpu_smoke_script"
-  fi
-  [[ -f $coexistence_script ]] || {
-    echo "COEXISTENCE=FAIL (missing $coexistence_script)" >&2
+  command -v rpm2cpio >/dev/null || {
+    echo 'rpm2cpio is required to extract pre-install validation helpers' >&2
     exit 1
   }
-  [[ -f $cpu_smoke_script ]] || {
-    echo "CPU_ENGINE_SMOKE=FAIL (missing $cpu_smoke_script)" >&2
+  command -v cpio >/dev/null || {
+    echo 'cpio is required to extract pre-install validation helpers' >&2
     exit 1
   }
-  python3 -s "$coexistence_script" --baseline-json "$coexistence_baseline" --snapshot
+  sglang_rpm=
+  sglang_count=0
+  for rpm in "$@"; do
+    if [[ $(rpm -qp --qf '%{NAME}' -- "$rpm") == python-sglang ]]; then
+      sglang_rpm=$rpm
+      sglang_count=$((sglang_count + 1))
+    fi
+  done
+  (( sglang_count == 1 )) || {
+    echo "expected one python-sglang candidate, found $sglang_count" >&2
+    exit 1
+  }
+  (cd "$validation_root" && rpm2cpio "$sglang_rpm" | cpio -idm --quiet)
+  preinstall_coexistence_script="$validation_root$coexistence_script"
+  preinstall_cpu_smoke_script="$validation_root$cpu_smoke_script"
+  [[ -f $preinstall_coexistence_script ]] || {
+    echo "COEXISTENCE=FAIL (missing candidate helper $preinstall_coexistence_script)" >&2
+    exit 1
+  }
+  [[ -f $preinstall_cpu_smoke_script ]] || {
+    echo "CPU_ENGINE_SMOKE=FAIL (missing candidate helper $preinstall_cpu_smoke_script)" >&2
+    exit 1
+  }
+  python3 -s "$preinstall_coexistence_script" --baseline-json "$coexistence_baseline" --snapshot
   coexistence_script=$installed_coexistence_script
   cpu_smoke_script=$installed_cpu_smoke_script
   coexistence_enabled=1
@@ -478,7 +719,7 @@ if (( install )); then
   echo 'RPM_TRANSACTION_TEST=SKIPPED (DNF preview is authoritative)'
 else
   set +e
-  rpm -Uvh "${rpm_signature_args[@]}" --replacepkgs --test "$@"
+  rpm -Uvh "${rpm_signature_args[@]}" --replacepkgs --test -- "$@"
   test_rc=$?
   set -e
   echo "RPM_TEST_RC=$test_rc"
@@ -493,12 +734,15 @@ fi
 if (( install )); then
   echo '== install transaction =='
   (( dnf_ready )) || { echo 'DNF transaction was not prepared' >&2; exit 1; }
+  # Import only after all pre-install checks have passed, immediately before
+  # DNF performs the explicit mutating transaction.
+  rpm --import "$gpg_key"
   dnf --assumeyes "${dnf_args[@]}" install "${candidate_paths[@]/#/$repo_dir/}"
   echo 'DNF_INSTALL_RESULT=PASS'
   echo '== verify installed packages =='
   for rpm in "$@"; do
-    name=$(rpm -qp --qf '%{NAME}' "$rpm")
-    expected_nevra=$(rpm -qp --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' "$rpm")
+    name=$(rpm -qp --qf '%{NAME}' -- "$rpm")
+    expected_nevra=$(rpm -qp --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}' -- "$rpm")
     installed_nevra=$(rpm -q --qf '%{NAME}-%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}\n' "$name" |
       LC_ALL=C sort)
     [[ $installed_nevra == "$expected_nevra" ]] || {
@@ -508,6 +752,7 @@ if (( install )); then
     rpm -V "$name"
   done
   echo 'INSTALL_VERIFY=PASS'
+  echo 'DNF_INSTALL_TRANSACTION_VERIFY=PASS (DNF completed and every candidate NEVRA is installed)'
   system_after=$(system_snapshot)
   printf '%s\n' "$system_after" > "$tmp/system-after.txt"
   if [[ $system_after != "$system_before" ]]; then
@@ -576,6 +821,19 @@ if [[ -n $private_site ]]; then
       python-tokenizers-sglang-0.23) expected_modules+="tokenizers," ;;
       python-transformers-sglang-5.19) expected_modules+="transformers," ;;
       python-huggingface-hub-sglang-1.31) expected_modules+="huggingface_hub," ;;
+      python-click-sglang-8.4) expected_modules+="click," ;;
+      python-mistral-common-1.12) expected_modules+="mistral_common," ;;
+      python-timm-sglang-1.0) expected_modules+="timm," ;;
+      python-xgrammar-0.2) expected_modules+="xgrammar," ;;
+      python-llguidance-1.7) expected_modules+="llguidance," ;;
+      python-apache-tvm-ffi-0.1) expected_modules+="tvm_ffi," ;;
+      python-grpcio-sglang-1.84) expected_modules+="grpc," ;;
+      python-grpcio-tools-sglang-1.84) expected_modules+="grpc_tools," ;;
+      python-grpcio-health-checking-sglang-1.84) expected_modules+="grpc_health,grpc_health.v1.health_pb2," ;;
+      python-grpcio-reflection-sglang-1.84) expected_modules+="grpc_reflection,grpc_reflection.v1alpha.reflection," ;;
+      python-grpcio-status-sglang-1.84) expected_modules+="grpc_status,grpc_status.rpc_status," ;;
+      python-smg-grpc-proto) expected_modules+="smg_grpc_proto,smg_grpc_proto.generated.common_pb2,smg_grpc_proto.generated.sglang_scheduler_pb2,smg_grpc_proto.generated.sglang_scheduler_pb2_grpc,smg_grpc_proto.generated.tokenspeed_scheduler_pb2,smg_grpc_proto.generated.vllm_engine_pb2_grpc," ;;
+      python-smg-grpc-servicer) expected_modules+="smg_grpc_servicer," ;;
       python-sglang) expected_modules+="sglang," ;;
       python-sglang-kernel-cpu) expected_modules+="sgl_kernel," ;;
       python-triton-sglang-3.8) expected_modules+="triton," ;;
@@ -583,8 +841,39 @@ if [[ -n $private_site ]]; then
     esac
   done
   expected_modules=${expected_modules%,}
-  PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" SGLANG_EXPECTED_MODULES="$expected_modules" \
-    python3 -s - "$private_site" <<'PY'
+  [[ -n $expected_modules ]] || {
+    echo "private site has no expected module mapping for candidate RPMs" >&2
+    echo 'PRIVATE_IMPORT=FAIL' >&2
+    exit 1
+  }
+  private_python=${SGLANG_PRIVATE_PYTHON:-}
+  if [[ -z $private_python ]]; then
+    if [[ -x /usr/bin/sglang-python ]]; then
+      private_python=/usr/bin/sglang-python
+    else
+      private_python_version=${private_site%/site-packages}
+      private_python_version=${private_python_version##*/}
+      private_python=/usr/bin/$private_python_version
+    fi
+  fi
+  if [[ $private_python != /* || ! -x $private_python ]]; then
+    echo "private Python interpreter is unavailable: $private_python" >&2
+    exit 1
+  fi
+  private_python_launcher=0
+  [[ $private_python == /usr/bin/sglang-python ]] && private_python_launcher=1
+  run_private_python() {
+    if (( private_python_launcher )); then
+      PYTHONNOUSERSITE=1 "$private_python" "$@"
+    else
+      env -u PYTHONHOME -u PYTHONPATH -u LD_LIBRARY_PATH -u LD_PRELOAD \
+        PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 PYTHONPATH="$private_site" \
+        "$private_python" -sP "$@"
+    fi
+  }
+  SGLANG_EXPECTED_MODULES="$expected_modules" \
+  SGLANG_EXPECTED_PYTHON_VERSION="${private_site%/site-packages}" \
+    run_private_python - "$private_site" <<'PY'
 import importlib
 import importlib.metadata
 import os
@@ -592,6 +881,12 @@ import sys
 from pathlib import Path
 
 private = Path(sys.argv[1]).resolve()
+expected_python = Path(os.environ["SGLANG_EXPECTED_PYTHON_VERSION"]).name.removeprefix("python")
+actual_python = f"{sys.version_info.major}.{sys.version_info.minor}"
+if actual_python != expected_python:
+    raise RuntimeError(
+        f"private interpreter ABI mismatch: expected Python {expected_python}, got {actual_python}"
+    )
 names = tuple(name for name in os.environ.get("SGLANG_EXPECTED_MODULES", "").split(",") if name)
 required = {
     "torch": ("torch", "2.14.0"),
@@ -600,6 +895,27 @@ required = {
     "tokenizers": ("tokenizers", "0.23.2"),
     "transformers": ("transformers", "5.19.0"),
     "huggingface_hub": ("huggingface-hub", "1.31.0"),
+    "click": ("click", "8.4.2"),
+    "mistral_common": ("mistral-common", "1.12.0"),
+    "timm": ("timm", "1.0.28"),
+    "xgrammar": ("xgrammar", "0.2.7"),
+    "llguidance": ("llguidance", "1.7.6"),
+    "tvm_ffi": ("apache-tvm-ffi", "0.1.11"),
+    "grpc": ("grpcio", "1.84.0"),
+    "grpc_tools": ("grpcio-tools", "1.84.0"),
+    "grpc_health": ("grpcio-health-checking", "1.84.0"),
+    "grpc_health.v1.health_pb2": ("grpcio-health-checking", "1.84.0"),
+    "grpc_reflection": ("grpcio-reflection", "1.84.0"),
+    "grpc_reflection.v1alpha.reflection": ("grpcio-reflection", "1.84.0"),
+    "grpc_status": ("grpcio-status", "1.84.0"),
+    "grpc_status.rpc_status": ("grpcio-status", "1.84.0"),
+    "smg_grpc_proto": ("smg-grpc-proto", "0.4.22"),
+    "smg_grpc_proto.generated.common_pb2": ("smg-grpc-proto", "0.4.22"),
+    "smg_grpc_proto.generated.sglang_scheduler_pb2": ("smg-grpc-proto", "0.4.22"),
+    "smg_grpc_proto.generated.sglang_scheduler_pb2_grpc": ("smg-grpc-proto", "0.4.22"),
+    "smg_grpc_proto.generated.tokenspeed_scheduler_pb2": ("smg-grpc-proto", "0.4.22"),
+    "smg_grpc_proto.generated.vllm_engine_pb2_grpc": ("smg-grpc-proto", "0.4.22"),
+    "smg_grpc_servicer": ("smg-grpc-servicer", "0.9.1"),
     "sglang": ("sglang-cpu", "0.5.21"),
     "sgl_kernel": ("sglang-kernel-cpu", "0.4.7"),
     "triton": ("triton", "3.8.0"),
@@ -632,7 +948,10 @@ for name in names:
     print(f"IMPORT {name}: PASS version={required[name][1]} path={path}")
 
 for module_name, module in tuple(sys.modules.items()):
-    if not module or not module_name.startswith(("torch", "torchaudio", "torchvision", "triton", "sgl_kernel")):
+    if not module or not module_name.startswith((
+        "torch", "torchaudio", "torchvision", "triton", "sgl_kernel", "tvm_ffi",
+        "xgrammar", "llguidance", "grpc", "smg_grpc_proto", "smg_grpc_servicer",
+    )):
         continue
     native = getattr(module, "__file__", None)
     if native and ".so" in native:
@@ -658,7 +977,7 @@ fi
 
 if contains_candidate python-torch-sglang-2.14 || contains_candidate python-torch-sglang-2.14-rocm; then
   echo '== Torch tensor smoke =='
-  PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" python3 -s - <<'PY'
+  run_private_python - <<'PY'
 import torch
 
 x = torch.arange(16, dtype=torch.float32).reshape(4, 4)
@@ -735,14 +1054,14 @@ def main():
 if __name__ == "__main__":
     main()
 PY
-  PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" python3 -s "$tmp/gloo-smoke.py"
+  run_private_python "$tmp/gloo-smoke.py"
 else
   echo 'GLOO_SMOKE=SKIPPED (CPU Torch RPM not supplied)'
 fi
 
 if contains_candidate python-triton-sglang-3.8; then
   echo '== Triton smoke =='
-  PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" python3 -s - <<'PY'
+  run_private_python - <<'PY'
 import triton
 import triton.compiler
 import triton.language
@@ -757,7 +1076,7 @@ fi
 
 if contains_candidate python-torchcodec-sglang-0.12; then
   echo '== TorchCodec smoke =='
-  PYTHONNOUSERSITE=1 PYTHONPATH="$private_site" python3 -s - <<'PY'
+  run_private_python - <<'PY'
 from torchcodec._core import get_ffmpeg_library_versions
 
 versions = get_ffmpeg_library_versions()
@@ -770,8 +1089,7 @@ fi
 
 if contains_candidate python-sglang; then
   echo '== SGLang smoke =='
-  SGLANG_USE_CPU_ENGINE=1 PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 PYTHONPATH="$private_site" \
-    python3 -s - <<'PY'
+  SGLANG_USE_CPU_ENGINE=1 run_private_python - <<'PY'
 import subprocess
 
 subprocess.run(["/usr/bin/sglang", "--help"], check=True, timeout=60,
@@ -784,8 +1102,7 @@ PY
       --private-root "$private_root"
     echo 'COEXISTENCE=PASS'
   fi
-  PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 PYTHONPATH="$private_site" \
-    python3 -s "$cpu_smoke_script"
+  run_private_python "$cpu_smoke_script"
   echo 'CPU_ENGINE_SMOKE=PASS'
 else
   echo 'SGLANG_SMOKE=SKIPPED (python-sglang RPM not supplied)'
@@ -797,8 +1114,7 @@ if contains_candidate python-sglang-kernel-cpu; then
     exit 1
   }
   echo '== SGLang CPU kernel smoke =='
-  PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 PYTHONPATH="$private_site" \
-    python3 -s "$kernel_smoke_script"
+  run_private_python "$kernel_smoke_script"
   echo 'CPU_KERNEL_SMOKE=PASS'
 else
   echo 'CPU_KERNEL_SMOKE=SKIPPED (python-sglang-kernel-cpu RPM not supplied)'
