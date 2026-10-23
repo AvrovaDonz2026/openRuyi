@@ -21,6 +21,7 @@ gpg_key=${RPM_GPG_KEY:-}
 gpg_fingerprint=${RPM_GPG_FINGERPRINT:-}
 coexistence_script=${COEXISTENCE_SCRIPT:-/usr/libexec/sglang/sglang-coexistence-test.py}
 cpu_smoke_script=${CPU_SMOKE_SCRIPT:-/usr/libexec/sglang/sglang-cpu-engine-smoke.py}
+kernel_smoke_script=${KERNEL_SMOKE_SCRIPT:-/usr/libexec/sglang/sglang-kernel-cpu-smoke.py}
 offline_repo_source=${DNF_OFFLINE_REPO:-}
 while (( $# > 0 )); do
   case $1 in
@@ -29,6 +30,7 @@ while (( $# > 0 )); do
     --gpg-fingerprint) shift; [[ $# -gt 0 ]] || { echo '--gpg-fingerprint requires a value' >&2; exit 2; }; gpg_fingerprint=$1 ;;
     --coexistence-script) shift; [[ $# -gt 0 ]] || { echo '--coexistence-script requires a file' >&2; exit 2; }; coexistence_script=$1 ;;
     --cpu-smoke-script) shift; [[ $# -gt 0 ]] || { echo '--cpu-smoke-script requires a file' >&2; exit 2; }; cpu_smoke_script=$1 ;;
+    --kernel-smoke-script) shift; [[ $# -gt 0 ]] || { echo '--kernel-smoke-script requires a file' >&2; exit 2; }; kernel_smoke_script=$1 ;;
     --) shift; break ;;
     -*) echo "unknown option: $1" >&2; exit 2 ;;
     *) break ;;
@@ -43,6 +45,10 @@ esac
 case $cpu_smoke_script in
   /*) ;;
   *) echo '--cpu-smoke-script must be an absolute installed path' >&2; exit 2 ;;
+esac
+case $kernel_smoke_script in
+  /*) ;;
+  *) echo '--kernel-smoke-script must be an absolute installed path' >&2; exit 2 ;;
 esac
 for rpm in "$@"; do [[ -f $rpm ]] || { echo "missing RPM: $rpm" >&2; exit 2; }; done
 
@@ -123,6 +129,10 @@ if contains_candidate python-sglang || contains_candidate python-torchcodec-sgla
   }
   contains_candidate python-sglang || {
     echo 'SGLang/TorchCodec transaction requires python-sglang' >&2
+    exit 2
+  }
+  contains_candidate python-sglang-kernel-cpu || {
+    echo 'SGLang transaction requires python-sglang-kernel-cpu' >&2
     exit 2
   }
   contains_candidate python-torchcodec-sglang-0.12 || {
@@ -294,6 +304,12 @@ for rpm in "$@"; do
       assert_metadata_line_any "$rpm" requires \
         'sglang(python3dist(transformers)) = 5.19' \
         'sglang(python3dist(transformers)) = 5.19.0'
+      ;;
+    python-sglang-kernel-cpu)
+      [[ $version == 0.4.7 ]] || { echo "unexpected SGLang CPU kernel version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(sglang-kernel-cpu)) = 0.4.7'
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(sglang-kernel)) = 0.4.7'
+      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
       ;;
     python-triton-sglang-3.8)
       [[ $version == 3.8.0 ]] || { echo "unexpected Triton version: $version" >&2; metadata_failure=1; }
@@ -561,6 +577,7 @@ if [[ -n $private_site ]]; then
       python-transformers-sglang-5.19) expected_modules+="transformers," ;;
       python-huggingface-hub-sglang-1.31) expected_modules+="huggingface_hub," ;;
       python-sglang) expected_modules+="sglang," ;;
+      python-sglang-kernel-cpu) expected_modules+="sgl_kernel," ;;
       python-triton-sglang-3.8) expected_modules+="triton," ;;
       python-torchcodec-sglang-0.12) expected_modules+="torchcodec," ;;
     esac
@@ -584,6 +601,7 @@ required = {
     "transformers": ("transformers", "5.19.0"),
     "huggingface_hub": ("huggingface-hub", "1.31.0"),
     "sglang": ("sglang-cpu", "0.5.21"),
+    "sgl_kernel": ("sglang-kernel-cpu", "0.4.7"),
     "triton": ("triton", "3.8.0"),
     "torchcodec": ("torchcodec", "0.12.0"),
 }
@@ -614,7 +632,7 @@ for name in names:
     print(f"IMPORT {name}: PASS version={required[name][1]} path={path}")
 
 for module_name, module in tuple(sys.modules.items()):
-    if not module or not module_name.startswith(("torch", "torchaudio", "torchvision", "triton")):
+    if not module or not module_name.startswith(("torch", "torchaudio", "torchvision", "triton", "sgl_kernel")):
         continue
     native = getattr(module, "__file__", None)
     if native and ".so" in native:
@@ -771,6 +789,19 @@ PY
   echo 'CPU_ENGINE_SMOKE=PASS'
 else
   echo 'SGLANG_SMOKE=SKIPPED (python-sglang RPM not supplied)'
+fi
+
+if contains_candidate python-sglang-kernel-cpu; then
+  [[ -f $kernel_smoke_script ]] || {
+    echo "CPU_KERNEL_SMOKE=FAIL (missing $kernel_smoke_script)" >&2
+    exit 1
+  }
+  echo '== SGLang CPU kernel smoke =='
+  PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 PYTHONPATH="$private_site" \
+    python3 -s "$kernel_smoke_script"
+  echo 'CPU_KERNEL_SMOKE=PASS'
+else
+  echo 'CPU_KERNEL_SMOKE=SKIPPED (python-sglang-kernel-cpu RPM not supplied)'
 fi
 
 echo "HARNESS_RESULT=PASS test_rc=$test_rc install=$install"
