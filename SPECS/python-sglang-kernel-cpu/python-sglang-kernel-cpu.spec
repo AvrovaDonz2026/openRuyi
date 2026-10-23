@@ -132,6 +132,7 @@ export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %install -a
 cd python/sglang/kernels/aot
 %sglang_private_rpath
+install -Dpm0755 %{SOURCE1} %{buildroot}%{_libexecdir}/sglang/sglang-kernel-cpu-smoke.py
 
 %check -a
 export PYTHONPATH="%{buildroot}%{_sglang_private_sitearch}"
@@ -148,6 +149,7 @@ LOCAL_SIZE=1 MASTER_ADDR=127.0.0.1 MASTER_PORT=29599 \
 %files -f %{pyproject_files}
 %license LICENSE
 %doc README.md
+%{_libexecdir}/sglang/sglang-kernel-cpu-smoke.py
 
 %changelog
 %autochangelog

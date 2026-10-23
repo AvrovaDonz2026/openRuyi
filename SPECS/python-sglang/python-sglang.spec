@@ -234,6 +234,7 @@ sed -i \
 sed -i \
   -e 's|@EXTRAS_SITELIB@|%{_libdir}/sglang/extras/python%{python3_version}/site-packages|g' \
   -e 's|@CORE_SITELIB@|%{_libdir}/sglang/core/python%{python3_version}/site-packages|g' \
+  -e 's|@PYTHON3@|%{python3}|g' \
   %{buildroot}%{_bindir}/sglang-extras-python
 
 %check -a
