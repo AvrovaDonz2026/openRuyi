@@ -140,17 +140,18 @@ export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %sglang_private_rpath
 
 %check -a
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" \
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_sitelib}${PYTHONPATH:+:$PYTHONPATH}" \
 %{python3} - <<'PY'
 import torch
 import torchaudio
-from torchaudio.lib import _torchaudio
+from torchaudio import _extension
 
 assert torchaudio.__version__ == "2.11.0"
+assert _extension._IS_TORCHAUDIO_EXT_AVAILABLE
+assert isinstance(torch.ops._torchaudio.is_align_available(), bool)
 waveform = torch.tensor([[0.0, 1.0, 0.0, -1.0]])
 resampled = torchaudio.functional.resample(waveform, 8000, 16000)
 assert resampled.shape[-1] == 8
-assert _torchaudio is not None
 PY
 
 %files -f %{pyproject_files}

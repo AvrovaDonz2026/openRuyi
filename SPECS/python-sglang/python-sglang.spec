@@ -123,7 +123,6 @@ BuildRequires:  python3dist(setuptools-rust)
 BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
 Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
 %else
-Conflicts:      python-sglang-cuda
 Provides:       sglang(python3dist(%{srcname})) = %{version}
 BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
 BuildRequires:  sglang(python3dist(torchaudio)) = 2.11.0

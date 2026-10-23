@@ -45,7 +45,7 @@ SYSTEM_SONAME = re.compile(
     r"nsl|numa|omp|onnx|onnxruntime|openblas(?:64)?|png[0-9]*|protobuf(?:-lite)?|"
     r"pthread|pthreadpool|python[0-9]+(?:\.[0-9]+)*|quadmath|resolv|rt|sharpyuv|"
     r"sleef(?:dft|gnuabi|quad)?|ssl|stdc\+\+|swresample|swscale|tiff|tinfo|unwind|"
-    r"util|uuid|uv|webp(?:decoder|demux|mux)?|mvec|xml2|z|zstd))(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
+    r"upb[^/]*|util|utf8_range_lib|utf8_validity|uuid|uv|webp(?:decoder|demux|mux)?|mvec|xml2|z|zstd))(?:[-_.].*)?\.so(?:\.[0-9]+)*$"
 )
 SONAME = re.compile(r"^(?:lib|ld-)[^/]+\.so(?:\.[0-9]+)*$")
 
