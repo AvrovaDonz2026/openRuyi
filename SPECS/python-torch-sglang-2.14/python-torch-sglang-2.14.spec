@@ -268,9 +268,17 @@ Requires:       python3dist(sympy) >= 1.13.3
 Requires:       python3dist(typing-extensions) >= 4.10.0
 %if %{with rocm}
 Provides:       sglang(python3dist(torch-rocm)) = %{version}
+# pythondistdeps removes trailing zero components from PEP 440 versions.
+# Keep the normalized capability for generated private build requirements while
+# retaining the exact-version capability used by existing flavor recipes.
+Provides:       sglang(python3dist(torch-rocm)) = 2.14
 Requires:       amdsmi
 %else
 Provides:       sglang(python3dist(torch-cpu)) = %{version}
+# pythondistdeps emits ``= 2.14`` for ``torch==2.14.0`` requirements.
+# Publish both forms so dynamic and explicit RPM requirements resolve to the
+# same private provider.
+Provides:       sglang(python3dist(torch-cpu)) = 2.14
 %endif
 
 %package devel
