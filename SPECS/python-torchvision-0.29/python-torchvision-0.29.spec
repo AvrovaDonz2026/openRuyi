@@ -54,7 +54,7 @@ Summary:        Image and video datasets for torch deep learning
 License:        BSD-3-Clause AND BSD-2-Clause AND MIT
 URL:            https://github.com/pytorch/vision
 #!RemoteAsset:  sha256:24be57d922927d8a2ac2e8f076f07c3447ddf8f1d25ddbb7b65578f36c9ab8e3
-Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
+Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz#/%{srcname}-%{version}.tar.gz
 BuildRequires:  sglang-rpm-macros
 BuildRequires:  file
 BuildRequires:  patchelf
@@ -71,9 +71,11 @@ ExclusiveArch:  x86_64 aarch64
 %endif
 
 BuildOption(prep):  -n vision-%{version}
-# torchvision.image is a torch operator .so, not a Python extension module; skip import check
-BuildOption(check):  -e '%{srcname}.image'
-BuildOption(check):  -e '%{srcname}.io.video'
+BuildOption(install):  -l torchvision
+# torchvision.image*, image_stable, and io* are torch operator .so files, not
+# Python extension modules. BuildOption(check) keeps one exclusion option, so
+# the shared ``i*`` prefix covers all of these native modules in one glob.
+BuildOption(check):  -e '%{srcname}.i*'
 %ifarch riscv64
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++

@@ -52,7 +52,7 @@ License:        BSD-2-Clause
 URL:            https://github.com/pytorch/audio
 # PyPI only provides prebuilt wheels for this release; build from GitHub source.
 #!RemoteAsset:  sha256:599ec24e7e1eef476ef21f0178e33da00e2434f930ba42e9cc20bf4002220486
-Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz
+Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz#/audio-%{version}.tar.gz
 BuildRequires:  sglang-rpm-macros
 BuildRequires:  file
 BuildRequires:  patchelf
@@ -69,6 +69,7 @@ ExclusiveArch:  x86_64 aarch64
 %endif
 
 BuildOption(prep):  -n audio-%{version}
+BuildOption(install):  -l torchaudio
 # libtorchaudio is a shared library loaded by torchaudio, not a Python module.
 BuildOption(check):  -e %{srcname}.lib.libtorchaudio
 %ifarch riscv64
