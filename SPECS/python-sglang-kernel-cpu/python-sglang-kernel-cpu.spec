@@ -101,7 +101,7 @@ Provides:       sglang(python3dist(sglang-kernel)) = %{version}
 %patchlist
 # RISC-V source selection and explicit cross-target ISA handling.
 2000-riscv64-cpu-target-selection.patch
-# Portable scalar shared-memory collectives and acquire/release state hand-off.
+# Portable shared-memory collectives (OpenMP-parallel) and acquire/release state hand-off.
 2001-riscv64-port-cpu-shm-collectives.patch
 
 %description
@@ -146,6 +146,11 @@ cd %{buildroot}
 # synchronization with the native shared-memory implementation.
 LOCAL_SIZE=1 MASTER_ADDR=127.0.0.1 MASTER_PORT=29599 \
   %{python3} %{SOURCE1}
+# A second run with --tp-size 2 exercises the shared-memory collective
+# transport end to end (scheduler + workers), covering the RISC-V SHM
+# bootstrap path. Uses a different port to avoid clashing with the run above.
+LOCAL_SIZE=2 MASTER_ADDR=127.0.0.1 MASTER_PORT=29598 \
+  %{python3} %{SOURCE1} --tp-size 2 --timeout 600
 %endif
 
 %files -f %{pyproject_files}

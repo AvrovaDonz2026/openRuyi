@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
+# SPDX-License-Identifier: MulanPSL-2.0
+# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
+# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
+From: A. Donz <Avrova@Donz.si>
+Subject: [PATCH] sglang: initialize RISC-V SHM collectives in CPU bootstrap
+
+Upstream-Reference: https://github.com/sgl-project/sglang/issues/18072
+Upstream-Status: Downstream (RISC-V CPU bootstrap integration)
+
+_init_cpu_threads_env only enabled the shared-memory transport on Intel AMX
+and ARM64 hosts. On RISC-V the SHM workspace was therefore never initialized,
+while is_shm_available() already reports the ported collectives as usable.
+Tensor-parallel runs would then call torch.ops.sgl_kernel.shm_allreduce on
+an uninitialized workspace. Gate the initialization on the same
+cpu_has_riscv_shm_support() capability used by is_shm_available() so the
+transport is set up exactly when the collective path can be selected.
+
+diff --git a/python/sglang/srt/distributed/bootstrap.py b/python/sglang/srt/distributed/bootstrap.py
+--- a/python/sglang/srt/distributed/bootstrap.py
++++ b/python/sglang/srt/distributed/bootstrap.py
+@@ -40,6 +40,7 @@
+ from sglang.srt.server_args import ServerArgs
+ from sglang.srt.utils import (
+     cpu_has_amx_support,
++    cpu_has_riscv_shm_support,
+     get_available_gpu_memory,
+     is_host_cpu_arm64,
+     is_npu,
+@@ -52,6 +53,7 @@
+ 
+ _is_cpu_amx_available = cpu_has_amx_support()
+ _is_cpu_arm64 = is_host_cpu_arm64()
++_is_cpu_riscv_shm = cpu_has_riscv_shm_support()
+ 
+ # A representative per-peer payload for materializing the PyNCCL P2P
+ # connections used by TP LM-head all-to-all. The input/output tensors are
+@@ -263,7 +265,7 @@
+     local_omp_cpuid: Optional[List[int]],
+     dist_init_method: Optional[str] = None,
+ ) -> None:
+-    if _is_cpu_amx_available or _is_cpu_arm64:
++    if _is_cpu_amx_available or _is_cpu_arm64 or _is_cpu_riscv_shm:
+         parallel = get_parallel()
+         # Bind OpenMP threads to CPU cores
+         torch.ops.sgl_kernel.init_cpu_threads_env(local_omp_cpuid)
+@@ -281,7 +283,7 @@
+ 
+     else:
+         logger.warning(
+-            "init_cpu_threads_env and shared memory based AllReduce is disabled, only intel amx backend and arm64 are supported"
++            "init_cpu_threads_env and shared memory based AllReduce is disabled, only intel amx backend, arm64 and riscv64 (with sgl_kernel SHM support) are supported"
+         )
+ 
+ 

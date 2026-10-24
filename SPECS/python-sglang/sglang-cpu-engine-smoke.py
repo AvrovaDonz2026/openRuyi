@@ -113,9 +113,19 @@ def terminate(process, timeout=5):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--timeout", type=float, default=600.0)
+    parser.add_argument(
+        "--tp-size",
+        type=int,
+        default=1,
+        help="Tensor-parallel degree for the smoke server. Values > 1 "
+        "exercise the shared-memory collective transport initialized by "
+        "_init_cpu_threads_env (requires the sgl_kernel SHM operators).",
+    )
     args = parser.parse_args()
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("--timeout must be a finite value greater than zero")
+    if args.tp_size < 1:
+        parser.error("--tp-size must be at least 1")
     started = time.monotonic()
     deadline = started + args.timeout
     port = free_port()
@@ -143,7 +153,7 @@ def main():
             os.environ.get("SGLANG_SMOKE_SERVER", "/usr/bin/sglang"),
             "serve", "--model-path", str(model),
             "--load-format", "dummy", "--device", "cpu",
-            "--attention-backend", "torch_native", "--tp-size", "1",
+            "--attention-backend", "torch_native", "--tp-size", str(args.tp_size),
             "--dtype", "float32", "--disable-overlap-schedule",
             "--max-total-tokens", "128",
             "--host", "127.0.0.1", "--port", str(port),

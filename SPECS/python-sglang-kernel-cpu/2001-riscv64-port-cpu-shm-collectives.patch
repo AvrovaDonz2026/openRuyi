@@ -13,10 +13,10 @@ Upstream-Status: Downstream (no upstream RISC-V port or fix found)
 
 diff --git a/python/sglang/kernels/aot/csrc/cpu/riscv64/shm.h b/python/sglang/kernels/aot/csrc/cpu/riscv64/shm.h
 new file mode 100644
-index 0000000..804c347
+index 0000000..30a3163
 --- /dev/null
 +++ b/python/sglang/kernels/aot/csrc/cpu/riscv64/shm.h
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,61 @@
 +// SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 +// SPDX-License-Identifier: Apache-2.0
 +// SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
@@ -26,6 +26,7 @@ index 0000000..804c347
 +
 +#include <ATen/ATen.h>
 +
++#include <algorithm>
 +#include <cstddef>
 +#include <cstring>
 +
@@ -33,6 +34,9 @@ index 0000000..804c347
 +inline void reduce_buffers(
 +    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
 +  auto* output = reinterpret_cast<scalar_t*>(to_buffer);
++#if defined(_OPENMP)
++#pragma omp parallel for schedule(static)
++#endif
 +  for (int i = start_elements; i < start_elements + num_elements; ++i) {
 +    float value = 0.0f;
 +    for (int rank = 0; rank < world_size; ++rank) {
@@ -41,6 +45,77 @@ index 0000000..804c347
 +    output[i] = static_cast<scalar_t>(value);
 +  }
 +}
++
++#if __riscv_v
++#include <riscv_vector.h>
++
++// RVV-vectorized fp32 sum reduction across ranks. Summation order is
++// rank-major, bit-identical to the scalar template above (verified under
++// qemu-riscv64). Enabled only when the V extension is on (e.g.
++// -march=rva23u64); rva20u64 and other non-V builds keep the scalar path.
++// fp16 has its own Zvfh-gated specialization below; bf16 stays scalar (V
++// has no native bf16 arithmetic).
++template <>
++inline void reduce_buffers<float>(
++    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
++  auto* output = reinterpret_cast<float*>(to_buffer);
++  int i = start_elements;
++  int n = num_elements;
++  while (n > 0) {
++    const size_t vl = __riscv_vsetvl_e32m8(static_cast<size_t>(n));
++    vfloat32m8_t acc =
++        __riscv_vle32_v_f32m8(reinterpret_cast<const float*>(buffers[0]) + i, vl);
++    for (int rank = 1; rank < world_size; ++rank) {
++      acc = __riscv_vfadd_vv_f32m8(
++          acc,
++          __riscv_vle32_v_f32m8(reinterpret_cast<const float*>(buffers[rank]) + i, vl),
++          vl);
++    }
++    __riscv_vse32_v_f32m8(output + i, acc, vl);
++    i += static_cast<int>(vl);
++    n -= static_cast<int>(vl);
++  }
++}
++
++#if __riscv_zvfh
++// RVV-vectorized fp16 sum reduction: widen f16->f32, accumulate in fp32,
++// narrow back to f16. Bit-identical to the scalar template's fp32
++// accumulation with round-to-nearest-even (verified under qemu-riscv64).
++// Data moves as uint16_t + vreinterpret bit-cast, so at::Half storage needs
++// no _Float16 aliasing. Requires Zvfh (in -march=rva23u64); without it the
++// scalar template above is used. bf16 stays scalar: V has no native bf16
++// arithmetic and Zvfh does not cover it.
++template <>
++inline void reduce_buffers<at::Half>(
++    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
++  auto* output = reinterpret_cast<uint16_t*>(to_buffer);
++  int i = start_elements;
++  int n = num_elements;
++  while (n > 0) {
++    const size_t vl = __riscv_vsetvl_e16m4(static_cast<size_t>(n));
++    vfloat32m8_t acc = __riscv_vfwcvt_f_f_v_f32m8(
++        __riscv_vreinterpret_v_u16m4_f16m4(
++            __riscv_vle16_v_u16m4(reinterpret_cast<const uint16_t*>(buffers[0]) + i, vl)),
++        vl);
++    for (int rank = 1; rank < world_size; ++rank) {
++      acc = __riscv_vfadd_vv_f32m8(
++          acc,
++          __riscv_vfwcvt_f_f_v_f32m8(
++              __riscv_vreinterpret_v_u16m4_f16m4(
++                  __riscv_vle16_v_u16m4(reinterpret_cast<const uint16_t*>(buffers[rank]) + i, vl)),
++              vl),
++          vl);
++    }
++    __riscv_vse16_v_u16m4(
++        output + i,
++        __riscv_vreinterpret_v_f16m4_u16m4(__riscv_vfncvt_f_f_w_f16m4(acc, vl)),
++        vl);
++    i += static_cast<int>(vl);
++    n -= static_cast<int>(vl);
++  }
++}
++#endif
++#endif
 +
 +inline void reduce_bf16_buffers(
 +    int start_elements, int num_elements, char* to_buffer, char** buffers, int world_size) {
@@ -58,7 +133,21 @@ index 0000000..804c347
 +}
 +
 +inline void parallel_memcpy(void* to, const void* from, size_t n_bytes) {
++#if defined(_OPENMP)
++  // Mirror the x86_64 implementation, which copies in parallel: split the
++  // range into coarse chunks so OpenMP overhead stays negligible for memcpy.
++  // Chunk writes never overlap, so no synchronization is needed.
++  constexpr size_t kChunkBytes = size_t(1) << 20;
++  const size_t n_chunks = (n_bytes + kChunkBytes - 1) / kChunkBytes;
++#pragma omp parallel for schedule(static)
++  for (size_t c = 0; c < n_chunks; ++c) {
++    const size_t off = c * kChunkBytes;
++    const size_t len = std::min(kChunkBytes, n_bytes - off);
++    std::memcpy(static_cast<char*>(to) + off, static_cast<const char*>(from) + off, len);
++  }
++#else
 +  std::memcpy(to, from, n_bytes);
++#endif
 +}
 diff --git a/python/sglang/kernels/aot/csrc/cpu/shm.cpp b/python/sglang/kernels/aot/csrc/cpu/shm.cpp
 index 83b0b6b..6f15899 100644
