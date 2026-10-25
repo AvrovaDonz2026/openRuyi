@@ -354,6 +354,16 @@ assert_metadata_line_any() {
   metadata_failure=1
 }
 
+assert_metadata_absent_prefix() {
+  local rpm=$1 field=$2 forbidden_prefix=$3 line
+  while IFS= read -r line; do
+    [[ $line == "$forbidden_prefix"* ]] || continue
+    echo "metadata mismatch: $(basename "$rpm") $field contains forbidden legacy capability prefix: $forbidden_prefix" >&2
+    metadata_failure=1
+    return 0
+  done < <(rpm -qp "--$field" -- "$rpm")
+}
+
 tmp_root=${TMPDIR:-/var/tmp}
 tmp=$(mktemp -d "$tmp_root/openruyi-rpm-harness.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
@@ -492,6 +502,12 @@ for rpm in "$@"; do
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-cpu)) = 2.14.0'
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-cpu)) = 2.14'
       assert_metadata_line "$rpm" requires 'python3dist(typing-extensions) >= 4.10.0'
+      # The fixed private ELF generator must not leave the stale wheel3
+      # libutf8 capabilities in either side of the Torch metadata contract.
+      assert_metadata_absent_prefix "$rpm" provides 'sglang(libutf8_validity.so'
+      assert_metadata_absent_prefix "$rpm" provides 'sglang(libutf8_range.so'
+      assert_metadata_absent_prefix "$rpm" requires 'sglang(libutf8_validity.so'
+      assert_metadata_absent_prefix "$rpm" requires 'sglang(libutf8_range.so'
       ;;
     python-torch-sglang-2.14-rocm)
       [[ $version == 2.14.0 ]] || { echo "unexpected Torch version: $version" >&2; metadata_failure=1; }
