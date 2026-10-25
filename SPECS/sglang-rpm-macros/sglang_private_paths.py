@@ -10,6 +10,38 @@ import argparse
 import json
 from pathlib import Path
 
+
+def rewrite_python_shebangs(root, interpreter):
+    """Bind private entry points to the interpreter selected for the tree."""
+    root = Path(root)
+    if not root.is_dir():
+        return
+    interpreter = str(interpreter)
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        data = path.read_bytes()
+        first, separator, remainder = data.partition(b"\n")
+        if not first.startswith(b"#!"):
+            continue
+        command = first[2:].decode("utf-8", "surrogateescape").strip().split()
+        if not command:
+            continue
+        executable = Path(command[0]).name
+        arguments = command[1:]
+        if executable == "env" and len(command) > 1:
+            executable = Path(command[1]).name
+            arguments = command[2:]
+        if executable != "python" and executable != "python3" and not executable.startswith("python3."):
+            continue
+        suffix = " " + " ".join(arguments) if arguments else ""
+        path.write_bytes(
+            f"#!{interpreter}{suffix}".encode()
+            + (b"\n" if separator else b"")
+            + remainder
+        )
+
+
 def replace_text(path, old_site, new_site, old_bin, new_bin):
     if path and path.is_file():
         path.write_text(path.read_text().replace(old_site, new_site).replace(old_bin, new_bin))
@@ -24,11 +56,14 @@ def main():
     p.add_argument("--to-sitearch")
     p.add_argument("--from-bin", required=True)
     p.add_argument("--to-bin", required=True)
+    p.add_argument("--interpreter", required=True)
     a = p.parse_args()
     for value in (a.ghost, a.files, a.modules):
         replace_text(value, a.from_site, a.to_site, a.from_bin, a.to_bin)
         if a.from_sitearch and a.to_sitearch:
             replace_text(value, a.from_sitearch, a.to_sitearch, a.from_bin, a.to_bin)
+    rewrite_python_shebangs(a.to_site, a.interpreter)
+    rewrite_python_shebangs(a.to_bin, a.interpreter)
     if a.record and a.record.is_file():
         data = json.loads(a.record.read_text())
         def rewrite(value):

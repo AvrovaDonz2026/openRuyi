@@ -8,9 +8,13 @@
 
 %global srcname tokenizers
 %global compat_name python-tokenizers-sglang-0.23
+%ifarch riscv64
+%global llvm_maj_ver 22
+%global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
+%endif
 
 Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat core
 Version:        0.23.2
 Release:        %autorelease
@@ -35,6 +39,13 @@ BuildRequires:  python3dist(maturin)
 BuildRequires:  gcc-c++
 BuildRequires:  rust
 BuildRequires:  rust-rpm-macros
+%ifarch riscv64
+BuildRequires:  clang
+BuildRequires:  clang(major) = %{llvm_maj_ver}
+BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
+BuildRequires:  lld(major) = %{llvm_maj_ver}
+BuildRequires:  llvm(major) = %{llvm_maj_ver}
+%endif
 BuildRequires:  crate(ahash-0.8/default)
 BuildRequires:  crate(ahash-0.8/serde)
 BuildRequires:  crate(compact-str-0.9/default)
@@ -98,6 +109,27 @@ rm -f bindings/python/Cargo.lock
 
 %generate_buildrequires
 %sglang_pyproject_buildrequires
+
+%build -p
+%ifarch riscv64
+export PATH="%{llvm_bindir}:$PATH"
+export CC="%{llvm_bindir}/clang"
+export CXX="%{llvm_bindir}/clang++"
+export AR="%{llvm_bindir}/llvm-ar"
+export RANLIB="%{llvm_bindir}/llvm-ranlib"
+export CFLAGS="%{build_cflags} --target=%{_target_platform}"
+export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
+export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
+%if "%{openruyi_riscv_arch}" == "-march=rva23u64"
+export CARGO_BUILD_TARGET="riscv64a23-unknown-linux-gnu"
+export CARGO_TARGET_RISCV64A23_UNKNOWN_LINUX_GNU_LINKER="%{llvm_bindir}/clang"
+export CARGO_TARGET_RISCV64A23_UNKNOWN_LINUX_GNU_RUSTFLAGS="${CARGO_TARGET_RISCV64A23_UNKNOWN_LINUX_GNU_RUSTFLAGS:-} -C link-arg=--target=%{_target_platform} -C link-arg=-fuse-ld=lld"
+%else
+export CARGO_BUILD_TARGET="riscv64gc-unknown-linux-gnu"
+export CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_LINKER="%{llvm_bindir}/clang"
+export CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_RUSTFLAGS="${CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_RUSTFLAGS:-} -C link-arg=--target=%{_target_platform} -C link-arg=-fuse-ld=lld"
+%endif
+%endif
 
 %check -a
 PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \

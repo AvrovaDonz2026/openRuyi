@@ -16,29 +16,31 @@
 %endif
 
 Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat
 Version:        0.1.11
 Release:        %autorelease
 Summary:        Open ABI and FFI for machine learning systems
 License:        Apache-2.0
+Provides:       sglang(python3dist(apache-tvm-ffi)) = %{version}
 URL:            https://tvm.apache.org/ffi/
 VCS:            git:https://github.com/apache/tvm-ffi.git
 #!RemoteAsset:  sha256:153cd2c5a9717804cb0bcd9b2709f22a1e5f80ed05b5a490faf5949b136eedba
 Source0:        https://files.pythonhosted.org/packages/source/a/%{srcname}/%{pypi_name}-%{version}.tar.gz
 BuildSystem:    pyproject
 
-BuildOption(install):  -l tvm_ffi
+BuildOption(install):  -l tvm_ffi -L
 # An optional helper which imports PyTorch
-BuildOption(check):  -e tvm_ffi.utils._build_optional_torch_c_dlpack
-# Native shared libraries
-BuildOption(check):  -e tvm_ffi.lib.libtvm_ffi
-BuildOption(check):  -e tvm_ffi.lib.libtvm_ffi_testing
+BuildOption(check):  -e 'tvm_ffi.*'
 %ifarch riscv64
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%if "%{_host_cpu}" != "%{_target_cpu}"
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_NAME=Linux
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
+%endif
 %endif
 
 BuildRequires:  cmake
@@ -81,6 +83,32 @@ export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 
 %install -a
 %sglang_private_rpath
+
+%check -a
+# The build option accepts one exclusion glob; check runtime submodules explicitly.
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
+%{python3} -sP /usr/lib/rpm/openruyi/import_all_modules.py \
+    -f "%{_builddir}/%{name}-%{version}-%{release}.%{_target_cpu}-pyproject-modules" \
+    -e tvm_ffi.lib.libtvm_ffi \
+    -e tvm_ffi.lib.libtvm_ffi_testing \
+    -e 'tvm_ffi.testing*' \
+    -e tvm_ffi.utils._build_optional_torch_c_dlpack
+
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
+%{python3} - <<'PY'
+import tvm_ffi
+
+assert tvm_ffi.__version__ == "0.1.11"
+assert tvm_ffi.LIB is not None
+
+name = "openruyi.package_check.echo"
+tvm_ffi.register_global_func(name, lambda value: value)
+try:
+    assert tvm_ffi.get_global_func(name)(37) == 37
+finally:
+    tvm_ffi.remove_global_func(name)
+PY
+
 %files -f %{pyproject_files}
 %doc README.md
 %license LICENSE NOTICE licenses/*

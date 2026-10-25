@@ -43,6 +43,10 @@ _DIST = re.compile(
 _ABI = re.compile(
     r"(?P<wrapped>[A-Za-z0-9_.+-]+)\(python\(abi\)(?P<suffix>[^)]*)\)"
 )
+_NESTED_NAMESPACE = re.compile(
+    r"\b(?:sglang|sglang-extras)\(((?:sglang|sglang-extras)\("
+    r"python(?:[0-9]+(?:\.[0-9]+)?)?dist\([^()]+\)\))\)"
+)
 
 
 def _normalize_dist_name(name: str) -> str:
@@ -80,9 +84,20 @@ def _rewrite_capabilities(
     provides: bool = False,
     default_namespace: str | None = None,
     private_dists: frozenset[str] = frozenset(),
+    shared_dists: frozenset[str] = frozenset(),
     torch_flavor: str | None = None,
 ) -> str:
     """Canonicalize private Python capabilities and unwrap system ones."""
+
+    # RPM generators may already have applied a namespace before this helper
+    # sees the line (for example when two private file attributes overlap).
+    # Collapse only nested SGLang wrappers; arbitrary generator wrappers must
+    # remain untouched and system capabilities must stay global.
+    while True:
+        collapsed = _NESTED_NAMESPACE.sub(r"\1", text)
+        if collapsed == text:
+            break
+        text = collapsed
 
     def replace_dist(match: re.Match[str]) -> str:
         capability = match.group("wcap") or match.group("rawcap")
@@ -94,6 +109,8 @@ def _rewrite_capabilities(
                 lambda match: f"{match.group('prefix')}(torch-{torch_flavor})",
                 capability,
             )
+        if not provides and _normalize_dist_name(name) in shared_dists:
+            return capability
         private_namespace = _private_namespace(name, profile, private_dists)
         if private_namespace is None:
             if provides:
@@ -115,10 +132,15 @@ def _rewrite_capabilities(
 
 
 def _namespace_requirements(
-    text: str, profile: str, torch_flavor: str | None = None
+    text: str,
+    profile: str,
+    torch_flavor: str | None = None,
+    shared_dists: frozenset[str] = frozenset(),
 ) -> str:
     """Namespace only private requirements in a generated requirements file."""
-    return _rewrite_capabilities(text, profile, torch_flavor=torch_flavor)
+    return _rewrite_capabilities(
+        text, profile, torch_flavor=torch_flavor, shared_dists=shared_dists
+    )
 
 
 def main() -> int:
@@ -132,11 +154,21 @@ def main() -> int:
         default="",
         help="comma-separated extra private distribution names for build requirements",
     )
+    parser.add_argument(
+        "--shared-dists",
+        default="",
+        help="comma-separated Python dependencies to resolve from the system",
+    )
     parser.add_argument("--rewrite-requires", type=argparse.FileType("r+"))
     args, passthrough = parser.parse_known_args()
     private_dists = frozenset(
         _normalize_dist_name(name)
         for name in args.private_dists.split(",")
+        if name.strip()
+    )
+    shared_dists = frozenset(
+        _normalize_dist_name(name)
+        for name in args.shared_dists.split(",")
         if name.strip()
     )
     torch_flavor = _torch_flavor(args.package_name) if args.package_name else None
@@ -148,6 +180,7 @@ def main() -> int:
             content,
             args.profile,
             private_dists=private_dists,
+            shared_dists=shared_dists,
             torch_flavor=torch_flavor,
         ))
         path.truncate()
@@ -180,6 +213,7 @@ def main() -> int:
             provides=provides,
             default_namespace=args.namespace,
             private_dists=private_dists,
+            shared_dists=shared_dists,
             torch_flavor=torch_flavor,
         ))
     return result.returncode

@@ -128,12 +128,13 @@ for candidate_rpm in "${candidate_files[@]}"; do
 done
 if [[ -n $candidate_private_python_abi ]]; then
   echo '== private Python ABI preflight =='
-  [[ -x /usr/bin/python3 ]] || {
-    echo "guest lacks the Python $candidate_private_python_abi interpreter required by the candidate payloads" >&2
+  private_interpreter="/usr/bin/python$candidate_private_python_abi"
+  [[ -x $private_interpreter ]] || {
+    echo "guest lacks the versioned interpreter $private_interpreter required by the candidate payloads" >&2
     echo 'PRIVATE_PYTHON_ABI=FAIL' >&2
     exit 1
   }
-  guest_python_abi=$(env -i PATH=/usr/bin:/bin /usr/bin/python3 -I -c \
+  guest_python_abi=$(env -i PATH=/usr/bin:/bin "$private_interpreter" -I -c \
     'import sys; print("%d.%d" % sys.version_info[:2])')
   if [[ $guest_python_abi != "$candidate_private_python_abi" ]]; then
     echo "guest Python ABI mismatch: guest=$guest_python_abi candidates=$candidate_private_python_abi" >&2
@@ -156,60 +157,88 @@ contains_candidate() {
   return 1
 }
 
-# The SGLang CPU transaction is validated as one private runtime closure.  A
-# partial closure would make the conditional smoke checks look successful while
-# leaving dependency resolution to an unrelated system package.  Any candidate
-# that advertises an SGLang private Python capability must trigger this check.
+# The SGLang CPU transaction is validated as one private runtime closure. A
+# partial or augmented candidate set is not a closure: DNF could satisfy the
+# missing pieces from an installed package or an unrelated repository. Keep the
+# allowlist explicit so a newly named or accelerator package cannot reach the
+# install/import/smoke stages by matching a broad prefix.
+required_cpu_candidates=(
+  python-torch-sglang-2.14
+  python-torchaudio-2.11
+  python-torchvision-0.29
+  python-mistral-common-1.12
+  python-click-sglang-8.4
+  python-transformers-sglang-5.19
+  python-tokenizers-sglang-0.23
+  python-huggingface-hub-sglang-1.31
+  python-xgrammar-0.2
+  python-llguidance-1.7
+  python-apache-tvm-ffi-0.1
+  python-grpcio-sglang-1.84
+  python-grpcio-health-checking-sglang-1.84
+  python-grpcio-reflection-sglang-1.84
+  python-smg-grpc-proto
+  python-smg-grpc-servicer
+  python-triton-sglang-3.8
+  python-sglang-kernel-cpu
+  python-sglang
+  python-torchcodec-sglang-0.12
+)
+# These packages are valid optional providers used by the generated gRPC
+# tooling/status modules. They are allowed when staged, but are not required
+# by the SGLang CPU runtime dependency graph.
+allowed_cpu_candidates=(
+  "${required_cpu_candidates[@]}"
+  python-grpcio-tools-sglang-1.84
+  python-grpcio-status-sglang-1.84
+)
 private_runtime_candidate=0
-for ((index = 0; index < ${#candidate_names[@]}; index++)); do
-  name=${candidate_names[index]}
-  rpm=${candidate_files[index]}
-  case "$name" in
-    python-sglang*|python-torch-sglang*|python-torchaudio*|python-torchvision*|python-triton-sglang*)
-      private_runtime_candidate=1
-      break
-      ;;
-  esac
-  while IFS= read -r capability; do
-    if [[ $capability == sglang\(python3dist\(*\)\)* ]]; then
-      private_runtime_candidate=1
-      break 2
-    fi
-  done < <(rpm -qp --provides -- "$rpm")
+for candidate_name in "${candidate_names[@]}"; do
+  for required_candidate in "${required_cpu_candidates[@]}"; do
+    [[ $candidate_name == "$required_candidate" ]] || continue
+    private_runtime_candidate=1
+    break 2
+  done
 done
+if (( ! private_runtime_candidate )); then
+  for candidate_rpm in "${candidate_files[@]}"; do
+    while IFS= read -r capability; do
+      if [[ $capability == sglang\(python3dist\(*\)\)* ]]; then
+        private_runtime_candidate=1
+        break 2
+      fi
+    done < <(rpm -qp --provides -- "$candidate_rpm")
+  done
+fi
+cpu_closure_complete=0
 if (( private_runtime_candidate )); then
-  required_cpu_candidates=(
-    python-torch-sglang-2.14
-    python-torchaudio-2.11
-    python-torchvision-0.29
-    python-tokenizers-sglang-0.23
-    python-transformers-sglang-5.19
-    python-huggingface-hub-sglang-1.31
-    python-click-sglang-8.4
-    python-mistral-common-1.12
-    python-timm-sglang-1.0
-    python-xgrammar-0.2
-    python-llguidance-1.7
-    python-apache-tvm-ffi-0.1
-    python-grpcio-sglang-1.84
-    python-grpcio-health-checking-sglang-1.84
-    python-grpcio-reflection-sglang-1.84
-    python-smg-grpc-proto
-    python-smg-grpc-servicer
-    python-triton-sglang-3.8
-    python-sglang-kernel-cpu
-    python-sglang
-    python-torchcodec-sglang-0.12
-  )
   missing_cpu_candidates=()
+  unexpected_cpu_candidates=()
   for required_candidate in "${required_cpu_candidates[@]}"; do
     contains_candidate "$required_candidate" || missing_cpu_candidates+=("$required_candidate")
   done
-  if ((${#missing_cpu_candidates[@]} > 0)); then
-    printf 'missing CPU SGLang RPM candidate: %s\n' "${missing_cpu_candidates[@]}" >&2
+  for candidate_name in "${candidate_names[@]}"; do
+    candidate_is_allowed=0
+    for allowed_candidate in "${allowed_cpu_candidates[@]}"; do
+      [[ $candidate_name == "$allowed_candidate" ]] || continue
+      candidate_is_allowed=1
+      break
+    done
+    (( candidate_is_allowed )) || unexpected_cpu_candidates+=("$candidate_name")
+  done
+  if ((${#missing_cpu_candidates[@]} > 0 || ${#unexpected_cpu_candidates[@]} > 0)); then
+    if ((${#missing_cpu_candidates[@]} > 0)); then
+      printf 'missing CPU SGLang RPM candidate: %s\n' "${missing_cpu_candidates[@]}" >&2
+    fi
+    if ((${#unexpected_cpu_candidates[@]} > 0)); then
+      printf 'unexpected CPU SGLang RPM candidate: %s\n' "${unexpected_cpu_candidates[@]}" >&2
+    fi
     echo 'CPU_SGLANG_CLOSURE=FAIL' >&2
     exit 2
   fi
+
+  # No later stage may be reached unless the complete allowlisted set is present.
+  cpu_closure_complete=1
 
   # Resolve the private Python capability graph from candidate RPM metadata
   # alone. DNF can see already-installed packages, so its transaction result
@@ -344,15 +373,39 @@ system_snapshot() {
   env -i PATH=/usr/bin:/bin HOME=/root LANG=C LC_ALL=C \
     PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 python3 -s - <<'PY'
 import importlib
+import importlib.metadata
 from pathlib import Path
 
-for name in ("torch", "torchaudio", "torchvision", "tokenizers", "transformers", "sglang", "triton", "torchcodec"):
+shared_baseline = {
+    "transformers": ("transformers", "5.12.1"),
+    "tokenizers": ("tokenizers", "0.22.2"),
+    "huggingface_hub": ("huggingface-hub", "1.16.0"),
+    "timm": ("timm", "1.0.28"),
+}
+sglang_roots = (Path("/usr/lib/sglang").resolve(), Path("/usr/lib64/sglang").resolve())
+
+def is_sglang_path(path):
+    resolved = Path(path).resolve()
+    return any(resolved == root or root in resolved.parents for root in sglang_roots)
+
+for name in ("torch", "torchaudio", "torchvision", "tokenizers", "transformers", "timm", "sglang", "triton", "torchcodec"):
     try:
         module = importlib.import_module(name)
         path = Path(module.__file__).resolve() if getattr(module, "__file__", None) else "<none>"
+        if name in shared_baseline:
+            distribution, expected = shared_baseline[name]
+            actual = importlib.metadata.version(distribution)
+            if actual != expected:
+                raise RuntimeError(f"{name} system version mismatch: expected {expected}, got {actual}")
+            module_paths = [getattr(module, "__file__", None), *getattr(module, "__path__", ())]
+            distribution_path = importlib.metadata.distribution(distribution).locate_file("")
+            if any(item and is_sglang_path(item) for item in [*module_paths, distribution_path]):
+                raise RuntimeError(f"{name} system import resolved inside the SGLang tree")
         print(f"{name}\t{getattr(module, '__version__', '<none>')}\t{path}")
     except BaseException as exc:
         print(f"{name}\tERROR:{type(exc).__name__}")
+        if name in shared_baseline:
+            raise
 PY
 }
 
@@ -465,34 +518,29 @@ for rpm in "$@"; do
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torchvision)) = 0.29.0'
       assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-rocm)) = 2.14.0'
       ;;
-    python-tokenizers-sglang-0.23)
-      [[ $version == 0.23.2 ]] || { echo "unexpected tokenizers version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(tokenizers)) = 0.23.2'
-      ;;
-    python-transformers-sglang-5.19)
-      [[ $version == 5.19.0 ]] || { echo "unexpected transformers version: $version" >&2; metadata_failure=1; }
-      # RPM may normalize the equivalent 5.19.0 capability to 5.19.
-      assert_metadata_line_any "$rpm" provides \
-        'sglang(python3dist(transformers)) = 5.19' \
-        'sglang(python3dist(transformers)) = 5.19.0'
-      ;;
-    python-huggingface-hub-sglang-1.31)
-      [[ $version == 1.31.0 ]] || { echo "unexpected huggingface-hub version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(huggingface-hub)) = 1.31.0'
-      ;;
-    python-click-sglang-8.4)
-      [[ $version == 8.4.2 ]] || { echo "unexpected Click version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(click)) = 8.4.2'
-      ;;
     python-mistral-common-1.12)
       [[ $version == 1.12.0 ]] || { echo "unexpected Mistral Common version: $version" >&2; metadata_failure=1; }
       assert_metadata_line_any "$rpm" provides \
         'sglang(python3dist(mistral-common)) = 1.12' \
         'sglang(python3dist(mistral-common)) = 1.12.0'
       ;;
-    python-timm-sglang-1.0)
-      [[ $version == 1.0.28 ]] || { echo "unexpected timm version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(timm)) = 1.0.28'
+    python-click-sglang-8.4)
+      [[ $version == 8.4.2 ]] || { echo "unexpected Click version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(click)) = 8.4.2'
+      ;;
+    python-transformers-sglang-5.19)
+      [[ $version == 5.19.0 ]] || { echo "unexpected Transformers version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(transformers)) = 5.19'
+      ;;
+    python-tokenizers-sglang-0.23)
+      [[ $version == 0.23.2 ]] || { echo "unexpected Tokenizers version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line_any "$rpm" provides \
+        'sglang(python3dist(tokenizers)) = 0.23' \
+        'sglang(python3dist(tokenizers)) = 0.23.2'
+      ;;
+    python-huggingface-hub-sglang-1.31)
+      [[ $version == 1.31.0 ]] || { echo "unexpected Hugging Face Hub version: $version" >&2; metadata_failure=1; }
+      assert_metadata_line "$rpm" provides 'sglang(python3dist(huggingface-hub)) = 1.31.0'
       ;;
     python-xgrammar-0.2)
       [[ $version == 0.2.7 ]] || { echo "unexpected XGrammar version: $version" >&2; metadata_failure=1; }
@@ -537,9 +585,8 @@ for rpm in "$@"; do
     python-sglang)
       [[ $version == 0.5.21 ]] || { echo "unexpected SGLang version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
-      assert_metadata_line_any "$rpm" requires \
-        'sglang(python3dist(transformers)) = 5.19' \
-        'sglang(python3dist(transformers)) = 5.19.0'
+      assert_metadata_line "$rpm" requires 'sglang(python3dist(transformers)) = 5.19'
+      assert_metadata_line "$rpm" requires 'python3dist(timm) = 1.0.28'
       ;;
     python-sglang-kernel-cpu)
       [[ $version == 0.4.7 ]] || { echo "unexpected SGLang CPU kernel version: $version" >&2; metadata_failure=1; }
@@ -579,6 +626,12 @@ for rpm in "$@"; do
 done
 echo 'ShortCircuited: ABSENT'
 echo 'SHORTCIRCUITED_RESULT=PASS'
+
+if (( ! cpu_closure_complete )); then
+  echo 'CPU_SGLANG_CLOSURE=SKIPPED (candidate set is not a complete private CPU closure)' >&2
+  echo 'HARNESS_RESULT=SKIPPED (no install/import/smoke without complete CPU closure)' >&2
+  exit "$EX_SKIP"
+fi
 
 echo '== offline DNF repository check =='
 repo_dir="$tmp/repo"
@@ -693,14 +746,22 @@ if contains_candidate python-sglang; then
     echo "expected one python-sglang candidate, found $sglang_count" >&2
     exit 1
   }
+  rpm -qp --qf '[%{FILENAMES}\n]' -- "$sglang_rpm" | grep -Fqx -- "$coexistence_script" || {
+    echo "candidate python-sglang does not own helper $coexistence_script" >&2
+    exit 1
+  }
+  rpm -qp --qf '[%{FILENAMES}\n]' -- "$sglang_rpm" | grep -Fqx -- "$cpu_smoke_script" || {
+    echo "candidate python-sglang does not own helper $cpu_smoke_script" >&2
+    exit 1
+  }
   (cd "$validation_root" && rpm2cpio "$sglang_rpm" | cpio -idm --quiet)
   preinstall_coexistence_script="$validation_root$coexistence_script"
   preinstall_cpu_smoke_script="$validation_root$cpu_smoke_script"
-  [[ -f $preinstall_coexistence_script ]] || {
+  [[ -f $preinstall_coexistence_script && -x $preinstall_coexistence_script ]] || {
     echo "COEXISTENCE=FAIL (missing candidate helper $preinstall_coexistence_script)" >&2
     exit 1
   }
-  [[ -f $preinstall_cpu_smoke_script ]] || {
+  [[ -f $preinstall_cpu_smoke_script && -x $preinstall_cpu_smoke_script ]] || {
     echo "CPU_ENGINE_SMOKE=FAIL (missing candidate helper $preinstall_cpu_smoke_script)" >&2
     exit 1
   }
@@ -753,6 +814,34 @@ if (( install )); then
   done
   echo 'INSTALL_VERIFY=PASS'
   echo 'DNF_INSTALL_TRANSACTION_VERIFY=PASS (DNF completed and every candidate NEVRA is installed)'
+  if contains_candidate python-sglang; then
+    installed_helper_owner=$(rpm -qf --qf '%{NAME}\n' -- "$coexistence_script" 2>/dev/null) || {
+      echo "installed coexistence helper is not RPM-owned: $coexistence_script" >&2
+      exit 1
+    }
+    [[ $installed_helper_owner == python-sglang ]] || {
+      echo "installed coexistence helper owner mismatch: $installed_helper_owner" >&2
+      exit 1
+    }
+    installed_helper_owner=$(rpm -qf --qf '%{NAME}\n' -- "$cpu_smoke_script" 2>/dev/null) || {
+      echo "installed CPU smoke helper is not RPM-owned: $cpu_smoke_script" >&2
+      exit 1
+    }
+    [[ $installed_helper_owner == python-sglang ]] || {
+      echo "installed CPU smoke helper owner mismatch: $installed_helper_owner" >&2
+      exit 1
+    }
+  fi
+  if contains_candidate python-sglang-kernel-cpu; then
+    installed_helper_owner=$(rpm -qf --qf '%{NAME}\n' -- "$kernel_smoke_script" 2>/dev/null) || {
+      echo "installed kernel smoke helper is not RPM-owned: $kernel_smoke_script" >&2
+      exit 1
+    }
+    [[ $installed_helper_owner == python-sglang-kernel-cpu ]] || {
+      echo "installed kernel smoke helper owner mismatch: $installed_helper_owner" >&2
+      exit 1
+    }
+  fi
   system_after=$(system_snapshot)
   printf '%s\n' "$system_after" > "$tmp/system-after.txt"
   if [[ $system_after != "$system_before" ]]; then
@@ -818,12 +907,8 @@ if [[ -n $private_site ]]; then
       python-torch-sglang-2.14|python-torch-sglang-2.14-rocm) expected_modules+="torch," ;;
       python-torchaudio-2.11|python-torchaudio-2.11-rocm) expected_modules+="torchaudio," ;;
       python-torchvision-0.29|python-torchvision-0.29-rocm) expected_modules+="torchvision," ;;
-      python-tokenizers-sglang-0.23) expected_modules+="tokenizers," ;;
-      python-transformers-sglang-5.19) expected_modules+="transformers," ;;
-      python-huggingface-hub-sglang-1.31) expected_modules+="huggingface_hub," ;;
       python-click-sglang-8.4) expected_modules+="click," ;;
       python-mistral-common-1.12) expected_modules+="mistral_common," ;;
-      python-timm-sglang-1.0) expected_modules+="timm," ;;
       python-xgrammar-0.2) expected_modules+="xgrammar," ;;
       python-llguidance-1.7) expected_modules+="llguidance," ;;
       python-apache-tvm-ffi-0.1) expected_modules+="tvm_ffi," ;;
@@ -835,6 +920,9 @@ if [[ -n $private_site ]]; then
       python-smg-grpc-proto) expected_modules+="smg_grpc_proto,smg_grpc_proto.generated.common_pb2,smg_grpc_proto.generated.sglang_scheduler_pb2,smg_grpc_proto.generated.sglang_scheduler_pb2_grpc,smg_grpc_proto.generated.tokenspeed_scheduler_pb2,smg_grpc_proto.generated.vllm_engine_pb2_grpc," ;;
       python-smg-grpc-servicer) expected_modules+="smg_grpc_servicer," ;;
       python-sglang) expected_modules+="sglang," ;;
+      python-transformers-sglang-5.19) expected_modules+="transformers," ;;
+      python-tokenizers-sglang-0.23) expected_modules+="tokenizers," ;;
+      python-huggingface-hub-sglang-1.31) expected_modules+="huggingface_hub," ;;
       python-sglang-kernel-cpu) expected_modules+="sgl_kernel," ;;
       python-triton-sglang-3.8) expected_modules+="triton," ;;
       python-torchcodec-sglang-0.12) expected_modules+="torchcodec," ;;
@@ -872,15 +960,20 @@ if [[ -n $private_site ]]; then
     fi
   }
   SGLANG_EXPECTED_MODULES="$expected_modules" \
+  SGLANG_CANDIDATE_NAMES="$(printf '%s\n' "${candidate_names[@]}")" \
   SGLANG_EXPECTED_PYTHON_VERSION="${private_site%/site-packages}" \
     run_private_python - "$private_site" <<'PY'
 import importlib
 import importlib.metadata
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
 
 private = Path(sys.argv[1]).resolve()
+private_profile = private.parents[1]
+sglang_root = private_profile.parent
 expected_python = Path(os.environ["SGLANG_EXPECTED_PYTHON_VERSION"]).name.removeprefix("python")
 actual_python = f"{sys.version_info.major}.{sys.version_info.minor}"
 if actual_python != expected_python:
@@ -888,16 +981,16 @@ if actual_python != expected_python:
         f"private interpreter ABI mismatch: expected Python {expected_python}, got {actual_python}"
     )
 names = tuple(name for name in os.environ.get("SGLANG_EXPECTED_MODULES", "").split(",") if name)
+candidate_names = frozenset(name for name in os.environ.get("SGLANG_CANDIDATE_NAMES", "").splitlines() if name)
 required = {
     "torch": ("torch", "2.14.0"),
     "torchaudio": ("torchaudio", "2.11.0"),
     "torchvision": ("torchvision", "0.29.0"),
-    "tokenizers": ("tokenizers", "0.23.2"),
-    "transformers": ("transformers", "5.19.0"),
-    "huggingface_hub": ("huggingface-hub", "1.31.0"),
     "click": ("click", "8.4.2"),
+    "transformers": ("transformers", "5.19.0"),
+    "tokenizers": ("tokenizers", "0.23.2"),
+    "huggingface_hub": ("huggingface-hub", "1.31.0"),
     "mistral_common": ("mistral-common", "1.12.0"),
-    "timm": ("timm", "1.0.28"),
     "xgrammar": ("xgrammar", "0.2.7"),
     "llguidance": ("llguidance", "1.7.6"),
     "tvm_ffi": ("apache-tvm-ffi", "0.1.11"),
@@ -947,6 +1040,25 @@ for name in names:
     path = check_module(name, module)
     print(f"IMPORT {name}: PASS version={required[name][1]} path={path}")
 
+shared = {
+    "timm": ("timm", "1.0.28"),
+}
+for name, (distribution, expected_version) in shared.items():
+    module = importlib.import_module(name)
+    actual_version = importlib.metadata.version(distribution)
+    if actual_version != expected_version:
+        raise RuntimeError(
+            f"{name} version mismatch: expected {expected_version}, got {actual_version}"
+        )
+    module_paths = [getattr(module, "__file__", None), *getattr(module, "__path__", ())]
+    for module_path in module_paths:
+        if module_path and (private in Path(module_path).resolve().parents or sglang_root in Path(module_path).resolve().parents):
+            raise RuntimeError(f"shared module {name} loaded from private tree: {module_path}")
+    distribution_path = Path(importlib.metadata.distribution(distribution).locate_file("")).resolve()
+    if private in distribution_path.parents or sglang_root in distribution_path.parents:
+        raise RuntimeError(f"shared distribution {distribution} is inside the SGLang tree")
+    print(f"IMPORT_SHARED {name}: PASS version={actual_version} path={module_paths[0]}")
+
 for module_name, module in tuple(sys.modules.items()):
     if not module or not module_name.startswith((
         "torch", "torchaudio", "torchvision", "triton", "sgl_kernel", "tvm_ffi",
@@ -965,6 +1077,47 @@ for name in names:
         for native in root.rglob("*.so*"):
             if native.is_file():
                 check_private(f"{name} native", native)
+
+# Inspect the files that the dynamic loader actually mapped during import.
+# Import paths alone miss transitive private libraries loaded by an extension;
+# a mapped private object must remain inside this profile's RPM-owned tree and
+# must have an ELF header. System libraries are intentionally outside this
+# check and are resolved by normal RPM dependencies.
+mapped_private_count = 0
+for line in Path("/proc/self/maps").read_text().splitlines():
+    fields = line.split()
+    if len(fields) < 6:
+        continue
+    mapped = " ".join(fields[5:])
+    if not mapped.startswith("/"):
+        continue
+    if mapped.endswith(" (deleted)"):
+        mapped = mapped.removesuffix(" (deleted)")
+    if not re.search(r"\.so(?:\.[0-9]+)*$", Path(mapped).name):
+        continue
+    resolved = Path(mapped).resolve()
+    if sglang_root != resolved and sglang_root not in resolved.parents:
+        continue
+    mapped_private_count += 1
+    owner_result = subprocess.run(
+        ["rpm", "-qf", "--qf", "%{NAME}\\n", "--", str(resolved)],
+        check=False, capture_output=True, text=True,
+    )
+    if owner_result.returncode != 0:
+        raise RuntimeError(f"mapped private object is not RPM-owned: {resolved}")
+    owners = frozenset(line for line in owner_result.stdout.splitlines() if line)
+    if not owners or not owners.issubset(candidate_names):
+        raise RuntimeError(
+            f"mapped private object has unexpected RPM owner(s): {resolved}: {sorted(owners)}"
+        )
+    with resolved.open("rb") as stream:
+        if stream.read(4) != b"\x7fELF":
+            raise RuntimeError(f"mapped private object is not ELF: {resolved}")
+    if private_profile != resolved and private_profile not in resolved.parents:
+        raise RuntimeError(f"mapped private object escaped profile: {resolved}")
+
+if mapped_private_count == 0:
+    raise RuntimeError("no private ELF object was mapped during import")
 
 print(f"PRIVATE_IMPORT_RESULT=PASS private_site={private}")
 PY

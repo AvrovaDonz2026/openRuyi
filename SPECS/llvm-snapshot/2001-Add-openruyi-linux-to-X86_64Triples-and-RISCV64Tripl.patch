@@ -28,7 +28,7 @@ index 90fc71c14736..aff79c03c43e 100644
    static const char *const RISCV64LibDirs[] = {"/lib64", "/lib"};
    static const char *const RISCV64Triples[] = {"riscv64-unknown-linux-gnu",
                                                 "riscv64-unknown-elf",
-+                                               "riscv64-openruyi-linux"
++                                               "riscv64-openruyi-linux",
                                                 "riscv64-redhat-linux"};
  
    static const char *const RISCV32beLibDirs[] = {"/lib32", "/lib"};

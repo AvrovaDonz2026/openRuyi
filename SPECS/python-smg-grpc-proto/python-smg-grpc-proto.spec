@@ -10,7 +10,7 @@
 %global pypi_name smg-grpc-proto
 
 Name:           python-smg-grpc-proto
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat core
 Version:        0.4.22
 Release:        %autorelease

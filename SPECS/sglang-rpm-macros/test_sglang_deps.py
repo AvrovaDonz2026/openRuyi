@@ -50,9 +50,32 @@ def load_helper(filename: str):
 DISTDEPS = load_helper("sglangdistdeps.py")
 ELFDEPS = load_helper("sglang-elfdeps.py")
 CLOSURE = load_helper("check_sglang_rpm_closure.py")
+PRIVATE_PATHS = load_helper("sglang_private_paths.py")
 
 
 class SglangDependencyTests(unittest.TestCase):
+    def test_private_install_rewrites_python_entrypoint_shebangs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "env-entrypoint").write_bytes(b"#!/usr/bin/env python3 -s\nprint(1)\n")
+            (root / "absolute-entrypoint").write_bytes(b"#!/usr/bin/python3.13\nprint(2)\n")
+            (root / "shell-script").write_bytes(b"#!/bin/sh\nprintf ok\n")
+
+            PRIVATE_PATHS.rewrite_python_shebangs(root, "/usr/bin/python3.14")
+
+            self.assertEqual(
+                (root / "env-entrypoint").read_bytes(),
+                b"#!/usr/bin/python3.14 -s\nprint(1)\n",
+            )
+            self.assertEqual(
+                (root / "absolute-entrypoint").read_bytes(),
+                b"#!/usr/bin/python3.14\nprint(2)\n",
+            )
+            self.assertEqual(
+                (root / "shell-script").read_bytes(),
+                b"#!/bin/sh\nprintf ok\n",
+            )
+
     def run_generator(self, helper: Path, generator_output: str, arguments: list[str],
                       stdin: str = "", status: int = 0):
         """Run a helper against a real executable fake generator."""
@@ -122,6 +145,24 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertNotIn("sglang(python(abi))", extras)
         self.assertNotIn("sglang(python3dist(numpy))", extras)
 
+    def test_python_capabilities_collapse_nested_private_namespaces(self):
+        requirements = "\n".join((
+            "sglang(sglang(python3dist(torch))) >= 2",
+            "sglang(sglang-extras(python3dist(fsspec)))",
+        ))
+        self.assertEqual(
+            DISTDEPS._rewrite_capabilities(
+                requirements,
+                "extras",
+                provides=True,
+                default_namespace="sglang-extras",
+            ),
+            "\n".join((
+                "sglang(python3dist(torch)) >= 2",
+                "sglang-extras(python3dist(fsspec))",
+            )),
+        )
+
     def test_torch_flavor_capabilities_follow_package_name(self):
         for package_name, flavor in (
             ("python-torch-sglang-2.14", "cpu"),
@@ -161,11 +202,10 @@ class SglangDependencyTests(unittest.TestCase):
             "sglang(python3dist(torch-cpu))",
         )
 
-    def test_transformers_closure_uses_private_providers_in_both_profiles(self):
-        # A system provider must not satisfy the newer private stack's
-        # requirements, including normalized distribution names and extras.
+    def test_selected_system_dependencies_remain_global_in_both_profiles(self):
         requirements = "\n".join((
-            "python3dist(transformers) = 5.19",
+            "python3dist(transformers) = 5.12.1",
+            "python3dist(timm) = 1.0.28",
             "python3dist(tokenizers) >= 0.23.1",
             "python3dist(huggingface_hub) >= 1.31",
             "python3dist(click) >= 8.4.2",
@@ -175,9 +215,14 @@ class SglangDependencyTests(unittest.TestCase):
         ))
         for profile in ("core", "extras"):
             with self.subTest(profile=profile):
-                output = DISTDEPS._namespace_requirements(requirements, profile)
+                output = DISTDEPS._namespace_requirements(
+                    requirements,
+                    profile,
+                    shared_dists=frozenset(("transformers", "timm")),
+                )
                 self.assertEqual(output, "\n".join((
-                    "sglang(python3dist(transformers)) = 5.19",
+                    "python3dist(transformers) = 5.12.1",
+                    "python3dist(timm) = 1.0.28",
                     "sglang(python3dist(tokenizers)) >= 0.23.1",
                     "sglang(python3dist(huggingface_hub)) >= 1.31",
                     "sglang(python3dist(click)) >= 8.4.2",
@@ -185,6 +230,19 @@ class SglangDependencyTests(unittest.TestCase):
                     "python3dist(packaging) >= 20",
                     "python3dist(safetensors) >= 0.8",
                 )))
+
+    def test_shared_dependency_requires_do_not_change_private_provides(self):
+        rewritten = DISTDEPS._rewrite_capabilities(
+            "python3dist(transformers) = 5.12.1",
+            "core",
+            provides=True,
+            default_namespace="sglang",
+            shared_dists=frozenset(("transformers",)),
+        )
+        self.assertEqual(
+            rewritten,
+            "sglang(python3dist(transformers)) = 5.12.1",
+        )
 
     def test_timm_is_private_and_uses_cpu_torch_provider(self):
         requires = DISTDEPS._namespace_requirements(
@@ -209,6 +267,7 @@ class SglangDependencyTests(unittest.TestCase):
             "python(abi) = 3.13",
             "python3dist(numpy) >= 2",
             "python3dist(torch) >= 2",
+            "python3dist(transformers) = 5.12.1",
             "python3dist(fsspec)",
         ))
         result = self.run_generator(
@@ -216,7 +275,8 @@ class SglangDependencyTests(unittest.TestCase):
             output,
             [
                 "--profile", "extras", "--namespace", "sglang-extras",
-                "--private-dists", "scikit-build-core", "--requires",
+                "--private-dists", "scikit-build-core",
+                "--shared-dists", "transformers", "--requires",
             ],
             stdin="metadata sent to generator\n",
             status=17,
@@ -227,6 +287,7 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertIn("python(abi) = 3.13", result.stdout)
         self.assertIn("python3dist(numpy) >= 2", result.stdout)
         self.assertIn("sglang(python3dist(torch)) >= 2", result.stdout)
+        self.assertIn("python3dist(transformers) = 5.12.1", result.stdout)
         self.assertIn("sglang-extras(python3dist(fsspec))", result.stdout)
 
     def test_python_short_generator_option_is_accepted(self):
@@ -254,6 +315,29 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertIn(
             'export CARGO_NET_OFFLINE=true\n  export PIP_NO_INDEX=1\n  %%pyproject_buildrequires',
             macros,
+        )
+
+    def test_elf_exclude_path_covers_rpm6_buildroot_and_installed_paths(self):
+        macros = (ROOT / "macros.sglang").read_text()
+        line = next(
+            item for item in macros.splitlines()
+            if item.startswith("%%global __elf_exclude_path ")
+        )
+        expression = line.split(None, 2)[2].replace("\\\\", "\\")
+        expression = expression.replace("[[:digit:]]", "[0-9]")
+        expression = expression.replace("[[:alnum:]]", "[A-Za-z0-9]")
+        path_pattern = re.compile(expression)
+        for path in (
+            "/usr/lib/sglang/core/lib/libtorch_cpu.so",
+            "/usr/lib64/sglang/extras/python3.13/site-packages/torch/lib/libtorch_cpu.so",
+            "/buildroot/usr/lib/sglang/core/lib/libtorch_cpu.so",
+            "/buildroot/usr/lib64/sglang/extras/python3.13/site-packages/torch/lib/libtorch_cpu.so",
+        ):
+            with self.subTest(path=path):
+                self.assertRegex(path, path_pattern)
+        self.assertNotRegex(
+            "/usr/lib/python3.13/site-packages/torch/lib/libtorch_cpu.so",
+            path_pattern,
         )
 
     def test_elf_provides_namespace_arbitrary_private_soname(self):

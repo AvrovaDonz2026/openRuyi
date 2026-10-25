@@ -11,7 +11,7 @@
 %global pypi_name grpcio_reflection
 
 Name:           python-grpcio-reflection-sglang-1.84
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat core
 Version:        1.84.0
 Release:        %autorelease

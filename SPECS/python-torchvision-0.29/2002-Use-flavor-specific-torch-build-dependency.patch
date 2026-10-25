@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-Upstream-Status: Downstream
+Upstream-Status: Downstream (offline flavor-specific Torch packaging)
 Upstream-Reference: https://github.com/pytorch/vision/tree/v0.29.0
 
 From c7328b915aa507aff91c41e8694f04d4109d4334 Mon Sep 17 00:00:00 2001

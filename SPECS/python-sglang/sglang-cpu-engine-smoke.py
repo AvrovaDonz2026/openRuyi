@@ -40,6 +40,26 @@ def request_json(url, payload=None, timeout=5):
         return response.status, json.loads(response.read()) if data else None
 
 
+def validate_generation_response(response, requested_tokens=1):
+    if not isinstance(response, dict):
+        raise RuntimeError(f"unexpected /generate response: {response!r}")
+    output_ids = response.get("output_ids")
+    if not isinstance(output_ids, list) or not output_ids:
+        raise RuntimeError(f"/generate returned no token output: {response!r}")
+    if any(type(token) is not int for token in output_ids):
+        raise RuntimeError(f"/generate returned invalid token IDs: {response!r}")
+    meta_info = response.get("meta_info")
+    completion_tokens = (
+        meta_info.get("completion_tokens") if isinstance(meta_info, dict) else None
+    )
+    if type(completion_tokens) is not int or completion_tokens < 1:
+        raise RuntimeError(f"/generate reported no generated tokens: {response!r}")
+    if completion_tokens != len(output_ids) or completion_tokens > requested_tokens:
+        raise RuntimeError(
+            f"/generate token IDs do not match its completion count: {response!r}"
+        )
+
+
 def make_fixture(root, timeout, python_command=None):
     vocab = {"<pad>": 0, "<bos>": 1, "<eos>": 2, "<unk>": 3}
     vocab.update({f"token{i}": i + 4 for i in range(28)})
@@ -83,9 +103,15 @@ tok.save(str(root / "tokenizer.json"))
     python_command = python_command or os.environ.get(
         "SGLANG_SMOKE_PYTHON", "/usr/bin/sglang-python"
     )
+    env = os.environ.copy()
+    env.update({
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONSAFEPATH": "1",
+    })
     subprocess.run(
         [python_command, "-c", code, str(root)],
         check=True,
+        env=env,
         timeout=timeout,
     )
 
@@ -93,21 +119,30 @@ tok.save(str(root / "tokenizer.json"))
 def terminate(process, timeout=5):
     if process is None:
         return
-    try:
-        os.killpg(process.pid, signal.SIGTERM)
-    except ProcessLookupError:
-        pass
+
+    if process.poll() is None:
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except OSError:
+            pass
     if process.poll() is None:
         try:
             process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             pass
+
+    # The leader may have exited while worker children remain in the group.
     try:
         os.killpg(process.pid, signal.SIGKILL)
-    except ProcessLookupError:
+    except OSError:
         pass
     if process.poll() is None:
-        process.wait(timeout=timeout)
+        try:
+            process.wait(timeout=timeout)
+        except (OSError, subprocess.TimeoutExpired):
+            # The group was already signalled; preserve the smoke-test error
+            # if a broken child cannot be reaped within the cleanup budget.
+            pass
 
 
 def main():
@@ -179,17 +214,16 @@ def main():
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise RuntimeError(f"server did not become healthy within {args.timeout:g}s")
+                requested_tokens = 1
                 status, response = request_json(
                     base + "/generate",
                     {"input_ids": [4, 5], "sampling_params": {
-                        "temperature": 0.0, "max_new_tokens": 1}},
+                        "temperature": 0.0, "max_new_tokens": requested_tokens}},
                     timeout=min(120.0, remaining),
                 )
                 if status != 200 or not isinstance(response, dict):
                     raise RuntimeError(f"unexpected /generate response: {status} {response!r}")
-                output_ids = response.get("output_ids")
-                if not output_ids or not isinstance(output_ids, list):
-                    raise RuntimeError(f"/generate returned no token output: {response!r}")
+                validate_generation_response(response, requested_tokens)
                 if process.poll() is not None:
                     tail = log_path.read_text(encoding="utf-8", errors="replace")[-4000:]
                     raise RuntimeError(

@@ -53,7 +53,7 @@ URL:            https://github.com/pytorch/audio
 # PyPI only provides prebuilt wheels for this release; build from GitHub source.
 #!RemoteAsset:  sha256:599ec24e7e1eef476ef21f0178e33da00e2434f930ba42e9cc20bf4002220486
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz#/audio-%{version}.tar.gz
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 BuildRequires:  file
 BuildRequires:  patchelf
 %sglang_python_compat core
@@ -77,6 +77,10 @@ BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%if "%{_host_cpu}" != "%{_target_cpu}"
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_NAME=Linux
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
+%endif
 %endif
 
 BuildRequires:  cmake
@@ -140,7 +144,7 @@ export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %sglang_private_rpath
 
 %check -a
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_sitelib}${PYTHONPATH:+:$PYTHONPATH}" \
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
 %{python3} - <<'PY'
 import torch
 import torchaudio

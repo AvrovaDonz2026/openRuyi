@@ -10,7 +10,7 @@
 %global pypi_name smg-grpc-servicer
 
 Name:           python-smg-grpc-servicer
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat core
 Version:        0.9.1
 Release:        %autorelease

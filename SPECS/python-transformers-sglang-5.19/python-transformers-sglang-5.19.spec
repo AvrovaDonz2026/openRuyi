@@ -10,7 +10,7 @@
 %global compat_name python-transformers-sglang-5.19
 
 Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat core
 Version:        5.19.0
 Release:        %autorelease
