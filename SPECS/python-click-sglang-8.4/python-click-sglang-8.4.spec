@@ -10,7 +10,7 @@
 %global compat_name python-click-sglang-8.4
 
 Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat core
 Version:        8.4.2
 Release:        %autorelease
@@ -36,7 +36,7 @@ package provides the SGLang-private 8.4 compatibility tree.
 %sglang_pyproject_buildrequires
 
 %check -a
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_sitelib}" \
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
 %{python3} -s - <<'PY'
 import click
 from importlib.metadata import version

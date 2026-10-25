@@ -44,10 +44,10 @@
 %global llvm_commit 5f07f818b51b786b0a87b4e514882600ecba112f
 
 %global bootstrap_llvm_maj_ver 22
+# These tools run during the build, including when the package target is
+# riscv64 and the build host is x86_64.  Keep this path separate from the
+# target-architecture LLVM installation produced below.
 %global bootstrap_llvm_bindir %{_libdir}/llvm%{bootstrap_llvm_maj_ver}/bin
-%ifarch riscv64
-%global llvm_bindir %{bootstrap_llvm_bindir}
-%endif
 
 # Build the bundled LLVM and the Triton extension with clang
 %global toolchain clang
@@ -55,7 +55,7 @@
 %define _find_debuginfo_dwz_opts %{nil}
 
 Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 BuildRequires:  file
 BuildRequires:  patchelf
 BuildRequires:  git-core
@@ -63,6 +63,7 @@ BuildRequires:  git-core
 Version:        3.8.0
 Release:        %autorelease
 Summary:        Language and compiler for custom deep-learning primitives
+Provides:       sglang(python3dist(triton)) = %{version}
 # Triton itself is MIT.  The statically bundled LLVM/MLIR/LLD is
 # "Apache-2.0 WITH LLVM-exception OR NCSA"; pybind11 headers are BSD-3-Clause
 License:        MIT AND (Apache-2.0 WITH LLVM-exception OR NCSA) AND BSD-3-Clause
@@ -88,6 +89,8 @@ BuildRequires:  cmake
 BuildRequires:  gcc-c++
 BuildRequires:  libstdc++-devel
 BuildRequires:  lld(major) = %{bootstrap_llvm_maj_ver}
+BuildRequires:  llvm(major) = %{bootstrap_llvm_maj_ver}
+BuildRequires:  mlir%{bootstrap_llvm_maj_ver}-devel
 BuildRequires:  ninja
 BuildRequires:  nlohmann-json
 BuildRequires:  pkgconfig(libffi)
@@ -110,6 +113,8 @@ BuildRequires:  python3dist(wheel)
 2002-use-system-build-tools.patch
 # Build shared NVIDIA dialect libraries without the NVIDIA backend plugin.
 2003-disable-nvidia-backend.patch
+# Avoid linking GPU LLVM targets that are not built by the RISC-V CPU flavor.
+2004-conditional-gpu-llvm-libraries.patch
 
 %description
 Triton is a language and compiler for writing highly efficient custom
@@ -128,12 +133,11 @@ export PATH="%{bootstrap_llvm_bindir}:${PATH}"
 export CC="%{bootstrap_llvm_bindir}/clang"
 export CXX="%{bootstrap_llvm_bindir}/clang++"
 %ifarch riscv64
-export PATH="%{llvm_bindir}:$PATH"
-export CC="%{llvm_bindir}/clang"
-export CXX="%{llvm_bindir}/clang++"
-export LD="%{llvm_bindir}/ld.lld"
-export AR="%{llvm_bindir}/llvm-ar"
-export RANLIB="%{llvm_bindir}/llvm-ranlib"
+# The compiler and binutils above are host executables.  These flags select
+# riscv64 for every target object without putting target binaries on PATH.
+export LD="%{bootstrap_llvm_bindir}/ld.lld"
+export AR="%{bootstrap_llvm_bindir}/llvm-ar"
+export RANLIB="%{bootstrap_llvm_bindir}/llvm-ranlib"
 export CFLAGS="%{build_cflags} --target=%{_target_platform}"
 export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
 export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
@@ -176,6 +180,13 @@ cmake -S "$llvm_src/llvm" -B "$llvm_src/build" -G Ninja \
     -DCMAKE_C_COMPILER="$CC" \
     -DCMAKE_CXX_COMPILER="$CXX" \
 %ifarch riscv64
+%if "%{_host_cpu}" != "%{_target_cpu}"
+    -DCMAKE_SYSTEM_NAME=Linux \
+    -DCMAKE_SYSTEM_PROCESSOR=riscv64 \
+    -DLLVM_NATIVE_TOOL_DIR="%{bootstrap_llvm_bindir}" \
+    -DLLVM_TABLEGEN="%{bootstrap_llvm_bindir}/llvm-tblgen" \
+    -DMLIR_TABLEGEN_EXE="%{bootstrap_llvm_bindir}/mlir-tblgen" \
+%endif
     -DCMAKE_C_COMPILER_TARGET="%{_target_platform}" \
     -DCMAKE_CXX_COMPILER_TARGET="%{_target_platform}" \
     -DLLVM_DEFAULT_TARGET_TRIPLE="%{_target_platform}" \
@@ -196,7 +207,17 @@ cmake -S "$llvm_src/llvm" -B "$llvm_src/build" -G Ninja \
 cmake --build "$llvm_src/build" --target install -- -j$compile_jobs
 
 export LLVM_SYSPATH="$llvm_install"
+%ifarch riscv64
+%if "%{_host_cpu}" != "%{_target_cpu}"
+# The bundled LLVM install is target-architecture output. Triton's setup.py
+# resolves clang and lld by name, so keep the host toolchain ahead of it.
+export PATH="%{bootstrap_llvm_bindir}:$llvm_install/bin:$PATH"
+%else
 export PATH="$llvm_install/bin:$PATH"
+%endif
+%else
+export PATH="$llvm_install/bin:$PATH"
+%endif
 export JSON_SYSPATH="%{_prefix}"
 export PYBIND11_SYSPATH="%{_prefix}"
 export PYBIND11_CMAKE_DIR="%{_datadir}/cmake/pybind11"
@@ -209,6 +230,11 @@ export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=OFF
 # 2003-disable-nvidia-backend.patch treats an empty list as CPU-only while
 # retaining the NVIDIA dialect libraries needed by the common compiler code.
 export TRITON_CODEGEN_BACKENDS=""
+%if "%{_host_cpu}" != "%{_target_cpu}"
+# setup.py forwards this variable to the extension CMake configure. Keep the
+# extension target aligned with the bundled LLVM cross build.
+export TRITON_APPEND_CMAKE_ARGS="${TRITON_APPEND_CMAKE_ARGS:+${TRITON_APPEND_CMAKE_ARGS} }-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=riscv64 -DCMAKE_C_COMPILER_TARGET=%{_target_platform} -DCMAKE_CXX_COMPILER_TARGET=%{_target_platform}"
+%endif
 %elifarch x86_64
 export TRITON_BUILD_PROTON=ON
 export TRITON_BUILD_NVIDIA_BACKEND_PLUGIN=ON

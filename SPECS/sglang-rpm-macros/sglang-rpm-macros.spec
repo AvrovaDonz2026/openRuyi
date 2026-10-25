@@ -7,7 +7,7 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 Name:           sglang-rpm-macros
-Version:        0.1
+Version:        0.1.1
 Release:        %autorelease
 Summary:        RPM macros and dependency generators for private SGLang trees
 License:        MulanPSL-2.0

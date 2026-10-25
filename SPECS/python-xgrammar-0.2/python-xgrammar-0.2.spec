@@ -37,7 +37,7 @@ Name:           %{compat_name}-rocm
 %else
 Name:           %{compat_name}
 %endif
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat
 Version:        0.2.7
 Release:        %autorelease
@@ -70,6 +70,10 @@ BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%if "%{_host_cpu}" != "%{_target_cpu}"
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_NAME=Linux
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
+%endif
 %endif
 
 BuildRequires:  pyproject-rpm-macros

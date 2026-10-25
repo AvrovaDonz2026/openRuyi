@@ -5,7 +5,11 @@
 # SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MulanPSL-2.0
 
-%_sglang_private_python %{python3_version}
+# SGLang payloads run from the private Python 3.14 ABI tree. Allow a future
+# alternate runtime to override this explicitly, but do not inherit the
+# guest's generic python3_version (which may be 3.13).
+%_sglang_private_python %{?sglang_private_python}%{!?sglang_private_python:3.14}
+%_sglang_private_interpreter %{_bindir}/python%{_sglang_private_python}
 %_sglang_python_profile %{?sglang_python_profile}%{!?sglang_python_profile:core}
 %_sglang_dep_namespace %{expr:"%{_sglang_python_profile}" == "extras" ? "sglang-extras" : "sglang"}
 %_sglang_torch_profile %{expr:"%{_sglang_python_profile}" == "extras" ? "core" : "%{_sglang_python_profile}"}
@@ -14,13 +18,13 @@
 %_sglang_private_sitelib %{_sglang_private_root}/site-packages
 %_sglang_private_sitearch %{_sglang_private_sitelib}
 %_sglang_private_libexec %{_libexecdir}/sglang
-%_sglang_core_sitelib %{_libdir}/sglang/core/python%{python3_version}/site-packages
+%_sglang_core_sitelib %{_libdir}/sglang/core/python%{_sglang_private_python}/site-packages
 %_sglang_private_pythonpath %{_sglang_private_sitelib}:%{_sglang_core_sitelib}${PYTHONPATH:+:$PYTHONPATH}
 
 %sglang_python_compat() %{expand:
 %%global sglang_python_profile %%{?1}%%{!?1:core}
 %%global _sglang_private_enabled 1
-%%global __elf_exclude_path (^/usr/lib/debug/)|(^/lib/modules/.*\\.ko?(\\.[[:alnum:]]*)$)|(^/usr/lib(64)?/sglang/(core|extras)/)
+%%global __elf_exclude_path (^/usr/lib/debug/)|(^/lib/modules/.*\\.ko?(\\.[[:alnum:]]*)$)|((^|/)usr/lib(64)?/sglang/(core|extras)/)
 %%global buildsystem_pyproject_generate_buildrequires() %%%%sglang_pyproject_buildrequires %%%%*
 %%global buildsystem_pyproject_build() %%%%sglang_pyproject_wheel %%%%*
 %%global buildsystem_pyproject_install() %%%%sglang_pyproject_install %%%%*
@@ -32,6 +36,12 @@ find "%{buildroot}%{_sglang_private_sitelib}" -type f -name '*.so*' -print0 | wh
   if file "$so" | grep -q 'ELF'; then
     old=$(patchelf --print-rpath "$so")
     new=
+    rpath_add() {
+      case ":$new:" in
+        *":$1:"*) ;;
+        *) new="${new:+$new:}$1" ;;
+      esac
+    }
     while [ -n "$old" ]; do
       entry=${old%%%%:*}
       if [ "$entry" = "$old" ]; then
@@ -40,22 +50,24 @@ find "%{buildroot}%{_sglang_private_sitelib}" -type f -name '*.so*' -print0 | wh
         old=${old#*:}
       fi
       case "$entry" in
-        \\$ORIGIN) new="${new:+$new:}$entry" ;;
+        \\$ORIGIN) rpath_add "$entry" ;;
         %{_libdir}/sglang/*)
           case "$entry" in
             */../*|*/./*|*/..|*/.) ;;
-            *) new="${new:+$new:}$entry" ;;
+            *) rpath_add "$entry" ;;
           esac
           ;;
         \\$ORIGIN/*)
           case "$entry" in
             */../*|*/./*|*/..|*/.) ;;
-            *) new="${new:+$new:}$entry" ;;
+            *) rpath_add "$entry" ;;
           esac
           ;;
       esac
     done
-    new="${new:+$new:}\\$ORIGIN:%{_libdir}/sglang/%{_sglang_python_profile}/lib:%{_libdir}/sglang/%{_sglang_torch_profile}/python%{python3_version}/site-packages/torch/lib"
+    rpath_add "\\$ORIGIN"
+    rpath_add "%{_libdir}/sglang/%{_sglang_python_profile}/lib"
+    rpath_add "%{_libdir}/sglang/%{_sglang_torch_profile}/python%{_sglang_private_python}/site-packages/torch/lib"
     patchelf --set-rpath "$new" "$so"
   fi
 done
@@ -77,7 +89,8 @@ fi
   --files "%{pyproject_files}" --modules "%{_pyproject_modules}" \\
   --from-site "%{python3_sitelib}" --to-site "%{_sglang_private_sitelib}" \\
   --from-sitearch "%{python3_sitearch}" --to-sitearch "%{_sglang_private_sitearch}" \\
-  --from-bin "%{_bindir}" --to-bin "%{_sglang_private_libexec}"
+  --from-bin "%{_bindir}" --to-bin "%{_sglang_private_libexec}" \\
+  --interpreter "%{_sglang_private_interpreter}"
 %%sglang_pyproject_save_files %{-l} %{-L} %*
 }
 
@@ -86,7 +99,7 @@ fi
 %{__python3} %{_rpmconfigdir}/openruyi/pyproject_save_files.py \\
   --output-files "%{pyproject_files}" --output-modules "%{_pyproject_modules}" \\
   --buildroot "%{buildroot}" --sitelib "%{_sglang_private_sitelib}" \\
-  --sitearch "%{_sglang_private_sitearch}" --python-version "%{python3_version}" \\
+  --sitearch "%{_sglang_private_sitearch}" --python-version "%{_sglang_private_python}" \\
   --pyproject-record "%{_pyproject_record}" --prefix "%{_prefix}" %{?**}
 }
 
@@ -112,7 +125,7 @@ if [ $sglang_buildrequires_status -ne 0 ]; then
   rm -f "$sglang_buildrequires_output"
   exit $sglang_buildrequires_status
 fi
-%{__python3} %{_rpmconfigdir}/sglangdistdeps.py --profile %{_sglang_python_profile} --namespace %{_sglang_dep_namespace} --package-name %{name} %{?sglang_private_build_deps:--private-dists "%{sglang_private_build_deps}"} --rewrite-requires "$sglang_buildrequires_output"
+%{__python3} %{_rpmconfigdir}/sglangdistdeps.py --profile %{_sglang_python_profile} --namespace %{_sglang_dep_namespace} --package-name %{name} %{?sglang_private_build_deps:--private-dists "%{sglang_private_build_deps}"} %{?sglang_shared_dists:--shared-dists "%{sglang_shared_dists}"} --rewrite-requires "$sglang_buildrequires_output"
 sglang_namespace_status=$?
 if [ $sglang_namespace_status -ne 0 ]; then
   rm -f "$sglang_buildrequires_output"

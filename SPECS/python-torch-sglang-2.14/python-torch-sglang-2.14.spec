@@ -127,6 +127,12 @@ BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%if "%{_host_cpu}" != "%{_target_cpu}"
+# Tell CMake the target OS and CPU only for a real cross build. Native RISC-V
+# guests must keep CMake's normal native-build detection.
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_NAME=Linux
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
+%endif
 # PyTorch's FindBLAS.cmake only checks whether a shared BLAS link can be
 # formed.  Cross-linking therefore reports optional half/bfloat16 GEMM entry
 # points even when the target OpenBLAS provider does not export them.  Keep
@@ -175,7 +181,11 @@ BuildRequires:  pocketfft-devel
 BuildRequires:  pthreadpool-devel
 BuildRequires:  psimd-devel
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  sglang-rpm-macros
+# The ELF generator in 0.1-1000 keeps protobuf's utf8_validity,
+# utf8_range_lib, and upb SONAMEs global. Older macro RPMs can emit a second
+# private capability for these system libraries and make the Torch closure
+# unsatisfiable.
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 BuildRequires:  patchelf
 BuildRequires:  sglang(python3dist(scikit-build-core)) >= 1.0
 BuildRequires:  python3dist(filelock)

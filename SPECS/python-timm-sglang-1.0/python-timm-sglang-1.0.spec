@@ -10,7 +10,7 @@
 %global compat_name python-timm-sglang-1.0
 
 Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat core
 Version:        1.0.28
 Release:        %autorelease

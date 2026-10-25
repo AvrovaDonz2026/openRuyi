@@ -11,7 +11,7 @@
 %global compat_name python-huggingface-hub-sglang-1.31
 
 Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat core
 Version:        1.31.0
 Release:        %autorelease
@@ -27,7 +27,7 @@ BuildSystem:    pyproject
 # trailing zero components. Keep an exact-version capability for consumers
 # whose RPM requirement is written as >= 1.31.0.
 Provides:       sglang(python3dist(huggingface-hub)) = 1.31.0
-Provides:       sglang(python3.14dist(huggingface-hub)) = 1.31.0
+Provides:       sglang(python%{python3_version}dist(huggingface-hub)) = 1.31.0
 
 BuildOption(install):  -l huggingface_hub +auto
 # The default import scan traverses optional OAuth, MCP, and provider modules;
@@ -38,6 +38,15 @@ BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
+# The offline API smoke below imports the complete client surface.
+BuildRequires:  sglang(python3dist(click)) >= 8.4.2
+BuildRequires:  python3dist(filelock) >= 3.10.0
+BuildRequires:  python3dist(fsspec) >= 2023.5.0
+BuildRequires:  python3dist(httpx) >= 0.23.0
+BuildRequires:  python3dist(packaging) >= 20.9
+BuildRequires:  python3dist(pyyaml) >= 5.1
+BuildRequires:  python3dist(tqdm) >= 4.42.1
+BuildRequires:  python3dist(typing-extensions) >= 4.1.0
 
 %description
 Hugging Face Hub client library to download and publish models, datasets, and
@@ -48,6 +57,7 @@ tree.
 %sglang_pyproject_buildrequires
 
 %check -a
+PYTHONDONTWRITEBYTECODE=1 \
 HF_HUB_OFFLINE=1 \
 PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
 %{python3} -s - <<'PY'

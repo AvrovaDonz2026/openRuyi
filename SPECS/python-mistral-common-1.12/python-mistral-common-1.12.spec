@@ -11,7 +11,7 @@
 %global compat_name python-mistral-common-1.12
 
 Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 %sglang_python_compat
 Version:        1.12.0
 Release:        %autorelease
@@ -37,13 +37,18 @@ BuildRequires:  python3dist(jsonschema) >= 4.21.1
 BuildRequires:  python3dist(numpy) >= 1.25
 BuildRequires:  python3dist(pillow) >= 10.3
 BuildRequires:  python3dist(pip)
+%if %{python3_version_nodots} >= 314
+BuildRequires:  python3dist(pydantic) >= 2.12
+BuildRequires:  python3dist(tiktoken) >= 0.12
+%else
 BuildRequires:  python3dist(pydantic) >= 2.7
+BuildRequires:  python3dist(tiktoken) >= 0.7
+%endif
 BuildRequires:  python3dist(pydantic) < 3
 BuildRequires:  python3dist(pydantic-settings)
 BuildRequires:  python3dist(pydantic-extra-types[pycountry]) >= 2.10.5
 BuildRequires:  python3dist(requests) >= 2
 BuildRequires:  python3dist(setuptools) >= 42
-BuildRequires:  python3dist(tiktoken) >= 0.7
 BuildRequires:  python3dist(typing-extensions) >= 4.11
 BuildRequires:  python3dist(wheel)
 BuildRequires:  python3dist(uvicorn)
@@ -51,11 +56,16 @@ BuildRequires:  python3dist(uvicorn)
 Requires:       python3dist(jsonschema) >= 4.21.1
 Requires:       python3dist(numpy) >= 1.25
 Requires:       python3dist(pillow) >= 10.3
+%if %{python3_version_nodots} >= 314
+Requires:       python3dist(pydantic) >= 2.12
+Requires:       python3dist(tiktoken) >= 0.12
+%else
 Requires:       python3dist(pydantic) >= 2.7
+Requires:       python3dist(tiktoken) >= 0.7
+%endif
 Requires:       python3dist(pydantic) < 3
 Requires:       python3dist(pydantic-extra-types[pycountry]) >= 2.10.5
 Requires:       python3dist(requests) >= 2
-Requires:       python3dist(tiktoken) >= 0.7
 Requires:       python3dist(typing-extensions) >= 4.11
 Requires:       sglang(python3dist(click)) >= 8.4.2
 Requires:       python3dist(fastapi)
@@ -70,6 +80,16 @@ cp %{SOURCE1} LICENSE
 
 %generate_buildrequires
 %sglang_pyproject_buildrequires
+
+%check -a
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
+%{python3} -s - <<'PY'
+import importlib.metadata
+import mistral_common
+
+assert importlib.metadata.version("mistral-common") == "1.12.0"
+assert mistral_common
+PY
 
 %files -f %{pyproject_files}
 %doc README.md

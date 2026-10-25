@@ -20,24 +20,29 @@ import re
 
 
 MODULES = (
-    "torch", "transformers", "tokenizers", "huggingface_hub", "click",
+    "torch", "transformers", "tokenizers", "huggingface_hub", "timm",
     "numpy", "scipy", "fsspec", "datasets", "pandas", "PIL",
 )
-# These distributions remain shared with the base system.  Transformers,
-# tokenizers, Hugging Face Hub and Click are private compatibility providers.
-SYSTEM_MODULES = ("numpy", "scipy", "fsspec", "datasets", "pandas", "PIL")
+# These modules are supplied by the system and must remain outside the private
+# SGLang tree, even when the transaction installs them as new dependencies.
+SYSTEM_MODULES = (
+    "timm",
+    "numpy", "scipy", "fsspec", "datasets", "pandas", "PIL",
+)
 BASELINE_MODULES = MODULES
 DIST_NAMES = {
     "huggingface_hub": "huggingface-hub",
     "PIL": "Pillow",
 }
+SHARED_RUNTIME_MODULE_VERSIONS = {
+    "timm": "1.0.28",
+}
 PRIVATE_MODULE_VERSIONS = {
     "transformers": "5.19.0",
     "tokenizers": "0.23.2",
     "huggingface_hub": "1.31.0",
-    "click": "8.4.2",
 }
-OPTIONAL_BASELINE_MODULES = frozenset(PRIVATE_MODULE_VERSIONS)
+OPTIONAL_BASELINE_MODULES = frozenset(SHARED_RUNTIME_MODULE_VERSIONS)
 DEFAULT_ROOTS = (
     "/usr/lib64/sglang/core",
     "/usr/lib/sglang/core",
@@ -59,7 +64,14 @@ names = json.loads(os.environ["COEXIST_MODULES"])
 private_module = os.environ.get("COEXIST_PRIVATE_MODULE")
 if private_module:
     names = names + [private_module]
-result = {"modules": {}, "torch": {}}
+result = {
+    "modules": {},
+    "python": {
+        "version": "%d.%d" % sys.version_info[:2],
+        "executable": sys.executable,
+    },
+    "torch": {},
+}
 for name in names:
     try:
         module = importlib.import_module(name)
@@ -93,9 +105,12 @@ except Exception as exc:
 
 maps = pathlib.Path("/proc/self/maps")
 result["native_paths"] = sorted({
-    line.split()[-1]
+    path
     for line in maps.read_text().splitlines()
-    if line.split() and re.search(r"\.so(?:\.[0-9]+)*$", line.split()[-1])
+    for fields in [line.split(maxsplit=5)]
+    if len(fields) == 6
+    for path in [re.sub(r" \(deleted\)$", "", fields[5])]
+    if re.search(r"\.so(?:\.[0-9]+)*$", path)
 })
 print(json.dumps(result, sort_keys=True))
 '''
@@ -161,6 +176,11 @@ def rpm_verify_snapshot(packages=None):
             check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         packages = sorted(set(line for line in query.stdout.splitlines() if line))
+    else:
+        packages = sorted(set(packages))
+    records = rpm_installed_nevras()
+    package_names = set(packages)
+    records = [record for record in records if record.split("\t", 1)[0] in package_names]
     output = []
     for start in range(0, len(packages), 256):
         completed = subprocess.run(
@@ -174,9 +194,21 @@ def rpm_verify_snapshot(packages=None):
     return {
         "available": True,
         "packages": packages,
+        "nevras": records,
         "verify_lines": len(verification.splitlines()),
         "verify_sha256": hashlib.sha256(verification.encode()).hexdigest(),
     }
+
+
+def rpm_installed_nevras():
+    rpm = shutil.which("rpm")
+    if not rpm:
+        return []
+    completed = subprocess.run(
+        [rpm, "-qa", "--qf", "%{NAME}\\t%{EPOCHNUM}:%{VERSION}-%{RELEASE}.%{ARCH}\\n"],
+        check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+    )
+    return sorted(line for line in completed.stdout.splitlines() if line)
 
 
 def rpm_installed_packages():
@@ -205,6 +237,30 @@ def private_probe(launcher, private_roots, private_module, timeout):
     return run_probe([*launcher, "-c", PROBE], env, "private", timeout)
 
 
+def launcher_python_version(launcher, timeout):
+    env = os.environ.copy()
+    env.pop("PYTHONHOME", None)
+    env.pop("PYTHONPATH", None)
+    env.pop("LD_LIBRARY_PATH", None)
+    env.pop("LD_PRELOAD", None)
+    env["PYTHONNOUSERSITE"] = "1"
+    env["PYTHONSAFEPATH"] = "1"
+    result = run_probe(
+        [*launcher, "-c", "import json, sys; print(json.dumps({'version': '%d.%d' % sys.version_info[:2]}))"],
+        env,
+        "private interpreter version",
+        timeout,
+    )
+    version = result.get("version")
+    if not isinstance(version, str) or not re.fullmatch(r"3\.\d+", version):
+        raise RuntimeError("private launcher reported an invalid Python ABI")
+    return version
+
+
+def private_site_path(root, python_version):
+    return root / ("python" + python_version) / "site-packages"
+
+
 def verbose_import_paths(output):
     """Extract Python files reported by ``PYTHONVERBOSE`` from launcher output."""
     return sorted(set(re.findall(
@@ -224,7 +280,7 @@ def validate_sglang_launcher_probe(output, private_roots):
         raise RuntimeError("SGLang launcher probe did not import private sglang")
 
 
-def run_sglang_launcher(launcher, private_roots, timeout):
+def run_sglang_launcher(launcher, private_roots, python_version, timeout):
     env = os.environ.copy()
     env.pop("PYTHONHOME", None)
     env.pop("PYTHONPATH", None)
@@ -236,7 +292,7 @@ def run_sglang_launcher(launcher, private_roots, timeout):
     # import trace gives us a probe without assuming it supports ``-c``.
     env["PYTHONVERBOSE"] = "1"
     env["PYTHONPATH"] = os.pathsep.join(
-        str(root / ("python" + ".".join(map(str, sys.version_info[:2]))) / "site-packages")
+        str(private_site_path(root, python_version))
         for root in private_roots
     )
     try:
@@ -268,8 +324,25 @@ def validate_private(result, expected, roots, private_module, private_versions):
         raise RuntimeError("private torch is outside private roots: %s" % torch_path)
     for name in SYSTEM_MODULES:
         actual = result["modules"].get(name, {})
-        if actual != expected["modules"].get(name):
+        before = expected["modules"].get(name, {})
+        if before.get("absent"):
+            if name not in SHARED_RUNTIME_MODULE_VERSIONS:
+                if actual != before:
+                    raise RuntimeError("system module %s changed under private launcher" % name)
+            elif actual.get("absent"):
+                raise RuntimeError("shared runtime module %s is missing" % name)
+        elif actual != before:
             raise RuntimeError("system module %s changed under private launcher" % name)
+        if name in SHARED_RUNTIME_MODULE_VERSIONS:
+            module_path = actual.get("path")
+            if not module_path or under_any(module_path, roots):
+                raise RuntimeError("shared module %s loaded from private tree: %s" % (name, module_path))
+            version = SHARED_RUNTIME_MODULE_VERSIONS[name]
+            if actual.get("version") != version:
+                raise RuntimeError(
+                    "shared module %s has version %s, expected %s"
+                    % (name, actual.get("version"), version)
+                )
     private_names = dict(private_versions)
     private_names[private_module] = private_names.get(private_module)
     for name, version in private_names.items():
@@ -301,6 +374,29 @@ def validate_private(result, expected, roots, private_module, private_versions):
     torch = result.get("torch", {})
     if not torch.get("distributed") or not torch.get("gloo") or torch.get("backend") != "gloo":
         raise RuntimeError("private Torch lacks native distributed Gloo support")
+
+
+def baseline_matches_after_install(actual, expected, roots):
+    """Allow newly installed shared SGLang dependencies without hiding upgrades."""
+    actual = json.loads(json.dumps(actual))
+    expected_modules = expected.get("modules", {})
+    actual_modules = actual.get("modules", {})
+    for name, version in SHARED_RUNTIME_MODULE_VERSIONS.items():
+        if not expected_modules.get(name, {}).get("absent"):
+            continue
+        module = actual_modules.get(name, {})
+        if module.get("absent"):
+            continue
+        if module.get("version") != version:
+            raise RuntimeError(
+                "new shared module %s has version %s, expected %s"
+                % (name, module.get("version"), version)
+            )
+        module_path = module.get("path")
+        if not module_path or under_any(module_path, roots):
+            raise RuntimeError("new shared module %s loaded from a private tree" % name)
+        actual_modules[name] = expected_modules[name]
+    return actual == expected
 
 
 def main():
@@ -349,19 +445,25 @@ def main():
         raise RuntimeError("baseline probe differs from recorded snapshot")
     if expected_rpm and expected_rpm.get("available"):
         current_rpm = rpm_verify_snapshot(expected_rpm.get("packages", []))
-        for key in ("verify_lines", "verify_sha256"):
+        rpm_keys = ("verify_lines", "verify_sha256")
+        if "nevras" in expected_rpm:
+            rpm_keys += ("nevras",)
+        for key in rpm_keys:
             if current_rpm.get(key) != expected_rpm.get(key):
                 raise RuntimeError("RPM verification differs from recorded baseline: %s" % key)
     roots = args.private_roots or [Path(root) for root in DEFAULT_ROOTS if Path(root).is_dir()]
     if not roots or any(not root.is_dir() for root in roots):
         raise RuntimeError("provide existing --private-root paths")
-    if not any(root.joinpath("python" + ".".join(map(str, sys.version_info[:2])), "site-packages").is_dir() for root in roots):
-        raise RuntimeError("private roots do not contain the running Python site-packages tree")
+    private_python_version = launcher_python_version(args.private_launcher, args.probe_timeout)
+    if not any(private_site_path(root, private_python_version).is_dir() for root in roots):
+        raise RuntimeError("private roots do not contain the launcher's Python %s site-packages tree" % private_python_version)
     private = private_probe(args.private_launcher, roots, args.private_module, args.probe_timeout)
+    if private.get("python", {}).get("version") != private_python_version:
+        raise RuntimeError("private launcher changed Python ABI between probes")
     validate_private(private, expected, roots, args.private_module, private_versions)
-    run_sglang_launcher(args.sglang_launcher, roots, args.probe_timeout)
+    run_sglang_launcher(args.sglang_launcher, roots, private_python_version, args.probe_timeout)
     after = baseline_probe(args.probe_timeout)
-    if after != expected:
+    if not baseline_matches_after_install(after, expected, roots):
         raise RuntimeError("baseline probe changed after private launcher invocation")
     if expected_rpm and expected_rpm.get("available"):
         after_rpm = rpm_verify_snapshot(expected_rpm.get("packages", []))
@@ -369,7 +471,10 @@ def main():
         missing = set(expected_rpm.get("packages", [])) - (installed or set())
         if missing:
             raise RuntimeError("baseline RPM packages were removed: %s" % ", ".join(sorted(missing)[:10]))
-        for key in ("verify_lines", "verify_sha256"):
+        rpm_keys = ("verify_lines", "verify_sha256")
+        if "nevras" in expected_rpm:
+            rpm_keys += ("nevras",)
+        for key in rpm_keys:
             if after_rpm.get(key) != expected_rpm.get(key):
                 raise RuntimeError("RPM verification changed after private installation: %s" % key)
     print("coexistence check: PASS")

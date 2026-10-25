@@ -7,11 +7,14 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global upstream_name sglang
+# The base distribution ships Transformers 5.12.1, while v0.5.21 requires
+# 5.19.0. Keep Transformers in the private compatibility tree. The base
+# timm 1.0.28 package is newer than the upstream 1.0.16 pin and is shared.
 %global transformers_compat_version 5.19.0
-# The OpenRuyi Python dependency macro normalizes this capability to 5.19;
-# keep the upstream/Python metadata version above for source and import checks.
 %global transformers_compat_rpm_version 5.19
-%global timm_compat_version 1.0.28
+%global sglang_shared_dists timm
+# Reuse the distro's timm 1.0.28 instead of the tag's 1.0.16 pin.
+%global timm_system_version 1.0.28
 # Keep the CUDA conditionals for a future provider-backed flavor.  This source
 # package intentionally has no multibuild entry until a CUDA Torch provider is
 # available; the default build must resolve to the CPU dependency closure.
@@ -92,13 +95,17 @@ BuildOption(install):  -l sglang
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  file
 BuildRequires:  patchelf
-BuildRequires:  sglang-rpm-macros
+BuildRequires:  sglang-rpm-macros >= 0.1-1000
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
 BuildRequires:  python3dist(setuptools-scm)
 BuildRequires:  python3dist(wheel)
+
+# The private site-packages tree and launcher are tied to this exact Python ABI.
+Requires:       python(abi) = %{_sglang_private_python}
+Requires:       %{_sglang_private_interpreter}
 
 %ifarch riscv64
 # Keep CMake's compiler driver and target triple aligned with the LLVM 22
@@ -107,6 +114,10 @@ BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+%if "%{_host_cpu}" != "%{_target_cpu}"
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_NAME=Linux
+BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
+%endif
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}
 BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
@@ -131,7 +142,6 @@ BuildRequires:  sglang(python3dist(triton)) = 3.8.0
 BuildRequires:  sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 BuildRequires:  sglang(python3dist(mistral-common)) >= 1.11.5
 BuildRequires:  sglang(python3dist(transformers)) = %{transformers_compat_rpm_version}
-BuildRequires:  sglang(python3dist(timm)) = %{timm_compat_version}
 %ifnarch aarch64 armv7hl
 # pyproject_cpu.toml excludes torchcodec on Linux ARM (aarch64, arm64, armv7l).
 BuildRequires:  sglang(python3dist(torchcodec)) = 0.12.0
@@ -148,7 +158,6 @@ Requires:       sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
 Requires:       sglang(python3dist(mistral-common)) >= 1.11.5
 Requires:       sglang(python3dist(transformers)) = %{transformers_compat_rpm_version}
-Requires:       sglang(python3dist(timm)) = %{timm_compat_version}
 %ifnarch aarch64 armv7hl
 Requires:       sglang(python3dist(torchcodec)) = 0.12.0
 %endif
@@ -176,7 +185,7 @@ sed -i \
     -e 's/"openai==2.6.1"/"openai>=2.40.0,<3"/' \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8,<0.1"/' \
     -e 's/"transformers==[^"]*"/"transformers==%{transformers_compat_version}"/' \
-    -e 's/"timm==[^"]*"/"timm==%{timm_compat_version}"/' \
+    -e 's/"timm==[^"]*"/"timm==%{timm_system_version}"/' \
     python/pyproject.toml
 %ifarch riscv64
 sed -i '/intel-openmp.*platform_machine.*x86_64/d' python/pyproject.toml
@@ -228,12 +237,12 @@ install -Dpm0755 %{SOURCE5} %{buildroot}%{_libexecdir}/sglang/sglang-coexistence
 sed -i \
   -e 's|@PRIVATE_SITELIB@|%{_sglang_private_sitelib}|g' \
   -e 's|@PRIVATE_LIBEXEC@|%{_sglang_private_libexec}|g' \
-  -e 's|@PYTHON3@|%{python3}|g' \
+  -e 's|@PYTHON3@|%{_sglang_private_interpreter}|g' \
   %{buildroot}%{_bindir}/sglang %{buildroot}%{_bindir}/sglang-python
 sed -i \
-  -e 's|@EXTRAS_SITELIB@|%{_libdir}/sglang/extras/python%{python3_version}/site-packages|g' \
-  -e 's|@CORE_SITELIB@|%{_libdir}/sglang/core/python%{python3_version}/site-packages|g' \
-  -e 's|@PYTHON3@|%{python3}|g' \
+  -e 's|@EXTRAS_SITELIB@|%{_libdir}/sglang/extras/python%{_sglang_private_python}/site-packages|g' \
+  -e 's|@CORE_SITELIB@|%{_libdir}/sglang/core/python%{_sglang_private_python}/site-packages|g' \
+  -e 's|@PYTHON3@|%{_sglang_private_interpreter}|g' \
   %{buildroot}%{_bindir}/sglang-extras-python
 
 %check -a
@@ -244,13 +253,13 @@ for launcher in %{SOURCE1} %{SOURCE2} \
 done
 cd %{buildroot}
 %if %{with cuda}
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{_sglang_private_interpreter} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'
 %else
 export SGLANG_USE_CPU_ENGINE=1
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{python3} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{_sglang_private_interpreter} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
 %endif
 %if %{without cuda}
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{python3} -s - <<'PY'
+PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{_sglang_private_interpreter} -s - <<'PY'
 import importlib.metadata
 import blobfile
 import openai
@@ -261,7 +270,7 @@ from packaging.version import Version
 
 assert Version(importlib.metadata.version("openai")) >= Version("2.40.0")
 assert Version(importlib.metadata.version("openai-harmony")) >= Version("0.0.8")
-assert Version(importlib.metadata.version("timm")) == Version("%{timm_compat_version}")
+assert Version(importlib.metadata.version("timm")) == Version("%{timm_system_version}")
 assert Version(importlib.metadata.version("blobfile")) >= Version("3.2.0")
 
 client = openai.OpenAI(api_key="compatibility-check", base_url="http://localhost")
@@ -282,9 +291,9 @@ PY
 # The public wrapper resolves its final installed path; use the private entrypoint in buildroot.
 PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 \
 PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
-SGLANG_SMOKE_PYTHON="%{python3}" \
+SGLANG_SMOKE_PYTHON="%{_sglang_private_interpreter}" \
 SGLANG_SMOKE_SERVER="%{buildroot}%{_sglang_private_libexec}/sglang" \
-%{python3} -s "%{buildroot}%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py"
+%{_sglang_private_interpreter} -s "%{buildroot}%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py"
 %endif
 
 %files -f %{pyproject_files}
