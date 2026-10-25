@@ -874,3 +874,25 @@ SLEEF, the Python 3.14 ABI and Python distribution capabilities, in addition to
 the stale private `libutf8_validity` capability. This is the expected rejection
 of an incomplete native and Python provider set. The command was never retried
 with `--nodeps` and no package was installed.
+
+## QEMU session 70306 source and RPM header verification (2026-10-25)
+
+A fresh disposable QEMU 11.1.1 session used the same 16 GiB overlay and an
+explicit read-only virtio-9p mount of the staging directory. The guest again
+reported `riscv64`, kernel `7.2.6-1.0_555.1.or`, Python 3.13.8, and RPM 6.0.1.
+The exact SGLang v0.5.21 archive was readable at
+`/mnt/host/qemu-staging-20261025/sglang-0.5.21-upstream.tar.gz`; its guest-side
+SHA256 was
+`c44951b7871dac61262fc04e9fca628175758a97fa5f603c522b31dc31b94249`, matching
+the SPEC RemoteAsset checksum. The archive had the expected
+`sglang-0.5.21/` top level and both CPU `pyproject_cpu.toml` files.
+
+The seven staged candidates (Torch runtime/devel, Tokenizers, Click, Hub, TVM
+FFI, and the SGLang macro RPM) passed `rpm -K --nosignature`; their NEVRA and
+`riscv64`/`noarch` headers were queryable. No candidate was installed. The
+guest has only the base Python 3.13 runtime, and its configured repository
+`boat.openruyi.cn` was not resolvable. The guest also lacks `rpmbuild`,
+`obs-build`, LLVM/Clang/LLD, CMake, Ninja, Rust, Cargo, and the `patch` utility.
+Consequently the three downstream patch dry-runs returned command-not-found,
+and no package build, dependency transaction, private import, coexistence,
+SGLang startup, or inference result is claimed from this session.
