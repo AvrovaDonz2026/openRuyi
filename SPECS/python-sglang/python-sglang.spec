@@ -12,6 +12,8 @@
 # timm 1.0.28 package is newer than the upstream 1.0.16 pin and is shared.
 %global transformers_compat_version 5.19.0
 %global transformers_compat_rpm_version 5.19
+%global xgrammar_compat_version 0.2.7
+%global llguidance_compat_min_version 1.7.6
 %global sglang_shared_dists timm
 # Reuse the distro's timm 1.0.28 instead of the tag's 1.0.16 pin.
 %global timm_system_version 1.0.28
@@ -142,6 +144,9 @@ BuildRequires:  sglang(python3dist(triton)) = 3.8.0
 BuildRequires:  sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 BuildRequires:  sglang(python3dist(mistral-common)) >= 1.11.5
 BuildRequires:  sglang(python3dist(transformers)) = %{transformers_compat_rpm_version}
+BuildRequires:  sglang(python3dist(xgrammar)) = %{xgrammar_compat_version}
+BuildRequires:  sglang(python3dist(llguidance)) >= %{llguidance_compat_min_version}
+BuildRequires:  sglang(python3dist(llguidance)) < 2
 %ifnarch aarch64 armv7hl
 # pyproject_cpu.toml excludes torchcodec on Linux ARM (aarch64, arm64, armv7l).
 BuildRequires:  sglang(python3dist(torchcodec)) = 0.12.0
@@ -158,6 +163,9 @@ Requires:       sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
 Requires:       sglang(python3dist(mistral-common)) >= 1.11.5
 Requires:       sglang(python3dist(transformers)) = %{transformers_compat_rpm_version}
+Requires:       sglang(python3dist(xgrammar)) = %{xgrammar_compat_version}
+Requires:       sglang(python3dist(llguidance)) >= %{llguidance_compat_min_version}
+Requires:       sglang(python3dist(llguidance)) < 2
 %ifnarch aarch64 armv7hl
 Requires:       sglang(python3dist(torchcodec)) = 0.12.0
 %endif

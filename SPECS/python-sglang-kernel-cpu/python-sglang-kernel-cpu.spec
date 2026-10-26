@@ -54,7 +54,9 @@ ExclusiveArch:  riscv64
 Conflicts:      python-sglang-kernel
 
 BuildOption(prep):  -n sglang-%{version_upstream}
-BuildOption(install):  -l sgl_kernel
+BuildOption(install):  -l sgl_kernel -L
+BuildOption(check):  -e sgl_kernel.flash_attn
+BuildOption(check):  -e sgl_kernel.testing.rotary_embedding
 %ifarch riscv64
 %if "%{openruyi_riscv_arch}" == "-march=rva23u64"
 %global sglang_cpu_march rva23u64
@@ -74,6 +76,7 @@ BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
 %endif
 
 BuildRequires:  cmake >= 3.18
+BuildRequires:  cmake(concurrentqueue)
 BuildRequires:  clang
 BuildRequires:  file
 BuildRequires:  patchelf
@@ -141,15 +144,14 @@ cd python/sglang/kernels/aot
 install -Dpm0755 %{SOURCE1} %{buildroot}%{_libexecdir}/sglang/sglang-kernel-cpu-smoke.py
 
 %check -a
-export PYTHONPATH="%{buildroot}%{_sglang_private_sitearch}"
+export PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}"
 cd %{buildroot}
-%sglang_pyproject_check_import sgl_kernel
 %ifarch riscv64
 # Check the built extension with the Torch build dependency.
 # The smoke script validates registration, two-rank reduction, and
 # synchronization with the native shared-memory implementation.
 LOCAL_SIZE=1 MASTER_ADDR=127.0.0.1 MASTER_PORT=29599 \
-  %{python3} %{SOURCE1}
+  %{_sglang_private_interpreter} %{SOURCE1}
 %endif
 
 %files -f %{pyproject_files}

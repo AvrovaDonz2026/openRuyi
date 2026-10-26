@@ -562,6 +562,12 @@ inference gates below.
 | SGLang CPU kernels, TorchCodec and SMG/gRPC | Private modules sharing the selected private Torch/gRPC runtime. |
 | ModelScope | Existing shared package; no differing version requires duplication. |
 
+The SGLang SPEC now declares the direct private `xgrammar` 0.2.7 and
+`llguidance` 1.7.6-or-later, below-2.0 edges explicitly in both build and
+runtime requirements. These versions follow the current CPU metadata used for
+this downstream compatibility profile; the original v0.5.21 release metadata
+must still be identified separately when preparing the mainline review.
+
 Tokenizers 0.23.2 uses the existing Rust PyO3, NumPy and async-runtime 0.29
 crate series. Historical validation notes report a RISC-V QEMU run that
 completed offline Cargo resolution, produced the
@@ -896,3 +902,164 @@ guest has only the base Python 3.13 runtime, and its configured repository
 Consequently the three downstream patch dry-runs returned command-not-found,
 and no package build, dependency transaction, private import, coexistence,
 SGLang startup, or inference result is claimed from this session.
+
+## Local buildroot dependency follow-up (2026-10-25)
+
+The separate Lima `openruyi-riscv` instance is a Debian 13 `aarch64` build
+host, not a booted RISC-V system. Its seeded OpenRuyi `riscv64` buildroot is
+`/var/tmp/openruyi-sglang-kernel-cpu-root-seeded-20261023`. The buildroot
+initially lacked `concurrentqueue-devel`, which stopped the SGLang CPU-kernel
+wheel during Torch CMake configuration at `find_package(concurrentqueue)`.
+
+The OpenRuyi `riscv64` repository metadata lists
+`concurrentqueue-devel-1.0.5-5.8.or.riscv64` with
+`cmake(concurrentqueue) = 1.0.0`; the published RPM SHA256
+`f90b8c75bcdc0db3e62f004713ff5e3eeebcb85c197953ccedf7c679f720585d` matched
+the downloaded file. Target RPM `-Uvh --test` and installation succeeded
+under `qemu-riscv64` in the disposable buildroot. RPM readback resolved the
+capability and listed the packaged headers and CMake config. The target CMake
+package lookup reported `concurrentqueue found.` A minimal C++ queue program
+was compiled with the buildroot's Clang 22 for `rv64gc`, then run under
+`qemu-riscv64` with exit status 0. The temporary RPM and test executable were
+removed after the checks; the provider remains installed in the disposable
+buildroot for subsequent builds.
+
+RPM emitted `NOKEY` for the repository package signature because the signing
+key is not imported into this buildroot. The downloaded RPM digest was checked
+against the repository primary metadata, but cryptographic signature
+verification remains outstanding. These checks validate this existing base
+provider only; they are not a complete SGLang dependency transaction.
+
+The Debian `aarch64` guest host has host-native Clang/LLD 22.1.8 and
+`qemu-riscv64` 10.0.13. A temporary RISC-V sysroot assembled from the seeded
+root supplied Torch 2.14 headers and libraries. Host LLVM compiled all 24 CPU
+kernel objects with `riscv64-openruyi-linux` and `-march=rva23u64`; the final
+link used `ld.lld` and produced an ELF64 RISC-V `common_ops.abi3.so`.
+
+The exact v0.5.21 archive was staged with SHA-256
+`c44951b7871dac61262fc04e9fca628175758a97fa5f603c522b31dc31b94249`, matching
+the SPEC RemoteAsset. A normal target `rpmbuild -bb` (without
+`--short-circuit`) produced:
+
+```text
+python-sglang-kernel-cpu-0.4.7-1000.or.riscv64.rpm
+SHA256 e79556000b80fb70a4fff70a4edb6bbfaf42d63f720648556b29b69261021259
+```
+
+The RPM contains the complete upstream `sgl_kernel` Python package, the
+RISC-V extension, the smoke launcher, README, and license. Its metadata
+contains the private Torch ELF requirements (`sglang(libc10.so...)`,
+`sglang(libtorch.so...)`, and `sglang(libtorch_cpu.so...)`) and no
+`rpmlib(ShortCircuited)` marker. The preserved artifact and ten-line smoke log
+are under `/private/tmp/openruyi-build/sglang-rpms-20261025/`; the sysroot,
+source tree, build tree, and staging payload were removed after validation.
+
+The seeded root's strict `rpm -Uvh --test` correctly rejected the kernel RPM
+because its installed Torch wheel1 predates the tracked Torch recipe changes
+that add the matching private `sglang(libc10/libtorch...)` Provides. This is a
+real transaction blocker, not a reason to use `--nodeps`; the Torch runtime
+must be rebuilt or replaced by the normal OpenRuyi provider transaction before
+publishing the SGLang package.
+
+For runtime validation only, the kernel RPM was installed with `--nodeps` in
+the disposable root. Under `qemu-riscv64`, Python 3.14 imported the complete
+`sgl_kernel` package, registered `rmsnorm_cpu`, `silu_and_mul_cpu`,
+`initialize`, and `shm_allreduce`, and passed the TP=2 shared-memory smoke over
+float32/float16/bfloat16 and boundary sizes. The package was then erased; the
+original Torch RPMs remained installed and `import torch` still reported
+2.14.0. No complete SGLang runtime transaction, engine startup, or model
+inference is claimed until the rebuilt Torch provider and remaining dependency
+closure are available.
+
+## Full-system QEMU CPU-path checks (2026-10-26)
+
+A disposable standalone copy of the guest disk was booted with QEMU 11.1.1
+system emulation. The guest reported `riscv64`, kernel
+`7.1.2-533.1.or`, RPM 6.0.1, and Python 3.14.7. QEMU used `-cpu max`; this
+was not an explicitly named `rva23s64` CPU profile, so this run is RISC-V
+execution evidence but does not certify the minimum RVA23 profile.
+
+The guest had seven SGLang candidates installed: Torch 2.14.0, Tokenizers
+0.23.2, Click 8.4.2, Hugging Face Hub 1.31.0, TVM-FFI 0.1.11, the CPU
+`sgl_kernel` RPM, and `sglang-rpm-macros`. `rpm -V` passed for all seven.
+Under `/usr/lib64/sglang/core/python3.14/site-packages`, private imports of
+Torch, Tokenizers, Click, Hugging Face Hub, and TVM-FFI passed. A Torch CPU
+2x2 matrix multiplication returned the expected `[[19, 22], [43, 50]]`.
+
+The updated CPU-kernel smoke helper was transferred to the guest and its
+SHA-256 matched the source file. With a shared 300-second rank deadline, the
+installed RISC-V extension passed its TP=2 shared-memory smoke for float32,
+float16, and bfloat16 across small, chunk-boundary, and non-divisible sizes.
+
+Coexistence checks passed for the existing `python3`, `python3-libs`, NumPy,
+SciPy, Requests, Packaging, PyYAML, and typing-extensions RPM payloads. Their
+isolated system-Python imports resolved under `/usr/lib*/python3.14/site-packages`
+with the installed versions unchanged; `tokenizers`, `huggingface_hub`,
+`transformers`, and `timm` were absent from the system import path.
+
+The complete CPU candidate set is still incomplete. Fourteen required RPMs
+were absent: TorchAudio, TorchVision, Mistral Common, Transformers, XGrammar,
+LLGuidance, grpcio, grpcio health checking, grpcio reflection, SMG gRPC proto,
+SMG gRPC servicer, Triton, SGLang, and TorchCodec. `python-sglang` and the
+`sglang` CLI were absent, so a complete RPM transaction, SGLang engine startup,
+and model inference remain unverified. The passed kernel smoke is not an
+SGLang inference result.
+
+## Authenticated guest follow-up (2026-10-26)
+
+The running standalone guest was reached as `openruyi` over forwarded SSH port
+`12056`. It remains an OpenRuyi `riscv64` system with kernel `7.1.2-533.1.or`,
+Python 3.14.7, RPM 6.0.1, and about 17 GiB free on its 20 GiB root filesystem.
+The QEMU process still uses `-cpu max`, not an explicitly named `rva23s64`
+profile. No RPM was installed or erased during this follow-up.
+
+The guest's 306-package RPM database was queried read-only through a temporary
+user-owned copy of its RPM database. The private profile imported Torch 2.14.0,
+Tokenizers 0.23.2, Hugging Face Hub 1.31.0, Click 8.4.2, and TVM-FFI 0.1.11
+with Python 3.14.7. The same interpreter without the private profile could not
+import Torch, Tokenizers, Hugging Face Hub, or Transformers, confirming those
+modules are not exposed on the system Python path. The coexistence baseline
+probe passed and resolved NumPy 2.4.6 and SciPy 1.17.1 from
+`/usr/lib64/python3.14/site-packages`; optional private modules and absent
+shared dependencies such as `datasets` were recorded as absent.
+
+The `openruyi` account has no passwordless `sudo` access, and the documented
+default root password was rejected. Consequently, this follow-up did not run a
+guest RPM transaction or modify the installed package set. `python-sglang`,
+its `sglang` launcher, the remaining required providers, engine startup, and
+`/generate` inference remain unverified. Temporary validation files were
+removed after the read-only checks.
+
+## Candidate payload and transaction follow-up (2026-10-26)
+
+The private Transformers 5.19.0 RPM was rehashed after its build completed:
+
+```text
+python-transformers-sglang-5.19-5.19.0-999.or.riscv64.rpm
+SHA256 215f7ef34a760ad2f3e778de7f7ae75e36f6d75cbe9692905669b787a1634b6f
+```
+
+`rpm -K --nosignature` reported `digests OK`. Its metadata provides
+`sglang(python3.14dist(transformers)) = 5.19` and requires the private
+Transformers 5.19-compatible Tokenizers and Hugging Face Hub capabilities.
+The RPM payload, together with the candidate Safetensors 0.8.0 and Regex
+2026.1.15 payloads, imported successfully under Python 3.14 in the RISC-V
+guest; an offline `AutoConfig.for_model("bert")` smoke returned
+`model_type == "bert"`.
+
+A strict `rpm -Uvh --test` using a user-owned copy of the guest RPM database
+rejected the candidate set only for the missing Base provider
+`python3.14dist(typer)`. The system RPM database remained unchanged, and the
+transaction log is retained at
+`/home/openruyi/validation-reports/transformers-transaction-20261026/transaction.log`.
+The Base repository metadata lists `python-typer-0.25.1-4.1.or.noarch`, but
+the guest and host could not download it during this offline validation.
+
+The updated coexistence baseline snapshot ran on the guest with Python 3.14
+and 304 installed RPMs; it resolved the existing NumPy, SciPy, and FSSpec
+system modules while preserving the absence of the private Torch, Tokenizers,
+Hugging Face Hub, Transformers, and Timm modules from the system path. The
+existing seven-package private CPU profile still passes `rpm -V`, the Torch
+matrix smoke, and the 300-second CPU-kernel shared-memory smoke. These checks
+do not establish a complete SGLang RPM transaction or inference result until
+Typer and the remaining CPU closure are available.

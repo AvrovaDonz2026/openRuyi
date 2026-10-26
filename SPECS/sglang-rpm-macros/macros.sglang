@@ -10,6 +10,7 @@
 # guest's generic python3_version (which may be 3.13).
 %_sglang_private_python %{?sglang_private_python}%{!?sglang_private_python:3.14}
 %_sglang_private_interpreter %{_bindir}/python%{_sglang_private_python}
+%_sglang_private_include %{_includedir}/python%{_sglang_private_python}
 %_sglang_python_profile %{?sglang_python_profile}%{!?sglang_python_profile:core}
 %_sglang_dep_namespace %{expr:"%{_sglang_python_profile}" == "extras" ? "sglang-extras" : "sglang"}
 %_sglang_torch_profile %{expr:"%{_sglang_python_profile}" == "extras" ? "core" : "%{_sglang_python_profile}"}
@@ -20,10 +21,15 @@
 %_sglang_private_libexec %{_libexecdir}/sglang
 %_sglang_core_sitelib %{_libdir}/sglang/core/python%{_sglang_private_python}/site-packages
 %_sglang_private_pythonpath %{_sglang_private_sitelib}:%{_sglang_core_sitelib}${PYTHONPATH:+:$PYTHONPATH}
+# Torch installs its config packages below ``torch/share/cmake`` in the
+# private site-packages tree; include that directory explicitly because CMake
+# does not recurse through a site-packages prefix when resolving CONFIG files.
+%_sglang_private_cmake_prefix %{_prefix}:%{_libdir}/cmake:%{_sglang_private_sitearch}/torch/share/cmake:%{_sglang_private_sitearch}${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}
 
 %sglang_python_compat() %{expand:
 %%global sglang_python_profile %%{?1}%%{!?1:core}
 %%global _sglang_private_enabled 1
+%%global __python3 %%{_sglang_private_interpreter}
 %%global __elf_exclude_path (^/usr/lib/debug/)|(^/lib/modules/.*\\.ko?(\\.[[:alnum:]]*)$)|((^|/)usr/lib(64)?/sglang/(core|extras)/)
 %%global buildsystem_pyproject_generate_buildrequires() %%%%sglang_pyproject_buildrequires %%%%*
 %%global buildsystem_pyproject_build() %%%%sglang_pyproject_wheel %%%%*
@@ -74,6 +80,13 @@ done
 }
 
 %sglang_pyproject_install(l:L) %{expand:\\\
+export PYTHON_EXECUTABLE="%{_sglang_private_interpreter}"
+export Python_EXECUTABLE="%{_sglang_private_interpreter}"
+export Python3_EXECUTABLE="%{_sglang_private_interpreter}"
+export PYTHON_INCLUDE_DIR="%{_sglang_private_include}"
+export Python_INCLUDE_DIR="%{_sglang_private_include}"
+export Python3_INCLUDE_DIR="%{_sglang_private_include}"
+export CMAKE_PREFIX_PATH="%{_sglang_private_cmake_prefix}"
 %%pyproject_install
 mkdir -p "%{buildroot}%{_sglang_private_sitelib}" "%{buildroot}%{_sglang_private_libexec}"
 for site in "%{buildroot}%{python3_sitelib}" "%{buildroot}%{python3_sitearch}"; do
@@ -105,6 +118,13 @@ fi
 
 %sglang_pyproject_wheel(C:) %{expand:\\\
 (
+  export PYTHON_EXECUTABLE="%{_sglang_private_interpreter}"
+  export Python_EXECUTABLE="%{_sglang_private_interpreter}"
+  export Python3_EXECUTABLE="%{_sglang_private_interpreter}"
+  export PYTHON_INCLUDE_DIR="%{_sglang_private_include}"
+  export Python_INCLUDE_DIR="%{_sglang_private_include}"
+  export Python3_INCLUDE_DIR="%{_sglang_private_include}"
+  export CMAKE_PREFIX_PATH="%{_sglang_private_cmake_prefix}"
   export PYTHONPATH="%{_sglang_private_pythonpath}"
   export CARGO_NET_OFFLINE=true
   export PIP_NO_INDEX=1
@@ -115,6 +135,13 @@ fi
 %sglang_pyproject_buildrequires(rRxtNwpe:g:C:) %{expand:\\\
 sglang_buildrequires_output="%{_pyproject_buildrequires}.sglang"
 (
+  export PYTHON_EXECUTABLE="%{_sglang_private_interpreter}"
+  export Python_EXECUTABLE="%{_sglang_private_interpreter}"
+  export Python3_EXECUTABLE="%{_sglang_private_interpreter}"
+  export PYTHON_INCLUDE_DIR="%{_sglang_private_include}"
+  export Python_INCLUDE_DIR="%{_sglang_private_include}"
+  export Python3_INCLUDE_DIR="%{_sglang_private_include}"
+  export CMAKE_PREFIX_PATH="%{_sglang_private_cmake_prefix}"
   export PYTHONPATH="%{_sglang_private_pythonpath}"
   export CARGO_NET_OFFLINE=true
   export PIP_NO_INDEX=1
@@ -137,7 +164,14 @@ rm -f "$sglang_buildrequires_output"
 
 %sglang_pyproject_check_import(e:t) %{expand:\\\
 (
+  export PYTHON_EXECUTABLE="%{_sglang_private_interpreter}"
+  export Python_EXECUTABLE="%{_sglang_private_interpreter}"
+  export Python3_EXECUTABLE="%{_sglang_private_interpreter}"
+  export PYTHON_INCLUDE_DIR="%{_sglang_private_include}"
+  export Python_INCLUDE_DIR="%{_sglang_private_include}"
+  export Python3_INCLUDE_DIR="%{_sglang_private_include}"
+  export CMAKE_PREFIX_PATH="%{_sglang_private_cmake_prefix}"
   export PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}"
-  %%pyproject_check_import %{-e} %{-t} %*
+  %%pyproject_check_import %{?**}
 )
 }
