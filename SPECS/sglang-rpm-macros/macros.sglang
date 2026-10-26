@@ -98,6 +98,7 @@ if [ -d "%{buildroot}%{_bindir}" ]; then
   rmdir "%{buildroot}%{_bindir}" 2>/dev/null || :
 fi
 %{__python3} %{_rpmconfigdir}/openruyi/sglang_private_paths.py \\
+  --buildroot "%{buildroot}" \\
   --record "%{_pyproject_record}" --ghost "%{_pyproject_ghost_distinfo}" \\
   --files "%{pyproject_files}" --modules "%{_pyproject_modules}" \\
   --from-site "%{python3_sitelib}" --to-site "%{_sglang_private_sitelib}" \\
