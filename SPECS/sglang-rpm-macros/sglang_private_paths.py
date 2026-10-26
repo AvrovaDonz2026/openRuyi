@@ -46,8 +46,17 @@ def replace_text(path, old_site, new_site, old_bin, new_bin):
     if path and path.is_file():
         path.write_text(path.read_text().replace(old_site, new_site).replace(old_bin, new_bin))
 
+
+def buildroot_path(root, path):
+    """Resolve an installed path inside the RPM buildroot."""
+    if root is None:
+        return path
+    return Path(root) / str(path).lstrip("/")
+
+
 def main():
     p = argparse.ArgumentParser()
+    p.add_argument("--buildroot", type=Path)
     for name in ("record", "ghost", "files", "modules"):
         p.add_argument("--" + name, type=Path)
     p.add_argument("--from-site", required=True)
@@ -62,8 +71,8 @@ def main():
         replace_text(value, a.from_site, a.to_site, a.from_bin, a.to_bin)
         if a.from_sitearch and a.to_sitearch:
             replace_text(value, a.from_sitearch, a.to_sitearch, a.from_bin, a.to_bin)
-    rewrite_python_shebangs(a.to_site, a.interpreter)
-    rewrite_python_shebangs(a.to_bin, a.interpreter)
+    rewrite_python_shebangs(buildroot_path(a.buildroot, a.to_site), a.interpreter)
+    rewrite_python_shebangs(buildroot_path(a.buildroot, a.to_bin), a.interpreter)
     if a.record and a.record.is_file():
         data = json.loads(a.record.read_text())
         def rewrite(value):

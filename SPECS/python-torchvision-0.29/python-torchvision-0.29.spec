@@ -141,6 +141,10 @@ Requires:       python3dist(numpy)
 Requires:       python3dist(pillow)
 Requires:       python3dist(requests)
 Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
+# Keep the complete upstream version alongside the generator's normalized
+# capability for exact SGLang requirements.
+Provides:       sglang(python3dist(torchvision)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(torchvision)) = %{version}
 
 %patchlist
 2001-Add-HIP-detect-logic.patch

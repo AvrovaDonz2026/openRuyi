@@ -96,6 +96,10 @@ BuildRequires:  python3dist(wheel)
 Requires:       ffmpeg%{?_isa} >= 4
 Requires:       ffmpeg%{?_isa} < 9
 Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
+# Keep the complete upstream version alongside the generator's normalized
+# capability for exact SGLang requirements.
+Provides:       sglang(python3dist(torchcodec)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(torchcodec)) = %{version}
 
 %description
 TorchCodec provides PyTorch bindings for decoding and encoding audio and video

@@ -109,6 +109,11 @@ BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
 Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
+# pyproject-rpm-macros emits the normalized major/minor capability for the
+# private tree. Keep the upstream 2.11.0 capability as well so exact SGLang
+# requirements resolve without weakening the package metadata.
+Provides:       sglang(python3dist(torchaudio)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(torchaudio)) = %{version}
 
 %description
 TorchAudio is an audio package for PyTorch providing signal processing

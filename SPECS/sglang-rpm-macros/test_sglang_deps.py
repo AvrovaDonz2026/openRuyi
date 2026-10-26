@@ -76,6 +76,24 @@ class SglangDependencyTests(unittest.TestCase):
                 b"#!/bin/sh\nprintf ok\n",
             )
 
+    def test_private_install_resolves_shebang_tree_inside_buildroot(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            private = root / "usr/lib64/sglang/core/python3.14/site-packages"
+            private.mkdir(parents=True)
+            entrypoint = private / "tool.py"
+            entrypoint.write_bytes(b"#!/usr/bin/python3\nprint(1)\n")
+
+            PRIVATE_PATHS.rewrite_python_shebangs(
+                PRIVATE_PATHS.buildroot_path(root, "/usr/lib64/sglang/core/python3.14/site-packages"),
+                "/usr/bin/python3.14",
+            )
+
+            self.assertEqual(
+                entrypoint.read_bytes(),
+                b"#!/usr/bin/python3.14\nprint(1)\n",
+            )
+
     def run_generator(self, helper: Path, generator_output: str, arguments: list[str],
                       stdin: str = "", status: int = 0):
         """Run a helper against a real executable fake generator."""

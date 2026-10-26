@@ -188,6 +188,10 @@ This package provides the CPU backend.
 cp README.md LICENSE python/
 %if %{without cuda}
 cp python/pyproject_cpu.toml python/pyproject.toml
+# The source archive has no Git metadata.  Use a static project version for
+# setuptools' wheel metadata so offline builds do not fall back to 0.0.0.
+sed -i -e 's/^dynamic = \["version"\]/version = "%{version}"/' \
+    python/pyproject.toml
 sed -i \
     -e 's/"blobfile==3.0.0"/"blobfile>=3.2.0,<4"/' \
     -e 's/"openai==2.6.1"/"openai>=2.40.0,<3"/' \
@@ -203,6 +207,7 @@ sed -i '/intel-openmp.*platform_machine.*x86_64/d' python/pyproject.toml
 %generate_buildrequires
 cd python
 export SETUPTOOLS_SCM_PRETEND_VERSION='%{version}'
+export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SGLANG_CPU='%{version}'
 %if %{without cuda}
 export SGLANG_BUILD_RUST_EXTS=none
 %endif
@@ -211,6 +216,7 @@ export SGLANG_BUILD_RUST_EXTS=none
 %build -p
 cd python
 export SETUPTOOLS_SCM_PRETEND_VERSION='%{version}'
+export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SGLANG_CPU='%{version}'
 %if %{without cuda}
 # The CPU metadata has no Rust build requirement.  Keep this explicit so a
 # future setup.py change cannot silently pull GPU/Rust extensions into RISC-V.
@@ -310,6 +316,9 @@ SGLANG_SMOKE_SERVER="%{buildroot}%{_sglang_private_libexec}/sglang" \
 %{_bindir}/sglang
 %{_bindir}/sglang-python
 %{_bindir}/sglang-extras-python
+# The wheel's console entry point is relocated into the private libexec tree
+# and is invoked by the public wrapper above.
+%{_libexecdir}/sglang/sglang
 %if %{without cuda}
 %{_libexecdir}/sglang/sglang-cpu-engine-smoke.py
 %{_libexecdir}/sglang/sglang-coexistence-test.py

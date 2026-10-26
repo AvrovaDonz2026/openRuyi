@@ -64,6 +64,7 @@ Version:        3.8.0
 Release:        %autorelease
 Summary:        Language and compiler for custom deep-learning primitives
 Provides:       sglang(python3dist(triton)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(triton)) = %{version}
 # Triton itself is MIT.  The statically bundled LLVM/MLIR/LLD is
 # "Apache-2.0 WITH LLVM-exception OR NCSA"; pybind11 headers are BSD-3-Clause
 License:        MIT AND (Apache-2.0 WITH LLVM-exception OR NCSA) AND BSD-3-Clause
