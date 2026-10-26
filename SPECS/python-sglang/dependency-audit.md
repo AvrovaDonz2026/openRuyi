@@ -1164,3 +1164,41 @@ sglang` stopped in `sglang.srt.utils.common` with
 SHA-256
 `2a03ecf7ca65c7ab4da540ec730b28ff33307a8b09f4b49658d14669289f6644`.
 The temporary extraction tree was removed after the check.
+
+## Corrected guest payload import smoke (2026-10-27)
+
+The earlier extraction set omitted staged public providers. A second
+non-installing smoke used the SGLang, Torch, TorchAudio, Transformers,
+Tokenizers, Hub, Click, Mistral Common, Regex, Safetensors, CPU-kernel,
+`python-orjson-3.11.7`, `python-psutil-7.2.2`, and `python-pybase64-1.4.3`
+payloads. They were extracted into a fresh user-owned `/tmp` directory in the
+same `rva23s64` guest and removed by a shell `trap` after the check. The guest
+base RPM database and the isolated 306-package database were not modified.
+
+`orjson`, `psutil`, `pybase64`, Torch 2.14.0, TorchAudio 2.11.0, and the
+Transformers/Tokenizers/Hub stack imported successfully. `import sglang` then
+stopped in `sglang.srt.utils.common` with:
+
+```text
+ModuleNotFoundError: No module named 'triton'
+```
+
+This corrects the earlier `orjson` observation: `orjson` was absent from that
+extraction subset, not absent from the staged RPM directory. Triton 3.8.0 is
+still one of the six unresolved CPU providers, so this smoke does not claim a
+successful SGLang import or engine startup.
+
+The no-`ShortCircuited` audited SGLang RPM
+(`edd4f7fc92fa429e0f120c71e5ede6d3bf144b19306f3263c2005ea2627392c8`) also
+does not carry the public `python3.14dist(orjson)`,
+`python3.14dist(psutil)`, `python3.14dist(pybase64)`,
+`python3.14dist(prometheus-client)`, `python3.14dist(pyzmq)`,
+`python3.14dist(uvloop)`, or `python3.14dist(zstandard)` requirements
+generated from the wheel metadata, nor the private
+`sglang(python3.14dist(smg-grpc-servicer))` requirement. The
+earlier non-audited candidate retained those generated requirements in its
+local `requires.txt` but carried `rpmlib(ShortCircuited)`. Neither artifact is
+publishable. The QEMU transaction harness now requires these runtime metadata
+lines before it can proceed to a transaction or import stage; the next normal
+OBS rebuild must satisfy both the generated public requirements and the
+absence of `rpmlib(ShortCircuited)`.

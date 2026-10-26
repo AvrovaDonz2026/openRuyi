@@ -615,7 +615,21 @@ for rpm in "$@"; do
       [[ $version == 0.5.21 ]] || { echo "unexpected SGLang version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
       assert_metadata_line "$rpm" requires 'sglang(python3dist(transformers)) = 5.19'
-      assert_metadata_line "$rpm" requires 'python3dist(timm) = 1.0.28'
+      assert_metadata_line_any "$rpm" requires \
+        'sglang(python3.14dist(timm)) = 1.0.28' \
+        'python3.14dist(timm) = 1.0.28' \
+        'python3dist(timm) = 1.0.28'
+      # These public requirements come from sglang-cpu's Requires-Dist and
+      # must survive private-path relocation. Without them an RPM can pass
+      # the private capability checks while import sglang fails immediately.
+      assert_metadata_line "$rpm" requires 'python3.14dist(orjson)'
+      assert_metadata_line "$rpm" requires 'python3.14dist(psutil)'
+      assert_metadata_line "$rpm" requires 'python3.14dist(pybase64)'
+      assert_metadata_line "$rpm" requires 'python3.14dist(prometheus-client) >= 0.20'
+      assert_metadata_line "$rpm" requires 'python3.14dist(pyzmq) >= 25.1.2'
+      assert_metadata_line "$rpm" requires 'python3.14dist(uvloop)'
+      assert_metadata_line "$rpm" requires 'python3.14dist(zstandard)'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(smg-grpc-servicer)) >= 0.9'
       ;;
     python-sglang-kernel-cpu)
       [[ $version == 0.4.7 ]] || { echo "unexpected SGLang CPU kernel version: $version" >&2; metadata_failure=1; }
