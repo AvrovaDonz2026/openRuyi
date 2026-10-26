@@ -1106,10 +1106,14 @@ dependency builds also remain blocked by missing development headers, linker
 inputs, or Rust registry inputs. The target LLGuidance source archive was not
 present in the offline source pool. TorchVision needs the generated Torch 2.14
 development header tree and CMake files; the current private SDK does not
-expose that complete tree. Triton and the QEMU retry were additionally blocked
-by the current guest access boundary on 2026-10-27. SMG gRPC failed on missing
-C++ standard headers and `grpcio-tools`; TorchCodec failed on missing CMake and
-FFmpeg development inputs.
+expose that complete tree. Triton reached source preparation with the required
+LLVM archive, CMake, Git, and pybind11 supplied in an isolated prefix, but the
+RISC-V guest timed out extracting the 261 MiB LLVM source tree before `%build`.
+XGrammar reached CMake in earlier attempts, but its build macro retained the
+absolute `/usr/lib64/llvm22/bin/clang++` path while the compiler was in an
+isolated prefix. SMG gRPC failed on missing C++ standard headers and
+`grpcio-tools`; TorchCodec failed on missing LLVM compiler binaries and FFmpeg
+runtime/development inputs.
 
 An isolated Outlines 1.2.13 experiment with a Python 3.14 marker relaxation
 produced `python-outlines-1.2.13-1001.noarch.rpm`, SHA-256
