@@ -317,6 +317,38 @@ class SglangDependencyTests(unittest.TestCase):
             macros,
         )
 
+    def test_pyproject_wrappers_use_private_python_abi_and_torch_prefix(self):
+        macros = (ROOT / "macros.sglang").read_text()
+        self.assertIn("%%global __python3 %%{_sglang_private_interpreter}", macros)
+        for export in (
+            'export PYTHON_EXECUTABLE="%{_sglang_private_interpreter}"',
+            'export Python_INCLUDE_DIR="%{_sglang_private_include}"',
+            'export CMAKE_PREFIX_PATH="%{_sglang_private_cmake_prefix}"',
+        ):
+            self.assertEqual(macros.count(export), 4)
+        self.assertIn(
+            "%_sglang_private_cmake_prefix %{_prefix}:%{_libdir}/cmake:%{_sglang_private_sitearch}/torch/share/cmake:%{_sglang_private_sitearch}",
+            macros,
+        )
+
+    def test_check_import_wrapper_forwards_option_values(self):
+        macros = (ROOT / "macros.sglang").read_text()
+        self.assertIn(
+            "%%pyproject_check_import %{?**}",
+            macros,
+        )
+
+    def test_coexistence_private_probe_checks_shared_runtime_modules(self):
+        source = (ROOT.parent / "python-sglang" / "sglang-coexistence-test.py").read_text()
+        self.assertIn(
+            'env["COEXIST_MODULES"] = json.dumps(MODULES)',
+            source,
+        )
+        self.assertIn(
+            'env["COEXIST_ALLOW_ABSENT"] = ",".join(sorted(SYSTEM_MODULES))',
+            source,
+        )
+
     def test_elf_exclude_path_covers_rpm6_buildroot_and_installed_paths(self):
         macros = (ROOT / "macros.sglang").read_text()
         line = next(

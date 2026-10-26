@@ -42,7 +42,10 @@ PRIVATE_MODULE_VERSIONS = {
     "tokenizers": "0.23.2",
     "huggingface_hub": "1.31.0",
 }
-OPTIONAL_BASELINE_MODULES = frozenset(SHARED_RUNTIME_MODULE_VERSIONS)
+PRIVATE_MODULE_NAMES = frozenset(("torch", "transformers", "tokenizers", "huggingface_hub"))
+OPTIONAL_BASELINE_MODULES = frozenset(
+    (*SYSTEM_MODULES, *PRIVATE_MODULE_NAMES)
+)
 DEFAULT_ROOTS = (
     "/usr/lib64/sglang/core",
     "/usr/lib/sglang/core",
@@ -91,17 +94,20 @@ for name in names:
         version = getattr(module, "__version__", None)
     result["modules"][name] = {"version": version, "path": str(path)}
 
-import torch
-x = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32)
-result["torch"]["tensor_sum"] = float((x * 2).sum().item())
-import torch.distributed as dist
-result["torch"]["distributed"] = bool(dist.is_available())
-result["torch"]["gloo"] = bool(dist.is_gloo_available())
-try:
-    from torch.distributed import Backend
-    result["torch"]["backend"] = str(Backend.GLOO)
-except Exception as exc:
-    result["torch"]["backend_error"] = type(exc).__name__ + ": " + str(exc)
+if result["modules"].get("torch", {}).get("absent"):
+    result["torch"]["absent"] = True
+else:
+    import torch
+    x = torch.tensor([1.0, 2.0, 3.0], dtype=torch.float32)
+    result["torch"]["tensor_sum"] = float((x * 2).sum().item())
+    import torch.distributed as dist
+    result["torch"]["distributed"] = bool(dist.is_available())
+    result["torch"]["gloo"] = bool(dist.is_gloo_available())
+    try:
+        from torch.distributed import Backend
+        result["torch"]["backend"] = str(Backend.GLOO)
+    except Exception as exc:
+        result["torch"]["backend_error"] = type(exc).__name__ + ": " + str(exc)
 
 maps = pathlib.Path("/proc/self/maps")
 result["native_paths"] = sorted({
@@ -230,8 +236,12 @@ def private_probe(launcher, private_roots, private_module, timeout):
     env.pop("LD_PRELOAD", None)
     env["PYTHONNOUSERSITE"] = "1"
     env["PYTHONSAFEPATH"] = "1"
+    # Probe both compatibility and shared modules.  The validator checks that
+    # shared modules remain on the distribution path while private modules
+    # resolve from the SGLang tree.  A shared module may be newly installed by
+    # the transaction, so allow only those names to be absent in the probe.
     env["COEXIST_MODULES"] = json.dumps(MODULES)
-    env.pop("COEXIST_ALLOW_ABSENT", None)
+    env["COEXIST_ALLOW_ABSENT"] = ",".join(sorted(SYSTEM_MODULES))
     env["COEXIST_PRIVATE_ROOT"] = os.pathsep.join(str(root) for root in private_roots)
     env["COEXIST_PRIVATE_MODULE"] = private_module
     return run_probe([*launcher, "-c", PROBE], env, "private", timeout)
@@ -326,11 +336,13 @@ def validate_private(result, expected, roots, private_module, private_versions):
         actual = result["modules"].get(name, {})
         before = expected["modules"].get(name, {})
         if before.get("absent"):
-            if name not in SHARED_RUNTIME_MODULE_VERSIONS:
-                if actual != before:
-                    raise RuntimeError("system module %s changed under private launcher" % name)
-            elif actual.get("absent"):
+            if actual.get("absent"):
+                if name not in SHARED_RUNTIME_MODULE_VERSIONS:
+                    continue
                 raise RuntimeError("shared runtime module %s is missing" % name)
+            module_path = actual.get("path")
+            if not module_path or under_any(module_path, roots):
+                raise RuntimeError("shared module %s loaded from private tree: %s" % (name, module_path))
         elif actual != before:
             raise RuntimeError("system module %s changed under private launcher" % name)
         if name in SHARED_RUNTIME_MODULE_VERSIONS:
@@ -381,20 +393,21 @@ def baseline_matches_after_install(actual, expected, roots):
     actual = json.loads(json.dumps(actual))
     expected_modules = expected.get("modules", {})
     actual_modules = actual.get("modules", {})
-    for name, version in SHARED_RUNTIME_MODULE_VERSIONS.items():
+    for name in SYSTEM_MODULES:
         if not expected_modules.get(name, {}).get("absent"):
             continue
         module = actual_modules.get(name, {})
         if module.get("absent"):
             continue
-        if module.get("version") != version:
+        version = SHARED_RUNTIME_MODULE_VERSIONS.get(name)
+        if version is not None and module.get("version") != version:
             raise RuntimeError(
                 "new shared module %s has version %s, expected %s"
                 % (name, module.get("version"), version)
             )
         module_path = module.get("path")
         if not module_path or under_any(module_path, roots):
-            raise RuntimeError("new shared module %s loaded from a private tree" % name)
+            raise RuntimeError("shared module %s is not loaded from the system" % name)
         actual_modules[name] = expected_modules[name]
     return actual == expected
 

@@ -291,6 +291,15 @@ Provides:       sglang(python3dist(torch-cpu)) = %{version}
 Provides:       sglang(python3dist(torch-cpu)) = 2.14
 %endif
 
+# The SGLang ELF generator namespaces private Torch SONAMEs.  Keep these
+# stable provider declarations next to the compatibility runtime so packages
+# built with an older RPM generator still resolve the same private ABI.
+Provides:       sglang(libc10.so()(64bit))
+Provides:       sglang(libtorch.so()(64bit))
+Provides:       sglang(libtorch_cpu.so()(64bit))
+Provides:       sglang(libtorch_global_deps.so()(64bit))
+Provides:       sglang(libtorch_python.so()(64bit))
+
 %package devel
 Summary:        Development files for %{name}
 Requires:       %{name}%{?_isa} = %{version}-%{release}
@@ -579,7 +588,7 @@ export CMAKE_NO_SYSTEM_FROM_IMPORTED=ON
 
 export LDFLAGS="-fuse-ld=lld %{build_ldflags}"
 export CMAKE_LIBRARY_PATH=%{_libdir}
-export CMAKE_PREFIX_PATH="%{_prefix}:%{_libdir}/cmake:%{python3_sitearch}"
+export CMAKE_PREFIX_PATH="%{_prefix}:%{_libdir}/cmake:%{_sglang_private_sitearch}/torch/share/cmake:%{_sglang_private_sitearch}${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
 
 %ifarch riscv64
 # Keep CMake try-compiles and extension builds on the selected LLVM target.
@@ -649,11 +658,11 @@ sed -i \
 # A smoke is enough to catch base functionality
 PYTHONPATH="%{buildroot}%{_sglang_private_sitearch}" \
 PYTHONDONTWRITEBYTECODE=1 \
-%{__python3} -sP %{SOURCE1}
+%{_sglang_private_interpreter} -sP %{SOURCE1}
 # Verify native distributed and Gloo with two spawned ranks and file rendezvous.
 PYTHONPATH="%{buildroot}%{_sglang_private_sitearch}" \
 PYTHONDONTWRITEBYTECODE=1 \
-%{__python3} -sP %{SOURCE2}
+%{_sglang_private_interpreter} -sP %{SOURCE2}
 %endif
 
 %files -f %{pyproject_files}

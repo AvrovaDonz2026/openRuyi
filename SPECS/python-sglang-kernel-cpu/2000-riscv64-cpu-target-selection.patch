@@ -25,7 +25,7 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
  set(CMAKE_CXX_STANDARD 20)
  set(CMAKE_CXX_STANDARD_REQUIRED ON)
  set(CMAKE_CXX_EXTENSIONS OFF)
-@@ -36,17 +43,17 @@ list(FILTER SOURCES EXCLUDE REGEX "^${CMAKE_CURRENT_SOURCE_DIR}/(${ARCH_DIRS})/"
+@@ -36,22 +43,25 @@
 
  # Platform-specific source and library directory
  set(MY_ARCH_DIR "")
@@ -47,6 +47,14 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
  endif()
  link_directories(${PLAT_LIB_DIR})
  if(MY_ARCH_DIR)
+     file(GLOB_RECURSE ARCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/${MY_ARCH_DIR}/*.cpp")
+     list(APPEND SOURCES ${ARCH_SOURCES})
++elseif(SGLANG_CPU_TARGET_ARCH MATCHES "riscv64")
++    file(GLOB_RECURSE ARCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/riscv64/*.cpp")
++    list(APPEND SOURCES ${ARCH_SOURCES})
+ endif()
+
+ # Conda library path support
 @@ -102,8 +109,8 @@ set(SGLANG_CPU_X86_ONLY_SOURCES
      ${CMAKE_CURRENT_SOURCE_DIR}/mamba/conv.cpp
  )
@@ -171,3 +179,46 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
    // weight absorption
    m.def(
        "qkv_proj_with_rope(Tensor hidden_states, Tensor q_a_proj_weight, Tensor q_b_proj_weight, Tensor "
+--- /dev/null
++++ b/python/sglang/kernels/aot/csrc/cpu/riscv64/gemm_int8.cpp
+@@ -0,0 +1,40 @@
++// SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
++// SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
++// SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
++// SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
++// SPDX-License-Identifier: Apache-2.0
++
++#include "../common.h"
++#include "../vec.h"
++
++#include <ATen/ATen.h>
++#include <ATen/Parallel.h>
++
++#include <tuple>
++
++std::tuple<at::Tensor, at::Tensor> per_token_quant_int8_cpu(at::Tensor& A) {
++  CHECK_LAST_DIM_CONTIGUOUS_INPUT(A);
++  CHECK_DIM(2, A);
++
++  const int64_t M = A.size(0);
++  const int64_t K = A.size(1);
++  const int64_t lda = A.stride(0);
++  const auto st = A.scalar_type();
++  TORCH_CHECK(st == at::kBFloat16 || st == at::kHalf,
++              "per_token_quant_int8: expect A to be bfloat16 or half.");
++
++  auto Aq = at::empty({M, K}, A.options().dtype(at::kByte));
++  auto As = at::empty({M}, A.options().dtype(at::kFloat));
++
++  AT_DISPATCH_REDUCED_FLOATING_TYPES(st, "per_token_quant_int8", [&] {
++    auto* Aq_data = Aq.data_ptr<uint8_t>();
++    auto* As_data = As.data_ptr<float>();
++    const auto* A_data = A.data_ptr<scalar_t>();
++    at::parallel_for(0, M, 0, [&](int64_t begin, int64_t end) {
++      for (int64_t m = begin; m < end; ++m) {
++        quantize_row_int8<scalar_t>(Aq_data + m * K, As_data[m], A_data + m * lda, K);
++      }
++    });
++  });
++  return std::make_tuple(Aq, As);
++}

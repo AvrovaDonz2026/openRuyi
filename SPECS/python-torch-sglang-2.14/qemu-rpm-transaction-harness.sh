@@ -22,6 +22,7 @@ gpg_fingerprint=${RPM_GPG_FINGERPRINT:-}
 coexistence_script=${COEXISTENCE_SCRIPT:-/usr/libexec/sglang/sglang-coexistence-test.py}
 cpu_smoke_script=${CPU_SMOKE_SCRIPT:-/usr/libexec/sglang/sglang-cpu-engine-smoke.py}
 kernel_smoke_script=${KERNEL_SMOKE_SCRIPT:-/usr/libexec/sglang/sglang-kernel-cpu-smoke.py}
+kernel_smoke_timeout=${SGLANG_KERNEL_SMOKE_TIMEOUT:-300}
 offline_repo_source=${DNF_OFFLINE_REPO:-}
 while (( $# > 0 )); do
   case $1 in
@@ -141,7 +142,17 @@ if [[ -n $candidate_private_python_abi ]]; then
     echo 'PRIVATE_PYTHON_ABI=FAIL' >&2
     exit 1
   fi
-  if ! rpm -q --whatprovides "python(abi) = $candidate_private_python_abi" >/dev/null; then
+  python_abi_providers=$(rpm -q --whatprovides 'python(abi)' --qf '%{NAME}\n' 2>/dev/null || :)
+  python_abi_provider_found=0
+  while IFS= read -r python_abi_provider; do
+    [[ -n $python_abi_provider ]] || continue
+    if rpm -q --provides "$python_abi_provider" 2>/dev/null |
+      grep -Fqx "python(abi) = $candidate_private_python_abi"; then
+      python_abi_provider_found=1
+      break
+    fi
+  done < <(printf '%s\n' "$python_abi_providers" | LC_ALL=C sort -u)
+  if (( ! python_abi_provider_found )); then
     echo "guest RPM database lacks python(abi) = $candidate_private_python_abi" >&2
     echo 'PRIVATE_PYTHON_ABI=FAIL' >&2
     exit 1
@@ -501,6 +512,8 @@ for rpm in "$@"; do
       [[ $version == 2.14.0 ]] || { echo "unexpected Torch version: $version" >&2; metadata_failure=1; }
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-cpu)) = 2.14.0'
       assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-cpu)) = 2.14'
+      assert_metadata_line "$rpm" provides 'sglang(libc10.so()(64bit))'
+      assert_metadata_line "$rpm" provides 'sglang(libtorch_cpu.so()(64bit))'
       assert_metadata_line "$rpm" requires 'python3dist(typing-extensions) >= 4.10.0'
       # The fixed private ELF generator must not leave the stale wheel3
       # libutf8 capabilities in either side of the Torch metadata contract.
@@ -1283,7 +1296,8 @@ if contains_candidate python-sglang-kernel-cpu; then
     exit 1
   }
   echo '== SGLang CPU kernel smoke =='
-  run_private_python "$kernel_smoke_script"
+  SGLANG_KERNEL_SMOKE_TIMEOUT=$kernel_smoke_timeout \
+    run_private_python "$kernel_smoke_script"
   echo 'CPU_KERNEL_SMOKE=PASS'
 else
   echo 'CPU_KERNEL_SMOKE=SKIPPED (python-sglang-kernel-cpu RPM not supplied)'
