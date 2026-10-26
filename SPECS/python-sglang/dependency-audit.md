@@ -1220,8 +1220,9 @@ RPMs (Cloudpickle 3.1.2, Diskcache 5.6.3, Genson 1.4.0, and Jsonpath-ng
 remaining core failures were TorchCodec 0.12.0, Transformers 5.19, Triton
 3.8.0, XGrammar 0.2.7, LLGuidance 1.7.6, and Mistral Common, with Pillow and
 several lower-level providers also absent. The transaction logs and metadata
-inventories are retained under the temporary `qemu-stage-existing-luna`
-directories.
+inventories were copied to
+`/private/tmp/openruyi-build/sglang-final-evidence-20261027/transactions/`
+before the larger staging directories were removed.
 
 The following bounded checks produced useful evidence but are not publishable
 release artifacts:
@@ -1256,8 +1257,9 @@ private sysroot. LLGuidance reached Cargo metadata but offline resolution
 failed because the `anyhow` crate was not in the vendor/index closure.
 TorchCodec reached `Preparing metadata (pyproject.toml)` and timed out after
 300 seconds. No RPM was produced for any of these four providers. The
-temporary source pool was removed after checksum verification; the source
-hashes remain in the associated rerun logs.
+temporary source pool was removed after checksum verification; its hashes and
+the associated rerun logs remain under
+`/private/tmp/openruyi-build/sglang-final-evidence-20261027/`.
 
 The corrected extraction smoke still imports Torch 2.14.0, TorchAudio 2.11.0,
 Transformers/Tokenizers/Hub, orjson, psutil, and pybase64 before stopping at
