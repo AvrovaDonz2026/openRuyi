@@ -1126,3 +1126,41 @@ Because the strict transaction is incomplete, this evidence does not claim a
 successful `import sglang`, CLI startup, CPU engine startup, or model
 inference. Those checks must run only after the final RPM closure resolves in
 the guest. CUDA and ROCm remain reserved, non-buildable flavors.
+
+## Direct guest transaction rerun (2026-10-27)
+
+The existing local QEMU `riscv64` guest was reachable as `openruyi` over
+`127.0.0.1:12059`. It reported kernel `7.1.2-533.1.or`, Python 3.14.7, RPM
+6.0.1, and 16 GiB of free space. The read-only transaction used the staged
+RPMs under `/home/openruyi/closure-transaction-20261026/rpms` and the isolated
+database at `/home/openruyi/closure-transaction-20261026/rpmdb`:
+
+```text
+rpm --dbpath /home/openruyi/closure-transaction-20261026/rpmdb --test -Uvh \
+  --nosignature /home/openruyi/closure-transaction-20261026/rpms/*.rpm
+transaction_rc=238
+```
+
+The transaction log is
+`/home/openruyi/closure-transaction-20261026/logs/transaction-rerun-20261027-final.log`;
+its SHA-256 is
+`061be7f1068c82fd7aebb07b537dd6d0c2bb74d253e105b43959ca0141b8329c`.
+The isolated database still contains 306 packages after the test. No package
+was installed into the guest's base database.
+
+The remaining SGLang provider failures are LLGuidance 1.7.6, the exact private
+Torchaudio 2.11.0 capability, TorchCodec 0.12.0, TorchVision 0.29.0, Triton
+3.8.0, and XGrammar 0.2.7. Supplemental experimental packages in the same
+staging set also require lxml, PyCryptodome, cryptography, and outlines-core;
+those failures are separate from the SGLang core provider list. Consequently,
+the guest still has no complete install transaction or inference-engine
+validation for this revision.
+
+A non-installing payload extraction smoke used the staged SGLang, Torch,
+Torchaudio, Transformers, Tokenizers, Hub, and CPU-kernel RPMs. `import
+sglang` stopped in `sglang.srt.utils.common` with
+`ModuleNotFoundError: No module named 'orjson'`. The retained log is
+`/home/openruyi/validation-reports/sglang-import-rerun-20261027.log` with
+SHA-256
+`2a03ecf7ca65c7ab4da540ec730b28ff33307a8b09f4b49658d14669289f6644`.
+The temporary extraction tree was removed after the check.

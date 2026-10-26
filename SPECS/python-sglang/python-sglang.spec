@@ -11,6 +11,7 @@
 # 5.19.0. Keep Transformers in the private compatibility tree. The base
 # timm 1.0.28 package is newer than the upstream 1.0.16 pin and is shared.
 %global transformers_compat_version 5.19.0
+# pythondistdeps normalizes the trailing .0 in the RPM capability to 5.19.
 %global transformers_compat_rpm_version 5.19
 %global xgrammar_compat_version 0.2.7
 %global llguidance_compat_min_version 1.7.6
