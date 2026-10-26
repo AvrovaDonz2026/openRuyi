@@ -1202,3 +1202,66 @@ publishable. The QEMU transaction harness now requires these runtime metadata
 lines before it can proceed to a transaction or import stage; the next normal
 OBS rebuild must satisfy both the generated public requirements and the
 absence of `rpmlib(ShortCircuited)`.
+
+## Bounded provider reruns and QEMU closure staging (2026-10-27)
+
+The validation guest was restarted from the existing validation image with
+`-cpu rva23s64`, QEMU 11.1.1, and SSH forwarding on `127.0.0.1:12060`. A
+read-only baseline reported `riscv64`, kernel `7.1.2-533.1.or`, Python 3.14.7,
+RPM 6.0.1, and 306 installed base packages. All package tests below used a
+copied RPM database or payload extraction tree; the base filesystem and RPM
+database were not changed.
+
+The staged candidate set was retested in an isolated database. The primary
+transaction returned `55`; adding the four validated pure-Python supplemental
+RPMs (Cloudpickle 3.1.2, Diskcache 5.6.3, Genson 1.4.0, and Jsonpath-ng
+1.8.0) returned `59`; adding the experimental TorchAudio repack returned
+`60`. The latter removed only the short TorchAudio capability failure. The
+remaining core failures were TorchCodec 0.12.0, Transformers 5.19, Triton
+3.8.0, XGrammar 0.2.7, LLGuidance 1.7.6, and Mistral Common, with Pillow and
+several lower-level providers also absent. The transaction logs and metadata
+inventories are retained under the temporary `qemu-stage-existing-luna`
+directories.
+
+The following bounded checks produced useful evidence but are not publishable
+release artifacts:
+
+* The TorchAudio payload exposes the exact public and private `2.11.0`
+  capabilities and passed an extracted functional smoke. It was a metadata
+  correct repack of an existing payload; a normal source RPM build did not
+  complete, so it remains experimental.
+* SMG gRPC proto `0.4.22` and servicer `0.9.1` payloads were generated and
+  compiled in the guest using temporary noarch recipes. Their hashes are
+  `22ce418872d9f3ff53ff32e447c2d7f5a299b9b5d499401afe6ba149ad515685` and
+  `f88a3791de534f3a022d92084dd0a0655ab0c7bc7e0d5840d498fa40594a25b2`.
+  The checked-in recipes still require a real `grpcio-tools` provider, so these
+  payloads do not establish an OBS build.
+* Cloudpickle, Diskcache, Genson, and Jsonpath-ng imported and passed their
+  focused function smoke. Prometheus Client and psutil also imported from
+  temporary RISC-V wheels. These supplemental providers did not resolve any
+  SGLang core transaction failure. The pybase64 wheel was built, but its module
+  import was not resolved in the bounded smoke.
+* TorchVision `0.29.0` produced a temporary noarch RPM containing a RISC-V
+  extension and passed extraction and metadata checks. Guest import/NMS could
+  not run because the isolated guest path did not contain the private Torch
+  runtime; this artifact is not a release result.
+
+The missing core providers were retried with verified source inputs. Triton
+source and its pinned LLVM commit were checksum-verified, but the guest RPM
+macro failed on `%autochangelog` before the expensive LLVM build. XGrammar
+reached native CMake with the LLVM path override and passed compiler/linker
+checks, then stopped because `FindPython` required the absolute
+`/usr/include/python3.14/patchlevel.h` path while the headers were in the
+private sysroot. LLGuidance reached Cargo metadata but offline resolution
+failed because the `anyhow` crate was not in the vendor/index closure.
+TorchCodec reached `Preparing metadata (pyproject.toml)` and timed out after
+300 seconds. No RPM was produced for any of these four providers. The
+temporary source pool was removed after checksum verification; the source
+hashes remain in the associated rerun logs.
+
+The corrected extraction smoke still imports Torch 2.14.0, TorchAudio 2.11.0,
+Transformers/Tokenizers/Hub, orjson, psutil, and pybase64 before stopping at
+`ModuleNotFoundError: No module named 'triton'`. Therefore this revision still
+does not demonstrate a complete RPM transaction, `import sglang`, CLI startup,
+CPU engine startup, or `/generate` inference. CUDA and ROCm remain reserved
+and non-buildable flavors.
