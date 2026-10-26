@@ -1063,3 +1063,62 @@ existing seven-package private CPU profile still passes `rpm -V`, the Torch
 matrix smoke, and the 300-second CPU-kernel shared-memory smoke. These checks
 do not establish a complete SGLang RPM transaction or inference result until
 Typer and the remaining CPU closure are available.
+
+## Isolated SGLang transaction follow-up (2026-10-27)
+
+The final `python-sglang-0.5.21-1001.riscv64.rpm` was checked against the
+user-owned transaction staging area
+`/home/openruyi/closure-transaction-20261026/rpms` in the QEMU guest. The
+audited package SHA-256 is
+`edd4f7fc92fa429e0f120c71e5ede6d3bf144b19306f3263c2005ea2627392c8`.
+The earlier staged package was discarded from the candidate set because it
+carried `rpmlib(ShortCircuited)`; the audited package has no such capability.
+The staging set contained 233 RPMs. The authoritative no-write check was:
+
+```text
+rpm --dbpath /home/openruyi/closure-transaction-20261026/rpmdb --test -Uvh \
+  --nosignature /home/openruyi/closure-transaction-20261026/rpms/*.rpm \
+  /home/openruyi/rpmbuild-sglang/RPMS/riscv64/python-sglang-0.5.21-1001.riscv64.rpm
+```
+
+It returned `234`. The transaction log is
+`/home/openruyi/closure-transaction-20261026/logs/transaction-all-with-audited-sglang-20261027.log`;
+its SHA-256 is
+`680a6e9155a0f5098ac57bca1d5c11251c277f10927480be3f9e4abc548d30b3`.
+The isolated RPM database still contains 306 packages and its package/index
+database timestamps did not change. No package was installed into the guest's
+base RPM database.
+
+The successful supplemental artifacts staged for this check were Blobfile
+3.2.0, EasyDict 1.13, ModelScope Hub 0.4.6, ModelScope 1.40.2, and OpenAI
+2.40.0. The existing Torchaudio artifact still exposes only the short private
+capability `2.11`; the SGLang package also requires the exact `2.11.0`
+capability, so that artifact is not a valid final provider until rebuilt from
+the updated SPEC. The checked-in SPEC already declares both exact private
+Torchaudio capabilities; the old staged RPM was excluded from the audited
+transaction.
+
+The transaction remains intentionally open. The following target providers did
+not produce installable RPMs in this run: OpenAI Harmony 0.0.8, LLGuidance
+1.7.6, Py-spy 0.4.1, SMG gRPC Servicer 0.9.1, TorchCodec 0.12, TorchVision
+0.29, Triton 3.8, and XGrammar 0.2.7. The ordinary Blobfile and ModelScope
+dependency builds also remain blocked by missing development headers, linker
+inputs, or Rust registry inputs. The target LLGuidance source archive was not
+present in the offline source pool. TorchVision needs the generated Torch 2.14
+development header tree and CMake files; the current private SDK does not
+expose that complete tree. Triton and the QEMU retry were additionally blocked
+by the current guest access boundary on 2026-10-27. SMG gRPC failed on missing
+C++ standard headers and `grpcio-tools`; TorchCodec failed on missing CMake and
+FFmpeg development inputs.
+
+An isolated Outlines 1.2.13 experiment with a Python 3.14 marker relaxation
+produced `python-outlines-1.2.13-1001.noarch.rpm`, SHA-256
+`38900d8cfe58fe4a3c0781a8633788fe5bd29e6f99b0bf1f69fca97b6f229185`.
+It is not treated as a repository result: the experiment used `--nodeps
+--nocheck`, and its runtime import still needed Pillow's native libraries and
+the missing Genson/cloudpickle/diskcache/outlines-core closure.
+
+Because the strict transaction is incomplete, this evidence does not claim a
+successful `import sglang`, CLI startup, CPU engine startup, or model
+inference. Those checks must run only after the final RPM closure resolves in
+the guest. CUDA and ROCm remain reserved, non-buildable flavors.
