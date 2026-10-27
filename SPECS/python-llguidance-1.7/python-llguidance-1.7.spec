@@ -125,4 +125,4 @@ export CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_RUSTFLAGS="${CARGO_TARGET_RISCV6
 %license LICENSE
 
 %changelog
-%autochangelog
+%{?autochangelog}

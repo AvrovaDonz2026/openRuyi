@@ -61,4 +61,4 @@ PY
 %doc README.rst
 
 %changelog
-%autochangelog
+%{?autochangelog}

@@ -61,4 +61,4 @@ export LDFLAGS="%{build_ldflags} -fuse-ld=lld"
 %license LICENSE
 
 %changelog
-%autochangelog
+%{?autochangelog}

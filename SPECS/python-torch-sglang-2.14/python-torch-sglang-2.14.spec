@@ -700,4 +700,4 @@ PYTHONDONTWRITEBYTECODE=1 \
 %endif
 
 %changelog
-%autochangelog
+%{?autochangelog}

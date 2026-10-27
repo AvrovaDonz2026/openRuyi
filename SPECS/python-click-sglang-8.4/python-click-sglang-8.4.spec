@@ -50,4 +50,4 @@ PY
 %license LICENSE.txt
 
 %changelog
-%autochangelog
+%{?autochangelog}

@@ -70,6 +70,10 @@ BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
 BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
 BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
+BuildOption(build):  -Ccmake.define.Python_EXECUTABLE=%{_sglang_private_interpreter}
+BuildOption(build):  -Ccmake.define.Python_INCLUDE_DIR=%{_sglang_private_include}
+BuildOption(build):  -Ccmake.define.Python3_EXECUTABLE=%{_sglang_private_interpreter}
+BuildOption(build):  -Ccmake.define.Python3_INCLUDE_DIR=%{_sglang_private_include}
 %if "%{_host_cpu}" != "%{_target_cpu}"
 BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_NAME=Linux
 BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
@@ -78,6 +82,7 @@ BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
+BuildRequires:  python%{_sglang_private_python}-devel
 BuildRequires:  cmake
 BuildRequires:  file
 BuildRequires:  gcc-c++
@@ -156,4 +161,4 @@ PY
 %{_sglang_private_sitearch}/%{srcname}-%{version}.dist-info/RECORD
 
 %changelog
-%autochangelog
+%{?autochangelog}

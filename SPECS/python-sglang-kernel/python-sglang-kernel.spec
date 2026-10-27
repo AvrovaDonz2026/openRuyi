@@ -135,4 +135,4 @@ export CMAKE_PREFIX_PATH="%{_sglang_private_sitelib}/torch/share/cmake${CMAKE_PR
 %doc THIRDPARTYNOTICES.txt
 
 %changelog
-%autochangelog
+%{?autochangelog}

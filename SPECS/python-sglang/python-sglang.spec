@@ -326,4 +326,4 @@ SGLANG_SMOKE_SERVER="%{buildroot}%{_sglang_private_libexec}/sglang" \
 %endif
 
 %changelog
-%autochangelog
+%{?autochangelog}

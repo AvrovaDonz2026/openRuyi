@@ -268,4 +268,4 @@ PY
 %license third_party/f2reduce/LICENCE.txt
 
 %changelog
-%autochangelog
+%{?autochangelog}

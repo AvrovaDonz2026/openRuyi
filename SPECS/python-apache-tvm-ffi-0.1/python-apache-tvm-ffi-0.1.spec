@@ -116,4 +116,4 @@ PY
 %{_sglang_private_libexec}/tvm-ffi-stubgen
 
 %changelog
-%autochangelog
+%{?autochangelog}

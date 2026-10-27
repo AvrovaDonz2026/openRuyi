@@ -97,4 +97,4 @@ PY
 %{_sglang_private_libexec}/mistral_common
 
 %changelog
-%autochangelog
+%{?autochangelog}
