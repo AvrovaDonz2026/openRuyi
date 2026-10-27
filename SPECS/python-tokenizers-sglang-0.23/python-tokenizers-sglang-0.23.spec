@@ -150,4 +150,4 @@ PY
 %license tokenizers/LICENSE
 
 %changelog
-%autochangelog
+%{?autochangelog}

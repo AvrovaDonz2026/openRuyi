@@ -77,4 +77,4 @@ PY
 %{_sglang_private_libexec}/transformers
 
 %changelog
-%autochangelog
+%{?autochangelog}

@@ -67,4 +67,4 @@ install -Dpm0644 %{SOURCE7} %{buildroot}%{_fileattrsdir}/sglang_extras_elf.attr
 %{_fileattrsdir}/sglang_extras_elf.attr
 
 %changelog
-%autochangelog
+%{?autochangelog}

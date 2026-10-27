@@ -50,4 +50,4 @@ sed -i 's/"Cython.*",/"Cython",/' pyproject.toml
 %{_sglang_private_libexec}/python-grpc-tools-protoc
 
 %changelog
-%autochangelog
+%{?autochangelog}

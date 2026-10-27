@@ -160,4 +160,4 @@ LOCAL_SIZE=1 MASTER_ADDR=127.0.0.1 MASTER_PORT=29599 \
 %{_libexecdir}/sglang/sglang-kernel-cpu-smoke.py
 
 %changelog
-%autochangelog
+%{?autochangelog}

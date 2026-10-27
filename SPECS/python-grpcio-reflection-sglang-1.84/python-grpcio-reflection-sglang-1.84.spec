@@ -46,4 +46,4 @@ Standard Protobuf Reflection Service for gRPC.
 %license LICENSE
 
 %changelog
-%autochangelog
+%{?autochangelog}

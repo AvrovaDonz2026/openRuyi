@@ -1267,3 +1267,32 @@ Transformers/Tokenizers/Hub, orjson, psutil, and pybase64 before stopping at
 does not demonstrate a complete RPM transaction, `import sglang`, CLI startup,
 CPU engine startup, or `/generate` inference. CUDA and ROCm remain reserved
 and non-buildable flavors.
+
+## Host LLVM cross-build and current guest recipe checks (2026-10-27)
+
+The existing disposable RVA23 guest was reused at `127.0.0.1:12061` with
+QEMU `rva23s64`, kernel `7.1.2-533.1.or`, Python 3.14.7, and RPM 6.0.1. The
+host Homebrew LLVM/LLD toolchain cross-compiled a minimal Python extension with
+`--target=riscv64-linux-gnu`, `-march=rv64gc`, and `-mabi=lp64d`. The output was
+an ELF64 RISC-V shared object with RVC and the double-float ABI; its SHA-256 is
+`8ade212cdb8b44a1f870f3385742e1e82045cc7ccb30c3549ebc205714b4afc6`.
+
+The cross-build helper's first guest `%check` used a stale `cpython-313`
+filename while the selected guest ABI was Python 3.14. A corrected temporary
+recipe using the same object and the `cpython-314` filename passed `%check`.
+The helper's normal install path also attempted to lock the base RPM database
+as the unprivileged `openruyi` user. A follow-up test registered the RPM in a
+user-owned isolated RPM database with `--justdb`, extracted its payload into a
+separate root, and imported it under the guest Python 3.14 interpreter. The
+smoke returned `42`, and `readelf` confirmed `Machine: RISC-V` and
+`double-float ABI`. This validates the host LLVM-to-RISC-V artifact path and
+the isolated guest import path; it does not validate a privileged system RPM
+installation.
+
+The current 23 SGLang-related SPEC files all passed guest `rpmspec -P` after
+excluding macOS archive metadata files from the temporary transfer. The
+`sglang-rpm-macros` regression suite ran all 37 tests successfully in the same
+guest. The full SGLang dependency transaction remains open: Triton, XGrammar,
+LLGuidance, TorchCodec, TorchVision, exact Torchaudio capability packaging,
+and other providers still lack publishable OBS-built RPMs. CUDA and ROCm stay
+reserved and non-buildable.

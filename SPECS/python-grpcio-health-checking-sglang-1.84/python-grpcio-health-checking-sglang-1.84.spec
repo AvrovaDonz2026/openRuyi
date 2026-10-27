@@ -47,4 +47,4 @@ This package provides the standard health checking service for gRPC.
 %license LICENSE
 
 %changelog
-%autochangelog
+%{?autochangelog}
