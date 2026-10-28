@@ -26,32 +26,32 @@ BuildOption(install):  +auto
 BuildOption(check):  -e datasets.io.spark
 BuildOption(check):  -e 'datasets.packaged_modules.spark*'
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
-BuildRequires:  python3dist(dill) >= 0.3
-BuildRequires:  python3dist(dill) < 0.4.2
-BuildRequires:  python3dist(filelock)
-BuildRequires:  sglang-extras(python3dist(fsspec)) >= 2023.1.0
-BuildRequires:  sglang-extras(python3dist(fsspec)) <= 2026.2.0
-BuildRequires:  sglang-extras(python3dist(fsspec[http])) >= 2023.1.0
-BuildRequires:  sglang-extras(python3dist(fsspec[http])) <= 2026.2.0
-BuildRequires:  python3dist(httpx)
-BuildRequires:  python3dist(httpx) < 1.0.0
-BuildRequires:  python3dist(huggingface-hub) >= 0.25
-BuildRequires:  python3dist(huggingface-hub) < 2.0
-BuildRequires:  python3dist(multiprocess)
-BuildRequires:  python3dist(multiprocess) < 0.70.20
-BuildRequires:  python3dist(numpy) >= 1.17
-BuildRequires:  sglang-extras(python3dist(pandas))
-BuildRequires:  python3dist(packaging)
-BuildRequires:  python3dist(pyarrow) >= 21
-BuildRequires:  python3dist(pyyaml) >= 5.1
-BuildRequires:  python3dist(requests) >= 2.32.2
-BuildRequires:  python3dist(tqdm) >= 4.66.3
-BuildRequires:  python3dist(xxhash)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(dill) >= 0.3
+BuildRequires:  python%{_sglang_private_python}dist(dill) < 0.4.2
+BuildRequires:  python%{_sglang_private_python}dist(filelock)
+BuildRequires:  sglang-extras(python%{_sglang_private_python}dist(fsspec)) >= 2023.1.0
+BuildRequires:  sglang-extras(python%{_sglang_private_python}dist(fsspec)) <= 2026.2.0
+BuildRequires:  sglang-extras(python%{_sglang_private_python}dist(fsspec[http])) >= 2023.1.0
+BuildRequires:  sglang-extras(python%{_sglang_private_python}dist(fsspec[http])) <= 2026.2.0
+BuildRequires:  python%{_sglang_private_python}dist(httpx)
+BuildRequires:  python%{_sglang_private_python}dist(httpx) < 1.0.0
+BuildRequires:  python%{_sglang_private_python}dist(huggingface-hub) >= 0.25
+BuildRequires:  python%{_sglang_private_python}dist(huggingface-hub) < 2.0
+BuildRequires:  python%{_sglang_private_python}dist(multiprocess)
+BuildRequires:  python%{_sglang_private_python}dist(multiprocess) < 0.70.20
+BuildRequires:  python%{_sglang_private_python}dist(numpy) >= 1.17
+BuildRequires:  sglang-extras(python%{_sglang_private_python}dist(pandas))
+BuildRequires:  python%{_sglang_private_python}dist(packaging)
+BuildRequires:  python%{_sglang_private_python}dist(pyarrow) >= 21
+BuildRequires:  python%{_sglang_private_python}dist(pyyaml) >= 5.1
+BuildRequires:  python%{_sglang_private_python}dist(requests) >= 2.32.2
+BuildRequires:  python%{_sglang_private_python}dist(tqdm) >= 4.66.3
+BuildRequires:  python%{_sglang_private_python}dist(xxhash)
 
 %description
 Version 4 of Hugging Face Datasets, provided for applications whose declared

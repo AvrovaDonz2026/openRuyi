@@ -22,7 +22,7 @@ Version:        0.1.11
 Release:        %autorelease
 Summary:        Open ABI and FFI for machine learning systems
 License:        Apache-2.0
-Provides:       sglang(python3dist(apache-tvm-ffi)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(apache-tvm-ffi)) = %{version}
 URL:            https://tvm.apache.org/ffi/
 VCS:            git:https://github.com/apache/tvm-ffi.git
 #!RemoteAsset:  sha256:153cd2c5a9717804cb0bcd9b2709f22a1e5f80ed05b5a490faf5949b136eedba
@@ -48,11 +48,11 @@ BuildRequires:  file
 BuildRequires:  gcc-c++
 BuildRequires:  ninja >= 1.11
 BuildRequires:  patchelf
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(cython)
-BuildRequires:  python3dist(scikit-build-core) >= 0.10
-BuildRequires:  python3dist(setuptools-scm)
+BuildRequires:  python%{_sglang_private_python}dist(cython)
+BuildRequires:  python%{_sglang_private_python}dist(scikit-build-core) >= 0.10
+BuildRequires:  python%{_sglang_private_python}dist(setuptools-scm)
 %ifarch riscv64
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}

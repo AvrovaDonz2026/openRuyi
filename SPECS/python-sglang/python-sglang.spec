@@ -7,17 +7,15 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global upstream_name sglang
-# The base distribution ships Transformers 5.12.1, while v0.5.21 requires
-# 5.19.0. Keep Transformers in the private compatibility tree. The base
-# timm 1.0.28 package is newer than the upstream 1.0.16 pin and is shared.
+# Upstream v0.5.21 pins Transformers 5.12.1. This downstream flavor selects
+# 5.19.0 in its private compatibility tree and provides timm 1.0.28 privately
+# to keep its Python ABI and Torch dependencies aligned.
 %global transformers_compat_version 5.19.0
 # pythondistdeps normalizes the trailing .0 in the RPM capability to 5.19.
 %global transformers_compat_rpm_version 5.19
 %global xgrammar_compat_version 0.2.7
 %global llguidance_compat_min_version 1.7.6
-%global sglang_shared_dists timm
-# Reuse the distro's timm 1.0.28 instead of the tag's 1.0.16 pin.
-%global timm_system_version 1.0.28
+%global timm_compat_version 1.0.28
 # Keep the CUDA conditionals for a future provider-backed flavor.  This source
 # package intentionally has no multibuild entry until a CUDA Torch provider is
 # available; the default build must resolve to the CPU dependency closure.
@@ -95,16 +93,16 @@ ExclusiveArch:  x86_64 aarch64
 BuildOption(prep):  -n %{upstream_name}-%{version}
 BuildOption(install):  -l sglang
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  file
 BuildRequires:  patchelf
 BuildRequires:  sglang-rpm-macros >= 0.1-1000
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(setuptools-scm)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools-scm)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
 # The private site-packages tree and launcher are tied to this exact Python ABI.
 Requires:       python(abi) = %{_sglang_private_python}
@@ -132,43 +130,43 @@ BuildRequires:  llvm(major) = %{llvm_maj_ver}
 # The CUDA flavor is intentionally dormant until a CUDA Torch provider is
 # added.
 Conflicts:      python-sglang
-Provides:       sglang(python3dist(%{srcname})) = %{version}
-BuildRequires:  python3dist(setuptools-rust)
-BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
-Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
+Provides:       sglang(python%{_sglang_private_python}dist(%{srcname})) = %{version}
+BuildRequires:  python%{_sglang_private_python}dist(setuptools-rust)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
 %else
-Provides:       sglang(python3dist(%{srcname})) = %{version}
-BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
-BuildRequires:  sglang(python3dist(torchaudio)) = 2.11.0
-BuildRequires:  sglang(python3dist(torchvision)) = 0.29.0
-BuildRequires:  sglang(python3dist(triton)) = 3.8.0
-BuildRequires:  sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
-BuildRequires:  sglang(python3dist(mistral-common)) >= 1.11.5
-BuildRequires:  sglang(python3dist(transformers)) = %{transformers_compat_rpm_version}
-BuildRequires:  sglang(python3dist(xgrammar)) = %{xgrammar_compat_version}
-BuildRequires:  sglang(python3dist(llguidance)) >= %{llguidance_compat_min_version}
-BuildRequires:  sglang(python3dist(llguidance)) < 2
+Provides:       sglang(python%{_sglang_private_python}dist(%{srcname})) = %{version}
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torchaudio)) = 2.11.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torchvision)) = 0.29.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(triton)) = 3.8.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(sglang-kernel-cpu)) = 0.4.7
+BuildRequires:  sglang(python%{_sglang_private_python}dist(mistral-common)) >= 1.11.5
+BuildRequires:  sglang(python%{_sglang_private_python}dist(transformers)) = %{transformers_compat_rpm_version}
+BuildRequires:  sglang(python%{_sglang_private_python}dist(xgrammar)) = %{xgrammar_compat_version}
+BuildRequires:  sglang(python%{_sglang_private_python}dist(llguidance)) >= %{llguidance_compat_min_version}
+BuildRequires:  sglang(python%{_sglang_private_python}dist(llguidance)) < 2
 %ifnarch aarch64 armv7hl
 # pyproject_cpu.toml excludes torchcodec on Linux ARM (aarch64, arm64, armv7l).
-BuildRequires:  sglang(python3dist(torchcodec)) = 0.12.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torchcodec)) = 0.12.0
 %endif
 %endif
 
 %if %{without cuda}
-Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
-Requires:       sglang(python3dist(torchaudio)) = 2.11.0
-Requires:       sglang(python3dist(torchvision)) = 0.29.0
-Requires:       sglang(python3dist(triton)) = 3.8.0
+Requires:       sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(torchaudio)) = 2.11.0
+Requires:       sglang(python%{_sglang_private_python}dist(torchvision)) = 0.29.0
+Requires:       sglang(python%{_sglang_private_python}dist(triton)) = 3.8.0
 # The upstream CPU installation also builds the separate AOT kernel project.
-Requires:       sglang(python3dist(sglang-kernel-cpu)) = 0.4.7
+Requires:       sglang(python%{_sglang_private_python}dist(sglang-kernel-cpu)) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
-Requires:       sglang(python3dist(mistral-common)) >= 1.11.5
-Requires:       sglang(python3dist(transformers)) = %{transformers_compat_rpm_version}
-Requires:       sglang(python3dist(xgrammar)) = %{xgrammar_compat_version}
-Requires:       sglang(python3dist(llguidance)) >= %{llguidance_compat_min_version}
-Requires:       sglang(python3dist(llguidance)) < 2
+Requires:       sglang(python%{_sglang_private_python}dist(mistral-common)) >= 1.11.5
+Requires:       sglang(python%{_sglang_private_python}dist(transformers)) = %{transformers_compat_rpm_version}
+Requires:       sglang(python%{_sglang_private_python}dist(xgrammar)) = %{xgrammar_compat_version}
+Requires:       sglang(python%{_sglang_private_python}dist(llguidance)) >= %{llguidance_compat_min_version}
+Requires:       sglang(python%{_sglang_private_python}dist(llguidance)) < 2
 %ifnarch aarch64 armv7hl
-Requires:       sglang(python3dist(torchcodec)) = 0.12.0
+Requires:       sglang(python%{_sglang_private_python}dist(torchcodec)) = 0.12.0
 %endif
 %endif
 
@@ -198,7 +196,7 @@ sed -i \
     -e 's/"openai==2.6.1"/"openai>=2.40.0,<3"/' \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8,<0.1"/' \
     -e 's/"transformers==[^"]*"/"transformers==%{transformers_compat_version}"/' \
-    -e 's/"timm==[^"]*"/"timm==%{timm_system_version}"/' \
+    -e 's/"timm==[^"]*"/"timm==%{timm_compat_version}"/' \
     python/pyproject.toml
 %ifarch riscv64
 sed -i '/intel-openmp.*platform_machine.*x86_64/d' python/pyproject.toml
@@ -261,6 +259,14 @@ sed -i \
   %{buildroot}%{_bindir}/sglang-extras-python
 
 %check -a
+%{__python3} - "%{SOURCE5}" <<'PY'
+from pathlib import Path
+import sys
+
+source = Path(sys.argv[1]).read_text()
+assert 'env["COEXIST_MODULES"] = json.dumps(MODULES)' in source
+assert 'env["COEXIST_ALLOW_ABSENT"] = ",".join(sorted(SYSTEM_MODULES))' in source
+PY
 for launcher in %{SOURCE1} %{SOURCE2} \
   "%{buildroot}%{_bindir}/sglang" \
   "%{buildroot}%{_bindir}/sglang-python"; do
@@ -285,7 +291,7 @@ from packaging.version import Version
 
 assert Version(importlib.metadata.version("openai")) >= Version("2.40.0")
 assert Version(importlib.metadata.version("openai-harmony")) >= Version("0.0.8")
-assert Version(importlib.metadata.version("timm")) == Version("%{timm_system_version}")
+assert Version(importlib.metadata.version("timm")) == Version("%{timm_compat_version}")
 assert Version(importlib.metadata.version("blobfile")) >= Version("3.2.0")
 
 client = openai.OpenAI(api_key="compatibility-check", base_url="http://localhost")

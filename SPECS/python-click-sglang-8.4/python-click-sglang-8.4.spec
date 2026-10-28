@@ -24,9 +24,9 @@ BuildSystem:    pyproject
 
 BuildOption(install):  -l %{srcname}
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(flit-core) >= 3.11
+BuildRequires:  python%{_sglang_private_python}dist(flit-core) >= 3.11
 
 %description
 Click is a Python package for creating composable command line interfaces. This

@@ -63,7 +63,7 @@ BuildRequires:  git-core
 Version:        3.8.0
 Release:        %autorelease
 Summary:        Language and compiler for custom deep-learning primitives
-Provides:       sglang(python3dist(triton)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(triton)) = %{version}
 Provides:       sglang(python%{_sglang_private_python}dist(triton)) = %{version}
 # Triton itself is MIT.  The statically bundled LLVM/MLIR/LLD is
 # "Apache-2.0 WITH LLVM-exception OR NCSA"; pybind11 headers are BSD-3-Clause
@@ -97,15 +97,15 @@ BuildRequires:  nlohmann-json
 BuildRequires:  pkgconfig(libffi)
 BuildRequires:  pkgconfig(libxml-2.0)
 BuildRequires:  pkgconfig(libzstd)
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pkgconfig(pybind11)
 BuildRequires:  pkgconfig(zlib)
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(build)
-BuildRequires:  python3dist(installer)
-BuildRequires:  python3dist(pybind11)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(build)
+BuildRequires:  python%{_sglang_private_python}dist(installer)
+BuildRequires:  python%{_sglang_private_python}dist(pybind11)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
 %patchlist
 # Link RISC-V and X86 codegen libraries on the riscv64 host.

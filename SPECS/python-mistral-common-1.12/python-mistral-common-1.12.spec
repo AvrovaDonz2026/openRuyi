@@ -29,48 +29,50 @@ ExclusiveArch:  riscv64
 BuildOption(install):  -l mistral_common
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(build)
-BuildRequires:  sglang(python3dist(click)) >= 8.4.2
-BuildRequires:  python3dist(fastapi)
-BuildRequires:  python3dist(jsonschema) >= 4.21.1
-BuildRequires:  python3dist(numpy) >= 1.25
-BuildRequires:  python3dist(pillow) >= 10.3
-BuildRequires:  python3dist(pip)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  python%{_sglang_private_python}dist(build)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(click)) >= 8.4.2
+BuildRequires:  python%{_sglang_private_python}dist(fastapi)
+BuildRequires:  python%{_sglang_private_python}dist(jsonschema) >= 4.21.1
+BuildRequires:  python%{_sglang_private_python}dist(numpy) >= 1.25
+BuildRequires:  python%{_sglang_private_python}dist(pillow) >= 10.3
+BuildRequires:  python%{_sglang_private_python}dist(pip)
 %if %{python3_version_nodots} >= 314
-BuildRequires:  python3dist(pydantic) >= 2.12
-BuildRequires:  python3dist(tiktoken) >= 0.12
+BuildRequires:  python%{_sglang_private_python}dist(pydantic) >= 2.12
+BuildRequires:  python%{_sglang_private_python}dist(tiktoken) >= 0.12
 %else
-BuildRequires:  python3dist(pydantic) >= 2.7
-BuildRequires:  python3dist(tiktoken) >= 0.7
+BuildRequires:  python%{_sglang_private_python}dist(pydantic) >= 2.7
+BuildRequires:  python%{_sglang_private_python}dist(tiktoken) >= 0.7
 %endif
-BuildRequires:  python3dist(pydantic) < 3
-BuildRequires:  python3dist(pydantic-settings)
-BuildRequires:  python3dist(pydantic-extra-types[pycountry]) >= 2.10.5
-BuildRequires:  python3dist(requests) >= 2
-BuildRequires:  python3dist(setuptools) >= 42
-BuildRequires:  python3dist(typing-extensions) >= 4.11
-BuildRequires:  python3dist(wheel)
-BuildRequires:  python3dist(uvicorn)
+BuildRequires:  python%{_sglang_private_python}dist(pydantic) < 3
+BuildRequires:  python%{_sglang_private_python}dist(pydantic-settings)
+BuildRequires:  python%{_sglang_private_python}dist(pydantic-extra-types) >= 2.10.5
+BuildRequires:  python%{_sglang_private_python}dist(pycountry)
+BuildRequires:  python%{_sglang_private_python}dist(requests) >= 2
+BuildRequires:  python%{_sglang_private_python}dist(setuptools) >= 42
+BuildRequires:  python%{_sglang_private_python}dist(typing-extensions) >= 4.11
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(uvicorn)
 
-Requires:       python3dist(jsonschema) >= 4.21.1
-Requires:       python3dist(numpy) >= 1.25
-Requires:       python3dist(pillow) >= 10.3
+Requires:       python%{_sglang_private_python}dist(jsonschema) >= 4.21.1
+Requires:       python%{_sglang_private_python}dist(numpy) >= 1.25
+Requires:       python%{_sglang_private_python}dist(pillow) >= 10.3
 %if %{python3_version_nodots} >= 314
-Requires:       python3dist(pydantic) >= 2.12
-Requires:       python3dist(tiktoken) >= 0.12
+Requires:       python%{_sglang_private_python}dist(pydantic) >= 2.12
+Requires:       python%{_sglang_private_python}dist(tiktoken) >= 0.12
 %else
-Requires:       python3dist(pydantic) >= 2.7
-Requires:       python3dist(tiktoken) >= 0.7
+Requires:       python%{_sglang_private_python}dist(pydantic) >= 2.7
+Requires:       python%{_sglang_private_python}dist(tiktoken) >= 0.7
 %endif
-Requires:       python3dist(pydantic) < 3
-Requires:       python3dist(pydantic-extra-types[pycountry]) >= 2.10.5
-Requires:       python3dist(requests) >= 2
-Requires:       python3dist(typing-extensions) >= 4.11
-Requires:       sglang(python3dist(click)) >= 8.4.2
-Requires:       python3dist(fastapi)
-Requires:       python3dist(pydantic-settings)
-Requires:       python3dist(uvicorn)
+Requires:       python%{_sglang_private_python}dist(pydantic) < 3
+Requires:       python%{_sglang_private_python}dist(pydantic-extra-types) >= 2.10.5
+Requires:       python%{_sglang_private_python}dist(pycountry)
+Requires:       python%{_sglang_private_python}dist(requests) >= 2
+Requires:       python%{_sglang_private_python}dist(typing-extensions) >= 4.11
+Requires:       sglang(python%{_sglang_private_python}dist(click)) >= 8.4.2
+Requires:       python%{_sglang_private_python}dist(fastapi)
+Requires:       python%{_sglang_private_python}dist(pydantic-settings)
+Requires:       python%{_sglang_private_python}dist(uvicorn)
 
 %description
 mistral-common is a set of tools to help you work with Mistral AI models.

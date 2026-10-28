@@ -26,14 +26,14 @@ BuildSystem:    pyproject
 BuildOption(install):  -l grpc_reflection
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
-BuildRequires:  sglang(python3dist(grpcio)) >= %{version}
-BuildRequires:  python3dist(protobuf) >= 7.35.1
-BuildRequires:  python3dist(protobuf) < 8.0.0
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio)) >= %{version}
+BuildRequires:  python%{_sglang_private_python}dist(protobuf) >= 7.35.1
+BuildRequires:  python%{_sglang_private_python}dist(protobuf) < 8.0.0
 
-Requires:       sglang(python3dist(grpcio)) >= %{version}
-Requires:       python3dist(protobuf) >= 7.35.1
-Requires:       python3dist(protobuf) < 8.0.0
+Requires:       sglang(python%{_sglang_private_python}dist(grpcio)) >= %{version}
+Requires:       python%{_sglang_private_python}dist(protobuf) >= 7.35.1
+Requires:       python%{_sglang_private_python}dist(protobuf) < 8.0.0
 
 %description
 Standard Protobuf Reflection Service for gRPC.

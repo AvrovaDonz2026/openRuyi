@@ -33,9 +33,9 @@ BuildOption(install):  -l %{srcname} -L
 BuildOption(check):  -e 'tokenizers.*'
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(maturin)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(maturin)
 BuildRequires:  gcc-c++
 BuildRequires:  rust
 BuildRequires:  rust-rpm-macros

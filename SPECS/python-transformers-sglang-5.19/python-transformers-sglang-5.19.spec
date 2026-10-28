@@ -28,11 +28,11 @@ BuildOption(install):  -l %{srcname}
 # installed package without requiring those extras.
 BuildOption(check):  -e 'transformers.*'
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
 %description
 Transformers provides model definitions for state-of-the-art machine learning

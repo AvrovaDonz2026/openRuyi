@@ -43,6 +43,10 @@ _DIST = re.compile(
 _ABI = re.compile(
     r"(?P<wrapped>[A-Za-z0-9_.+-]+)\(python\(abi\)(?P<suffix>[^)]*)\)"
 )
+_DIST_EXTRAS = re.compile(
+    r"(?P<prefix>python(?:[0-9]+(?:\.[0-9]+)?)?dist\([^()\[\]]+)"
+    r"\[[^\[\]]+\](?P<suffix>\))"
+)
 _NESTED_NAMESPACE = re.compile(
     r"\b(?:sglang|sglang-extras)\(((?:sglang|sglang-extras)\("
     r"python(?:[0-9]+(?:\.[0-9]+)?)?dist\([^()]+\)\))\)"
@@ -53,6 +57,17 @@ def _normalize_dist_name(name: str) -> str:
     """Return a PEP 503 name for profile matching, preserving extras output."""
     base = name.split("[", 1)[0]
     return re.sub(r"[-_.]+", "-", base).lower()
+
+
+def _version_dist_capability(capability: str, python_version: str | None) -> str:
+    """Bind a Python distribution capability to the selected minor ABI."""
+    if not python_version:
+        return capability
+    return re.sub(
+        r"^python(?:[0-9]+(?:\.[0-9]+)?)?dist\(",
+        f"python{python_version}dist(",
+        capability,
+    )
 
 
 def _private_namespace(
@@ -86,8 +101,9 @@ def _rewrite_capabilities(
     private_dists: frozenset[str] = frozenset(),
     shared_dists: frozenset[str] = frozenset(),
     torch_flavor: str | None = None,
+    python_version: str | None = None,
 ) -> str:
-    """Canonicalize private Python capabilities and unwrap system ones."""
+    """Canonicalize Python capabilities and unwrap system requirements."""
 
     # RPM generators may already have applied a namespace before this helper
     # sees the line (for example when two private file attributes overlap).
@@ -102,6 +118,10 @@ def _rewrite_capabilities(
     def replace_dist(match: re.Match[str]) -> str:
         capability = match.group("wcap") or match.group("rawcap")
         name = match.group("wname") or match.group("rawname")
+        # RPM capabilities identify distributions, not installer extras.
+        # Extra dependencies must be declared as their own capabilities.
+        capability = _DIST_EXTRAS.sub(r"\g<prefix>\g<suffix>", capability)
+        capability = _version_dist_capability(capability, python_version)
         if _normalize_dist_name(name) == "torch" and torch_flavor:
             capability = re.sub(
                 r"(?P<prefix>python(?:[0-9]+(?:\.[0-9]+)?)?dist)"
@@ -136,10 +156,15 @@ def _namespace_requirements(
     profile: str,
     torch_flavor: str | None = None,
     shared_dists: frozenset[str] = frozenset(),
+    python_version: str | None = None,
 ) -> str:
     """Namespace only private requirements in a generated requirements file."""
     return _rewrite_capabilities(
-        text, profile, torch_flavor=torch_flavor, shared_dists=shared_dists
+        text,
+        profile,
+        torch_flavor=torch_flavor,
+        shared_dists=shared_dists,
+        python_version=python_version,
     )
 
 
@@ -148,6 +173,7 @@ def main() -> int:
     parser.add_argument("--profile", choices=("core", "extras"), required=True)
     parser.add_argument("--namespace", required=True)
     parser.add_argument("--package-name", default="")
+    parser.add_argument("--python-version", help="private Python minor ABI, for example 3.14")
     parser.add_argument("--generator", default="/usr/lib/rpm/pythondistdeps.py")
     parser.add_argument(
         "--private-dists",
@@ -161,6 +187,8 @@ def main() -> int:
     )
     parser.add_argument("--rewrite-requires", type=argparse.FileType("r+"))
     args, passthrough = parser.parse_known_args()
+    if args.python_version and not re.fullmatch(r"[0-9]+\.[0-9]+", args.python_version):
+        parser.error("--python-version must be a Python minor version such as 3.14")
     private_dists = frozenset(
         _normalize_dist_name(name)
         for name in args.private_dists.split(",")
@@ -182,6 +210,7 @@ def main() -> int:
             private_dists=private_dists,
             shared_dists=shared_dists,
             torch_flavor=torch_flavor,
+            python_version=args.python_version,
         ))
         path.truncate()
         return 0
@@ -215,6 +244,7 @@ def main() -> int:
             private_dists=private_dists,
             shared_dists=shared_dists,
             torch_flavor=torch_flavor,
+            python_version=args.python_version,
         ))
     return result.returncode
 

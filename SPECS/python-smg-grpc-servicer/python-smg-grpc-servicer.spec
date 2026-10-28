@@ -24,19 +24,19 @@ BuildSystem:    pyproject
 
 BuildOption(install):  -l %{srcname}
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  sglang(python3dist(grpcio)) >= 1.81.1
-BuildRequires:  sglang(python3dist(grpcio-health-checking)) >= 1.81.1
-BuildRequires:  sglang(python3dist(grpcio-reflection)) >= 1.81.1
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools) >= 77
-BuildRequires:  sglang(python3dist(smg-grpc-proto)) >= 0.4.18
+BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio)) >= 1.81.1
+BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio-health-checking)) >= 1.81.1
+BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio-reflection)) >= 1.81.1
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools) >= 77
+BuildRequires:  sglang(python%{_sglang_private_python}dist(smg-grpc-proto)) >= 0.4.18
 
-Requires:       sglang(python3dist(grpcio)) >= 1.81.1
-Requires:       sglang(python3dist(grpcio-health-checking)) >= 1.81.1
-Requires:       sglang(python3dist(grpcio-reflection)) >= 1.81.1
-Requires:       sglang(python3dist(smg-grpc-proto)) >= 0.4.18
+Requires:       sglang(python%{_sglang_private_python}dist(grpcio)) >= 1.81.1
+Requires:       sglang(python%{_sglang_private_python}dist(grpcio-health-checking)) >= 1.81.1
+Requires:       sglang(python%{_sglang_private_python}dist(grpcio-reflection)) >= 1.81.1
+Requires:       sglang(python%{_sglang_private_python}dist(smg-grpc-proto)) >= 0.4.18
 
 %description
 This package provides gRPC servicer implementations for LLM inference engines,

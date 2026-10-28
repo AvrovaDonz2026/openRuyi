@@ -27,16 +27,16 @@ BuildRequires:  pkgconfig(lcms2)
 BuildRequires:  pkgconfig(libjpeg)
 BuildRequires:  pkgconfig(libtiff-4)
 BuildRequires:  pkgconfig(libwebp)
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pkgconfig(zlib)
 BuildRequires:  file
 BuildRequires:  patchelf
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(pybind11)
-BuildRequires:  python3dist(pytest)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(pybind11)
+BuildRequires:  python%{_sglang_private_python}dist(pytest)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
 %description
 Version 11 of Pillow, provided for applications whose declared dependency

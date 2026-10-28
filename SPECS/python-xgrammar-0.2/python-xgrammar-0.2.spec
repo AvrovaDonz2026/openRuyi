@@ -81,19 +81,19 @@ BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
 %endif
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  python%{_sglang_private_python}-devel
 BuildRequires:  cmake
 BuildRequires:  file
 BuildRequires:  gcc-c++
 BuildRequires:  ninja
 BuildRequires:  patchelf
-BuildRequires:  sglang(python3dist(scikit-build-core)) >= 0.10
-BuildRequires:  sglang(python3dist(apache-tvm-ffi)) >= 0.1.11
+BuildRequires:  sglang(python%{_sglang_private_python}dist(scikit-build-core)) >= 0.10
+BuildRequires:  sglang(python%{_sglang_private_python}dist(apache-tvm-ffi)) >= 0.1.11
 # The private native binding is built and tested with the SGLang Torch 2.14
 # provider; keep this RPM edge exact while upstream Python metadata remains
 # broad (torch>=1.10.0) for source compatibility.
-BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
 %ifarch riscv64
 BuildRequires:  clang
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -102,8 +102,8 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
-Requires:       sglang(python3dist(apache-tvm-ffi)) >= 0.1.11
-Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(apache-tvm-ffi)) >= 0.1.11
+Requires:       sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
 %if "%{flavor}" == "rocm"
 Conflicts:      %{compat_name}
 %else

@@ -96,8 +96,8 @@ for ((index = 0; index < ${#candidate_names[@]}; index++)); do
   if [[ -z $reserved_flavor ]]; then
     while IFS= read -r capability; do
       case "$capability" in
-        sglang\(python3dist\(*-cuda\)\)* ) reserved_flavor=CUDA; break ;;
-        sglang\(python3dist\(*-rocm\)\)* ) reserved_flavor=ROCm; break ;;
+        sglang\(python*dist\(*-cuda\)\)* ) reserved_flavor=CUDA; break ;;
+        sglang\(python*dist\(*-rocm\)\)* ) reserved_flavor=ROCm; break ;;
       esac
     done < <(rpm -qp --provides -- "$rpm")
   fi
@@ -510,115 +510,116 @@ for rpm in "$@"; do
   case "$name" in
     python-torch-sglang-2.14)
       [[ $version == 2.14.0 ]] || { echo "unexpected Torch version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-cpu)) = 2.14.0'
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-cpu)) = 2.14'
-      assert_metadata_line "$rpm" provides 'sglang(libc10.so()(64bit))'
-      assert_metadata_line "$rpm" provides 'sglang(libtorch_cpu.so()(64bit))'
-      assert_metadata_line "$rpm" requires 'python3dist(typing-extensions) >= 4.10.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torch-cpu)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torch-cpu)) = 2.14'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14elf(libc10.so()(64bit)))'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14elf(libtorch_cpu.so()(64bit)))'
+      assert_metadata_line "$rpm" requires 'python3.14dist(typing-extensions) >= 4.10.0'
       # The fixed private ELF generator must not leave the stale wheel3
       # libutf8 capabilities in either side of the Torch metadata contract.
       assert_metadata_absent_prefix "$rpm" provides 'sglang(libutf8_validity.so'
       assert_metadata_absent_prefix "$rpm" provides 'sglang(libutf8_range.so'
+      assert_metadata_absent_prefix "$rpm" provides 'sglang(python3.14elf(libutf8_validity.so'
+      assert_metadata_absent_prefix "$rpm" provides 'sglang(python3.14elf(libutf8_range.so'
       assert_metadata_absent_prefix "$rpm" requires 'sglang(libutf8_validity.so'
       assert_metadata_absent_prefix "$rpm" requires 'sglang(libutf8_range.so'
+      assert_metadata_absent_prefix "$rpm" requires 'sglang(python3.14elf(libutf8_validity.so'
+      assert_metadata_absent_prefix "$rpm" requires 'sglang(python3.14elf(libutf8_range.so'
       ;;
     python-torch-sglang-2.14-rocm)
       [[ $version == 2.14.0 ]] || { echo "unexpected Torch version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-rocm)) = 2.14.0'
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torch-rocm)) = 2.14'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torch-rocm)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torch-rocm)) = 2.14'
       ;;
     python-torchaudio-2.11)
       [[ $version == 2.11.0 ]] || { echo "unexpected TorchAudio version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torchaudio)) = 2.11.0'
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torchaudio)) = 2.11.0'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(torch-cpu)) = 2.14.0'
       ;;
     python-torchaudio-2.11-rocm)
       [[ $version == 2.11.0 ]] || { echo "unexpected TorchAudio version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torchaudio)) = 2.11.0'
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-rocm)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torchaudio)) = 2.11.0'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(torch-rocm)) = 2.14.0'
       ;;
     python-torchvision-0.29)
       [[ $version == 0.29.0 ]] || { echo "unexpected TorchVision version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torchvision)) = 0.29.0'
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torchvision)) = 0.29.0'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(torch-cpu)) = 2.14.0'
       ;;
     python-torchvision-0.29-rocm)
       [[ $version == 0.29.0 ]] || { echo "unexpected TorchVision version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torchvision)) = 0.29.0'
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-rocm)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torchvision)) = 0.29.0'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(torch-rocm)) = 2.14.0'
       ;;
     python-mistral-common-1.12)
       [[ $version == 1.12.0 ]] || { echo "unexpected Mistral Common version: $version" >&2; metadata_failure=1; }
       assert_metadata_line_any "$rpm" provides \
-        'sglang(python3dist(mistral-common)) = 1.12' \
-        'sglang(python3dist(mistral-common)) = 1.12.0'
+        'sglang(python3.14dist(mistral-common)) = 1.12' \
+        'sglang(python3.14dist(mistral-common)) = 1.12.0'
       ;;
     python-click-sglang-8.4)
       [[ $version == 8.4.2 ]] || { echo "unexpected Click version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(click)) = 8.4.2'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(click)) = 8.4.2'
       ;;
     python-transformers-sglang-5.19)
       [[ $version == 5.19.0 ]] || { echo "unexpected Transformers version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(transformers)) = 5.19'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(transformers)) = 5.19'
       ;;
     python-tokenizers-sglang-0.23)
       [[ $version == 0.23.2 ]] || { echo "unexpected Tokenizers version: $version" >&2; metadata_failure=1; }
       assert_metadata_line_any "$rpm" provides \
-        'sglang(python3dist(tokenizers)) = 0.23' \
-        'sglang(python3dist(tokenizers)) = 0.23.2'
+        'sglang(python3.14dist(tokenizers)) = 0.23' \
+        'sglang(python3.14dist(tokenizers)) = 0.23.2'
       ;;
     python-huggingface-hub-sglang-1.31)
       [[ $version == 1.31.0 ]] || { echo "unexpected Hugging Face Hub version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(huggingface-hub)) = 1.31.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(huggingface-hub)) = 1.31.0'
       ;;
     python-xgrammar-0.2)
       [[ $version == 0.2.7 ]] || { echo "unexpected XGrammar version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(xgrammar)) = 0.2.7'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(xgrammar)) = 0.2.7'
       ;;
     python-llguidance-1.7)
       [[ $version == 1.7.6 ]] || { echo "unexpected LLGuidance version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(llguidance)) = 1.7.6'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(llguidance)) = 1.7.6'
       ;;
     python-apache-tvm-ffi-0.1)
       [[ $version == 0.1.11 ]] || { echo "unexpected TVM FFI version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(apache-tvm-ffi)) = 0.1.11'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(apache-tvm-ffi)) = 0.1.11'
       ;;
     python-grpcio-sglang-1.84)
       [[ $version == 1.84.0 ]] || { echo "unexpected gRPC version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio)) = 1.84.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(grpcio)) = 1.84.0'
       ;;
     python-grpcio-tools-sglang-1.84)
       [[ $version == 1.84.0 ]] || { echo "unexpected grpcio-tools version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio-tools)) = 1.84.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(grpcio-tools)) = 1.84.0'
       ;;
     python-grpcio-health-checking-sglang-1.84)
       [[ $version == 1.84.0 ]] || { echo "unexpected grpcio-health-checking version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio-health-checking)) = 1.84.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(grpcio-health-checking)) = 1.84.0'
       ;;
     python-grpcio-reflection-sglang-1.84)
       [[ $version == 1.84.0 ]] || { echo "unexpected grpcio-reflection version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio-reflection)) = 1.84.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(grpcio-reflection)) = 1.84.0'
       ;;
     python-grpcio-status-sglang-1.84)
       [[ $version == 1.84.0 ]] || { echo "unexpected grpcio-status version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(grpcio-status)) = 1.84.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(grpcio-status)) = 1.84.0'
       ;;
     python-smg-grpc-proto)
       [[ $version == 0.4.22 ]] || { echo "unexpected SMG gRPC proto version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(smg-grpc-proto)) = 0.4.22'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(smg-grpc-proto)) = 0.4.22'
       ;;
     python-smg-grpc-servicer)
       [[ $version == 0.9.1 ]] || { echo "unexpected SMG gRPC servicer version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(smg-grpc-servicer)) = 0.9.1'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(smg-grpc-servicer)) = 0.9.1'
       ;;
     python-sglang)
       [[ $version == 0.5.21 ]] || { echo "unexpected SGLang version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(transformers)) = 5.19'
-      assert_metadata_line_any "$rpm" requires \
-        'sglang(python3.14dist(timm)) = 1.0.28' \
-        'python3.14dist(timm) = 1.0.28' \
-        'python3dist(timm) = 1.0.28'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(torch-cpu)) = 2.14.0'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(transformers)) = 5.19'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(timm)) = 1.0.28'
       # These public requirements come from sglang-cpu's Requires-Dist and
       # must survive private-path relocation. Without them an RPM can pass
       # the private capability checks while import sglang fails immediately.
@@ -633,18 +634,18 @@ for rpm in "$@"; do
       ;;
     python-sglang-kernel-cpu)
       [[ $version == 0.4.7 ]] || { echo "unexpected SGLang CPU kernel version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(sglang-kernel-cpu)) = 0.4.7'
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(sglang-kernel)) = 0.4.7'
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(sglang-kernel-cpu)) = 0.4.7'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(sglang-kernel)) = 0.4.7'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(torch-cpu)) = 2.14.0'
       ;;
     python-triton-sglang-3.8)
       [[ $version == 3.8.0 ]] || { echo "unexpected Triton version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(triton)) = 3.8.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(triton)) = 3.8.0'
       ;;
     python-torchcodec-sglang-0.12)
       [[ $version == 0.12.0 ]] || { echo "unexpected TorchCodec version: $version" >&2; metadata_failure=1; }
-      assert_metadata_line "$rpm" provides 'sglang(python3dist(torchcodec)) = 0.12.0'
-      assert_metadata_line "$rpm" requires 'sglang(python3dist(torch-cpu)) = 2.14.0'
+      assert_metadata_line "$rpm" provides 'sglang(python3.14dist(torchcodec)) = 0.12.0'
+      assert_metadata_line "$rpm" requires 'sglang(python3.14dist(torch-cpu)) = 2.14.0'
       ;;
     *)
       echo "unknown candidate package for metadata validation: $name" >&2

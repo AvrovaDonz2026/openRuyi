@@ -24,28 +24,28 @@ BuildSystem:    pyproject
 BuildOption(install):  -l %{srcname}
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(decorator) < 6
-BuildRequires:  python3dist(imageio) < 3
-BuildRequires:  python3dist(imageio-ffmpeg)
-BuildRequires:  python3dist(numpy) >= 1.25
-BuildRequires:  sglang-extras(python3dist(pillow)) >= 9.2
-BuildRequires:  sglang-extras(python3dist(pillow)) < 12
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(proglog) <= 1
-BuildRequires:  python3dist(python-dotenv) >= 0.10
-BuildRequires:  python3dist(pytest)
-BuildRequires:  python3dist(setuptools) >= 42
-BuildRequires:  python3dist(wheel)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  python%{_sglang_private_python}dist(decorator) < 6
+BuildRequires:  python%{_sglang_private_python}dist(imageio) < 3
+BuildRequires:  python%{_sglang_private_python}dist(imageio-ffmpeg)
+BuildRequires:  python%{_sglang_private_python}dist(numpy) >= 1.25
+BuildRequires:  sglang-extras(python%{_sglang_private_python}dist(pillow)) >= 9.2
+BuildRequires:  sglang-extras(python%{_sglang_private_python}dist(pillow)) < 12
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(proglog) <= 1
+BuildRequires:  python%{_sglang_private_python}dist(python-dotenv) >= 0.10
+BuildRequires:  python%{_sglang_private_python}dist(pytest)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools) >= 42
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
-Requires:       python3dist(decorator) < 6
-Requires:       python3dist(imageio) < 3
-Requires:       python3dist(imageio-ffmpeg)
-Requires:       python3dist(numpy) >= 1.25
-Requires:       sglang-extras(python3dist(pillow)) >= 9.2
-Requires:       sglang-extras(python3dist(pillow)) < 12
-Requires:       python3dist(proglog) <= 1
-Requires:       python3dist(python-dotenv) >= 0.10
+Requires:       python%{_sglang_private_python}dist(decorator) < 6
+Requires:       python%{_sglang_private_python}dist(imageio) < 3
+Requires:       python%{_sglang_private_python}dist(imageio-ffmpeg)
+Requires:       python%{_sglang_private_python}dist(numpy) >= 1.25
+Requires:       sglang-extras(python%{_sglang_private_python}dist(pillow)) >= 9.2
+Requires:       sglang-extras(python%{_sglang_private_python}dist(pillow)) < 12
+Requires:       python%{_sglang_private_python}dist(proglog) <= 1
+Requires:       python%{_sglang_private_python}dist(python-dotenv) >= 0.10
 
 %description
 MoviePy provides Python tools for video editing, compositing, and processing.

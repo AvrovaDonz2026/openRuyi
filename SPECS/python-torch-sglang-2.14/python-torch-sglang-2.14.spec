@@ -175,7 +175,7 @@ BuildRequires:  pkgconfig(nlohmann_json)
 BuildRequires:  pkgconfig(numa)
 BuildRequires:  pkgconfig(openblas64)
 BuildRequires:  pkgconfig(protobuf)
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pkgconfig(valgrind)
 BuildRequires:  pocketfft-devel
 BuildRequires:  pthreadpool-devel
@@ -187,20 +187,20 @@ BuildRequires:  pyproject-rpm-macros
 # unsatisfiable.
 BuildRequires:  sglang-rpm-macros >= 0.1-1000
 BuildRequires:  patchelf
-BuildRequires:  sglang(python3dist(scikit-build-core)) >= 1.0
-BuildRequires:  python3dist(filelock)
-BuildRequires:  python3dist(fsspec)
-BuildRequires:  python3dist(jinja2)
-BuildRequires:  python3dist(networkx)
-BuildRequires:  python3dist(numpy)
-BuildRequires:  python3dist(packaging)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(pybind11)
-BuildRequires:  python3dist(pyyaml)
-BuildRequires:  python3dist(setuptools) >= 77.0.3
-BuildRequires:  python3dist(six)
-BuildRequires:  python3dist(sympy)
-BuildRequires:  python3dist(typing-extensions) >= 4.10.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(scikit-build-core)) >= 1.0
+BuildRequires:  python%{_sglang_private_python}dist(filelock)
+BuildRequires:  python%{_sglang_private_python}dist(fsspec)
+BuildRequires:  python%{_sglang_private_python}dist(jinja2)
+BuildRequires:  python%{_sglang_private_python}dist(networkx)
+BuildRequires:  python%{_sglang_private_python}dist(numpy)
+BuildRequires:  python%{_sglang_private_python}dist(packaging)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(pybind11)
+BuildRequires:  python%{_sglang_private_python}dist(pyyaml)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools) >= 77.0.3
+BuildRequires:  python%{_sglang_private_python}dist(six)
+BuildRequires:  python%{_sglang_private_python}dist(sympy)
+BuildRequires:  python%{_sglang_private_python}dist(typing-extensions) >= 4.10.0
 
 # PyTorch consumes protobuf's CMake imported targets. The protobuf config
 # imports utf8_range and Abseil targets, so pkgconfig(protobuf) alone is not
@@ -230,7 +230,7 @@ BuildRequires:  openmpi-devel
 BuildRequires:  pkgconfig(gmock)
 BuildRequires:  pkgconfig(gtest)
 # urllib3 is needed by torch.distributed.elastic.rendezvous.etcd_rendezvous_backend
-BuildRequires:  python3dist(urllib3)
+BuildRequires:  python%{_sglang_private_python}dist(urllib3)
 %endif
 
 %if %{with system_flatbuffers}
@@ -267,38 +267,38 @@ BuildRequires:  roctracer-devel
 %endif
 
 Requires:       libomp
-Requires:       python3dist(dill)
-Requires:       python3dist(filelock)
-Requires:       python3dist(fsspec) >= 0.8.5
-Requires:       python3dist(jinja2)
-Requires:       python3dist(networkx) >= 2.5.1
-Requires:       python3dist(pyyaml)
-Requires:       python3dist(setuptools) >= 77.0.3
-Requires:       python3dist(sympy) >= 1.13.3
-Requires:       python3dist(typing-extensions) >= 4.10.0
+Requires:       python%{_sglang_private_python}dist(dill)
+Requires:       python%{_sglang_private_python}dist(filelock)
+Requires:       python%{_sglang_private_python}dist(fsspec) >= 0.8.5
+Requires:       python%{_sglang_private_python}dist(jinja2)
+Requires:       python%{_sglang_private_python}dist(networkx) >= 2.5.1
+Requires:       python%{_sglang_private_python}dist(pyyaml)
+Requires:       python%{_sglang_private_python}dist(setuptools) >= 77.0.3
+Requires:       python%{_sglang_private_python}dist(sympy) >= 1.13.3
+Requires:       python%{_sglang_private_python}dist(typing-extensions) >= 4.10.0
 %if %{with rocm}
-Provides:       sglang(python3dist(torch-rocm)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(torch-rocm)) = %{version}
 # pythondistdeps removes trailing zero components from PEP 440 versions.
 # Keep the normalized capability for generated private build requirements while
 # retaining the exact-version capability used by existing flavor recipes.
-Provides:       sglang(python3dist(torch-rocm)) = 2.14
+Provides:       sglang(python%{_sglang_private_python}dist(torch-rocm)) = 2.14
 Requires:       amdsmi
 %else
-Provides:       sglang(python3dist(torch-cpu)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(torch-cpu)) = %{version}
 # pythondistdeps emits ``= 2.14`` for ``torch==2.14.0`` requirements.
 # Publish both forms so dynamic and explicit RPM requirements resolve to the
 # same private provider.
-Provides:       sglang(python3dist(torch-cpu)) = 2.14
+Provides:       sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14
 %endif
 
 # The SGLang ELF generator namespaces private Torch SONAMEs.  Keep these
 # stable provider declarations next to the compatibility runtime so packages
 # built with an older RPM generator still resolve the same private ABI.
-Provides:       sglang(libc10.so()(64bit))
-Provides:       sglang(libtorch.so()(64bit))
-Provides:       sglang(libtorch_cpu.so()(64bit))
-Provides:       sglang(libtorch_global_deps.so()(64bit))
-Provides:       sglang(libtorch_python.so()(64bit))
+Provides:       sglang(python%{_sglang_private_python}elf(libc10.so()(64bit)))
+Provides:       sglang(python%{_sglang_private_python}elf(libtorch.so()(64bit)))
+Provides:       sglang(python%{_sglang_private_python}elf(libtorch_cpu.so()(64bit)))
+Provides:       sglang(python%{_sglang_private_python}elf(libtorch_global_deps.so()(64bit)))
+Provides:       sglang(python%{_sglang_private_python}elf(libtorch_python.so()(64bit)))
 
 %package devel
 Summary:        Development files for %{name}

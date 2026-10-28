@@ -29,20 +29,20 @@ BuildOption(install):  -l %{srcname}
 BuildOption(check):  -e timm.data.readers.reader_tfds
 BuildOption(check):  -e timm.data.tf_preprocessing
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(datasets)
-BuildRequires:  sglang(python3dist(huggingface-hub)) >= 1.31.0
-BuildRequires:  python3dist(pdm-backend)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(pyyaml)
-BuildRequires:  python3dist(safetensors)
-BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
-BuildRequires:  sglang(python3dist(torchvision)) = 0.29.0
+BuildRequires:  python%{_sglang_private_python}dist(datasets)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(huggingface-hub)) >= 1.31.0
+BuildRequires:  python%{_sglang_private_python}dist(pdm-backend)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(pyyaml)
+BuildRequires:  python%{_sglang_private_python}dist(safetensors)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torchvision)) = 0.29.0
 
-Requires:       sglang(python3dist(huggingface-hub)) >= 1.31.0
-Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
-Requires:       sglang(python3dist(torchvision)) = 0.29.0
+Requires:       sglang(python%{_sglang_private_python}dist(huggingface-hub)) >= 1.31.0
+Requires:       sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(torchvision)) = 0.29.0
 
 %description
 PyTorch Image Models provides model architectures, layers, and utilities for

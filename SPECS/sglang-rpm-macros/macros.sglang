@@ -153,7 +153,7 @@ if [ $sglang_buildrequires_status -ne 0 ]; then
   rm -f "$sglang_buildrequires_output"
   exit $sglang_buildrequires_status
 fi
-%{__python3} %{_rpmconfigdir}/sglangdistdeps.py --profile %{_sglang_python_profile} --namespace %{_sglang_dep_namespace} --package-name %{name} %{?sglang_private_build_deps:--private-dists "%{sglang_private_build_deps}"} %{?sglang_shared_dists:--shared-dists "%{sglang_shared_dists}"} --rewrite-requires "$sglang_buildrequires_output"
+%{__python3} %{_rpmconfigdir}/sglangdistdeps.py --profile %{_sglang_python_profile} --namespace %{_sglang_dep_namespace} --python-version %{_sglang_private_python} --package-name %{name} %{?sglang_private_build_deps:--private-dists "%{sglang_private_build_deps}"} %{?sglang_shared_dists:--shared-dists "%{sglang_shared_dists}"} --rewrite-requires "$sglang_buildrequires_output"
 sglang_namespace_status=$?
 if [ $sglang_namespace_status -ne 0 ]; then
   rm -f "$sglang_buildrequires_output"

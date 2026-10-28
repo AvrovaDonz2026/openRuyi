@@ -37,8 +37,10 @@ SYSTEM_SONAMES = (
 )
 
 
-def load_helper(filename: str):
-    path = ROOT / filename
+def load_helper(filename: str, directory: Path = ROOT):
+    path = directory / filename
+    if not path.is_file():
+        return None
     spec = importlib.util.spec_from_file_location(path.stem.replace("-", "_"), path)
     if spec is None or spec.loader is None:
         raise ImportError(f"cannot load {path}")
@@ -51,9 +53,127 @@ DISTDEPS = load_helper("sglangdistdeps.py")
 ELFDEPS = load_helper("sglang-elfdeps.py")
 CLOSURE = load_helper("check_sglang_rpm_closure.py")
 PRIVATE_PATHS = load_helper("sglang_private_paths.py")
+COEXISTENCE = load_helper(
+    "sglang-coexistence-test.py", ROOT.parent / "python-sglang"
+)
 
 
 class SglangDependencyTests(unittest.TestCase):
+    def private_probe_result(self, module_abi="3.14", native_abi="3.14"):
+        root = Path("/usr/lib64/sglang/core")
+        site = "/usr/lib64/sglang/core/python%s/site-packages" % module_abi
+        modules = {
+            "torch": {"path": site + "/torch/__init__.py"},
+            "transformers": {
+                "path": site + "/transformers/__init__.py",
+                "version": "5.19.0",
+            },
+            "tokenizers": {
+                "path": site + "/tokenizers/__init__.py",
+                "version": "0.23.2",
+            },
+            "huggingface_hub": {
+                "path": site + "/huggingface_hub/__init__.py",
+                "version": "1.31.0",
+            },
+            "timm": {"path": site + "/timm/__init__.py", "version": "1.0.28"},
+            "sglang": {"path": site + "/sglang/__init__.py"},
+        }
+        modules.update({name: {"absent": True} for name in COEXISTENCE.SYSTEM_MODULES})
+        native_site = "/usr/lib64/sglang/core/python%s/site-packages/torch/lib" % native_abi
+        result = {
+            "modules": modules,
+            "native_paths": [
+                native_site + "/libtorch_cpu.so",
+                native_site + "/libc10.so",
+            ],
+            "torch": {"distributed": True, "gloo": True, "backend": "gloo"},
+        }
+        expected = {
+            "modules": {
+                name: {"absent": True} for name in COEXISTENCE.SYSTEM_MODULES
+            }
+        }
+        return result, expected, root
+
+    def test_coexistence_accepts_private_modules_and_torch_libs_on_launcher_abi(self):
+        if COEXISTENCE is None:
+            self.skipTest("SGLang package sources are not part of this macro package")
+        result, expected, root = self.private_probe_result()
+        COEXISTENCE.validate_private(
+            result,
+            expected,
+            [root],
+            "sglang",
+            dict(COEXISTENCE.PRIVATE_MODULE_VERSIONS),
+            "3.14",
+        )
+        self.assertIn("timm", COEXISTENCE.PRIVATE_MODULE_NAMES)
+        self.assertNotIn("timm", COEXISTENCE.SYSTEM_MODULES)
+
+    def test_coexistence_rejects_private_module_from_wrong_python_abi(self):
+        if COEXISTENCE is None:
+            self.skipTest("SGLang package sources are not part of this macro package")
+        result, expected, root = self.private_probe_result()
+        result["modules"]["transformers"]["path"] = (
+            "/usr/lib64/sglang/core/python3.13/site-packages/transformers/__init__.py"
+        )
+        with self.assertRaisesRegex(RuntimeError, "Python 3.14 site-packages"):
+            COEXISTENCE.validate_private(
+                result,
+                expected,
+                [root],
+                "sglang",
+                dict(COEXISTENCE.PRIVATE_MODULE_VERSIONS),
+                "3.14",
+            )
+
+    def test_coexistence_rejects_torch_native_library_from_wrong_python_abi(self):
+        if COEXISTENCE is None:
+            self.skipTest("SGLang package sources are not part of this macro package")
+        result, expected, root = self.private_probe_result(native_abi="3.13")
+        with self.assertRaisesRegex(RuntimeError, "wrong Python ABI tree"):
+            COEXISTENCE.validate_private(
+                result,
+                expected,
+                [root],
+                "sglang",
+                dict(COEXISTENCE.PRIVATE_MODULE_VERSIONS),
+                "3.14",
+            )
+
+    def test_private_specs_do_not_use_minor_agnostic_python_requirements(self):
+        package_dirs = tuple(
+            package_dir for package_dir in ROOT.parent.glob("python-*")
+            if package_dir.is_dir()
+        )
+        if not package_dirs:
+            self.skipTest("OpenRuyi package SPECs are not part of this source package")
+        checked = 0
+        for package_dir in package_dirs:
+            for spec_path in package_dir.glob("*.spec"):
+                source_bytes = spec_path.read_bytes()
+                if b"%sglang_python_compat" not in source_bytes:
+                    continue
+                source = source_bytes.decode("utf-8")
+                checked += 1
+                for line_number, line in enumerate(source.splitlines(), start=1):
+                    if line.lstrip().startswith("#"):
+                        continue
+                    if not re.match(
+                        r"\s*(?:BuildRequires|Requires|Provides|Recommends|Suggests):",
+                        line,
+                    ):
+                        continue
+                    with self.subTest(path=spec_path, line=line_number):
+                        self.assertNotIn("python3dist(", line)
+                        self.assertNotIn("python3.14dist(", line)
+                        self.assertNotIn("python%{python3_version}dist(", line)
+                        self.assertNotIn("pkgconfig(python3)", line)
+                        if "dist(" in line:
+                            self.assertIn("python%{_sglang_private_python}dist(", line)
+        self.assertGreaterEqual(checked, 30)
+
     def test_private_install_rewrites_python_entrypoint_shebangs(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -163,6 +283,60 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertNotIn("sglang(python(abi))", extras)
         self.assertNotIn("sglang(python3dist(numpy))", extras)
 
+    def test_python_extra_requirements_use_distribution_capabilities(self):
+        requirements = "\n".join((
+            "python3dist(pydantic-extra-types[pycountry]) >= 2.10.5",
+            "python3dist(pycountry)",
+            "python3dist(huggingface-hub[cli]) < 3",
+        ))
+        self.assertEqual(
+            DISTDEPS._namespace_requirements(requirements, "core"),
+            "\n".join((
+                "python3dist(pydantic-extra-types) >= 2.10.5",
+                "python3dist(pycountry)",
+                "sglang(python3dist(huggingface-hub)) < 3",
+            )),
+        )
+
+    def test_private_python_capabilities_are_minor_version_specific(self):
+        requirements = "\n".join((
+            "python3dist(torch) = 2.14",
+            "python3.13dist(numpy) >= 2",
+            "python3dist(timm) = 1.0.28",
+        ))
+        self.assertEqual(
+            DISTDEPS._namespace_requirements(
+                requirements,
+                "core",
+                shared_dists=frozenset(("timm",)),
+                python_version="3.14",
+            ),
+            "\n".join((
+                "sglang(python3.14dist(torch)) = 2.14",
+                "python3.14dist(numpy) >= 2",
+                "python3.14dist(timm) = 1.0.28",
+            )),
+        )
+        self.assertEqual(
+            DISTDEPS._rewrite_capabilities(
+                "python3dist(torch) = 2.14",
+                "core",
+                provides=True,
+                default_namespace="sglang",
+                python_version="3.14",
+            ),
+            "sglang(python3.14dist(torch)) = 2.14",
+        )
+
+        self.assertEqual(
+            DISTDEPS._namespace_requirements(
+                "python3.14dist(timm) = 1.0.28",
+                "core",
+                python_version="3.14",
+            ),
+            "sglang(python3.14dist(timm)) = 1.0.28",
+        )
+
     def test_python_capabilities_collapse_nested_private_namespaces(self):
         requirements = "\n".join((
             "sglang(sglang(python3dist(torch))) >= 2",
@@ -244,7 +418,7 @@ class SglangDependencyTests(unittest.TestCase):
                     "sglang(python3dist(tokenizers)) >= 0.23.1",
                     "sglang(python3dist(huggingface_hub)) >= 1.31",
                     "sglang(python3dist(click)) >= 8.4.2",
-                    "sglang(python3dist(huggingface-hub[cli])) < 3",
+                    "sglang(python3dist(huggingface-hub)) < 3",
                     "python3dist(packaging) >= 20",
                     "python3dist(safetensors) >= 0.8",
                 )))
@@ -293,6 +467,7 @@ class SglangDependencyTests(unittest.TestCase):
             output,
             [
                 "--profile", "extras", "--namespace", "sglang-extras",
+                "--python-version", "3.14",
                 "--private-dists", "scikit-build-core",
                 "--shared-dists", "transformers", "--requires",
             ],
@@ -303,10 +478,10 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 17)
         self.assertEqual(result.stderr, "fake generator stderr\n")
         self.assertIn("python(abi) = 3.13", result.stdout)
-        self.assertIn("python3dist(numpy) >= 2", result.stdout)
-        self.assertIn("sglang(python3dist(torch)) >= 2", result.stdout)
-        self.assertIn("python3dist(transformers) = 5.12.1", result.stdout)
-        self.assertIn("sglang-extras(python3dist(fsspec))", result.stdout)
+        self.assertIn("python3.14dist(numpy) >= 2", result.stdout)
+        self.assertIn("sglang(python3.14dist(torch)) >= 2", result.stdout)
+        self.assertIn("python3.14dist(transformers) = 5.12.1", result.stdout)
+        self.assertIn("sglang-extras(python3.14dist(fsspec))", result.stdout)
 
     def test_python_short_generator_option_is_accepted(self):
         result = self.run_generator(
@@ -314,13 +489,14 @@ class SglangDependencyTests(unittest.TestCase):
             "python3dist(torch) = 2.14\n",
             [
                 "--profile", "core", "--namespace", "sglang",
+                "--python-version", "3.14",
                 "--package-name", "python-torch-sglang-2.14", "-P",
             ],
         )
 
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stderr, "fake generator stderr\n")
-        self.assertIn("sglang(python3dist(torch-cpu)) = 2.14", result.stdout)
+        self.assertIn("sglang(python3.14dist(torch-cpu)) = 2.14", result.stdout)
 
     def test_pyproject_wrappers_force_offline_cargo(self):
         macros = (ROOT / "macros.sglang").read_text()
@@ -348,23 +524,16 @@ class SglangDependencyTests(unittest.TestCase):
             "%_sglang_private_cmake_prefix %{_prefix}:%{_libdir}/cmake:%{_sglang_private_sitearch}/torch/share/cmake:%{_sglang_private_sitearch}",
             macros,
         )
+        for attr in ("sglang_core_python.attr", "sglang_extras_python.attr"):
+            self.assertIn("--python-version %{_sglang_private_python}", (ROOT / attr).read_text())
+        for attr in ("sglang_core_elf.attr", "sglang_extras_elf.attr"):
+            self.assertIn("--python-version %{_sglang_private_python}", (ROOT / attr).read_text())
 
     def test_check_import_wrapper_forwards_option_values(self):
         macros = (ROOT / "macros.sglang").read_text()
         self.assertIn(
             "%%pyproject_check_import %{?**}",
             macros,
-        )
-
-    def test_coexistence_private_probe_checks_shared_runtime_modules(self):
-        source = (ROOT.parent / "python-sglang" / "sglang-coexistence-test.py").read_text()
-        self.assertIn(
-            'env["COEXIST_MODULES"] = json.dumps(MODULES)',
-            source,
-        )
-        self.assertIn(
-            'env["COEXIST_ALLOW_ABSENT"] = ",".join(sorted(SYSTEM_MODULES))',
-            source,
         )
 
     def test_elf_exclude_path_covers_rpm6_buildroot_and_installed_paths(self):
@@ -405,6 +574,33 @@ class SglangDependencyTests(unittest.TestCase):
         self.assertEqual(result.stderr, "fake generator stderr\n")
         self.assertIn("; /buildroot/usr/lib/sglang/extras/lib/libprovider.so", result.stdout)
         self.assertIn("sglang-extras(libarbitrary_backend.so.1)", result.stdout)
+
+    def test_elf_private_capabilities_are_minor_version_specific(self):
+        generator_output = (
+            "; /buildroot/usr/lib64/sglang/core/lib/libtorch_cpu.so\n"
+            "libtorch_cpu.so.2\n"
+            "libstdc++.so.6\n"
+        )
+        result = self.run_generator(
+            ROOT / "sglang-elfdeps.py",
+            generator_output,
+            [
+                "--profile", "core", "--namespace", "sglang",
+                "--python-version", "3.14", "--provides", "--multifile",
+            ],
+        )
+
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("sglang(python3.14elf(libtorch_cpu.so.2))", result.stdout)
+        self.assertIn("libstdc++.so.6", result.stdout)
+        self.assertEqual(
+            ELFDEPS._namespace(
+                "python3.13elf(libtorch_cpu.so.2)", "sglang", "3.14"
+            ),
+            "sglang(python3.14elf(libtorch_cpu.so.2))",
+        )
+        self.assertFalse(ELFDEPS._private("sglang(python3.14elf(libstdc++.so.6))"))
+        self.assertTrue(ELFDEPS._private("sglang(python3.14elf(libtorch_cpu.so.2))"))
 
     def test_elf_short_generator_options_are_accepted(self):
         for option, expected in (("-P", "sglang-extras(libarbitrary_backend.so.1)"),
@@ -457,12 +653,12 @@ class SglangDependencyTests(unittest.TestCase):
             "libstdc++.so.6\n",
             [
                 "--profile", "core", "--namespace", "sglang",
-                "--requires", "--multifile",
+                "--python-version", "3.14", "--requires", "--multifile",
             ],
         )
 
         self.assertEqual(result.returncode, 0)
-        self.assertIn("sglang(libtorch_cpu.so.2)", result.stdout)
+        self.assertIn("sglang(python3.14elf(libtorch_cpu.so.2))", result.stdout)
         self.assertIn("libstdc++.so.6", result.stdout)
         self.assertNotIn("sglang(libstdc++.so.6)", result.stdout)
 

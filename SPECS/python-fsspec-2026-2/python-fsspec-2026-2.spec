@@ -30,11 +30,11 @@ BuildOption(check):  -e fsspec.fuse
 BuildOption(check):  -e fsspec.gui
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(hatch-vcs)
-BuildRequires:  python3dist(hatchling) >= 1.27
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(hatch-vcs)
+BuildRequires:  python%{_sglang_private_python}dist(hatchling) >= 1.27
 
 %description
 Fsspec provides a unified Python interface for local, remote, and embedded
