@@ -25,22 +25,22 @@ BuildOption(check):  -e pandas.core.arrays.arrow.extension_types
 BuildOption(check):  -e 'pandas.tests.*'
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  file
 BuildRequires:  patchelf
 BuildRequires:  clang
 BuildRequires:  llvm
-BuildRequires:  python3dist(cython) < 4.0.0a0
-BuildRequires:  python3dist(meson) >= 1.2.1
-BuildRequires:  python3dist(meson) < 2
-BuildRequires:  python3dist(meson-python) >= 0.13.1
-BuildRequires:  python3dist(numpy) >= 2.0
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(versioneer[toml])
-BuildRequires:  python3dist(wheel)
-BuildRequires:  python3dist(pytest)
-BuildRequires:  python3dist(hypothesis)
-BuildRequires:  python3dist(jinja2)
+BuildRequires:  python%{_sglang_private_python}dist(cython) < 4.0.0a0
+BuildRequires:  python%{_sglang_private_python}dist(meson) >= 1.2.1
+BuildRequires:  python%{_sglang_private_python}dist(meson) < 2
+BuildRequires:  python%{_sglang_private_python}dist(meson-python) >= 0.13.1
+BuildRequires:  python%{_sglang_private_python}dist(numpy) >= 2.0
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(versioneer[toml])
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(pytest)
+BuildRequires:  python%{_sglang_private_python}dist(hypothesis)
+BuildRequires:  python%{_sglang_private_python}dist(jinja2)
 
 %description
 Version 2 of pandas, provided for applications whose declared dependency range

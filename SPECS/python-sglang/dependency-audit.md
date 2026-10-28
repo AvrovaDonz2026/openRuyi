@@ -1296,3 +1296,295 @@ guest. The full SGLang dependency transaction remains open: Triton, XGrammar,
 LLGuidance, TorchCodec, TorchVision, exact Torchaudio capability packaging,
 and other providers still lack publishable OBS-built RPMs. CUDA and ROCm stay
 reserved and non-buildable.
+
+## QEMU target access recheck (2026-10-27)
+
+The earlier Python 3.14.7/RPM 6.0.1 guest at `127.0.0.1:12059` is no longer
+available. Its prior validation key and guest disk/overlay were not present in
+the local staging paths. A temporary SSH forward was added to another QEMU
+process on that port, but the available key was rejected, so that process is
+not treated as an accessible guest.
+
+The only guest reachable over SSH during this recheck was `127.0.0.1:22024`,
+booted from a disposable overlay on the openRuyi 2026.06 Server-cloud image
+with QEMU 11.1.1 and `-cpu rva23s64`. It reported `riscv64`, kernel
+`7.1.2-533.1.or`, Python 3.13.8, RPM 4.20.1, and a 733 MiB root filesystem
+with approximately 34-42 MiB free. This guest does not satisfy the private
+Python 3.14 ABI or RPM 6.0.1 validation target. No SGLang RPM transaction or
+installation was attempted in it.
+
+The retained source hash manifest refers to
+`/private/tmp/openruyi-build/source-pool-20261027`, but that source pool is no
+longer present. The current temporary staging tree has no Triton 3.8.0,
+LLVM-pinned, LLGuidance 1.7.6, XGrammar 0.2.7, or TorchCodec 0.12.0 source
+archives, and no complete set of publishable provider RPMs. The saved provider
+and transaction logs remain evidence of the prior bounded attempts; they do
+not establish successful builds, a complete transaction, `import sglang`,
+CPU engine startup, or `/generate` inference. Restore verified offline source
+inputs and a reachable Python 3.14/RPM 6.0.1 RVA23 guest before resuming those
+target checks.
+
+## Torchaudio capability recheck (2026-10-27)
+
+The retained Torchaudio RPM above exposes
+`sglang(python3.14dist(torchaudio)) = 2.11`; its embedded SRPM SPEC predates the
+explicit capability aliases now present in
+`SPECS/python-torchaudio-2.11/python-torchaudio-2.11.spec`. RPM 4.20.1 in the
+reachable RVA23 guest reports `rpm.vercmp("2.11", "2.11.0")` as `-1`, so this
+archived RPM does not satisfy SGLang's exact `= 2.11.0` requirement. The current
+SPEC has not been rebuilt into a replacement RPM, and no Torchaudio package was
+installed during this recheck.
+
+## Source recovery and current QEMU recheck (2026-10-27)
+
+This section supersedes the preceding statements about the temporary source
+pool being absent and no suitable QEMU guest being reachable. It does not
+change the older build or transaction results recorded above.
+
+The source pool at
+`/private/tmp/openruyi-build/source-pool-20261027` has been restored. These
+archives match the checksums in their current SPEC files:
+
+- Torchaudio 2.11.0: `599ec24e7e1eef476ef21f0178e33da00e2434f930ba42e9cc20bf4002220486`.
+- XGrammar 0.2.7: `7674afeee5e6eff9672627b62d5ab0aa2347ea51674f4d78a5c160029f92bc3e`.
+- LLGuidance 1.7.6: `db7febbe412ed2015501904646750071d7e00e6df7f85c4b956ad4f206fd2df7`.
+- TorchCodec 0.12.0: `f0cc21c1f99439cff30eb43080e9bc8e43c6b9505b4f327cb42ee132075bcec4`.
+
+Triton 3.8.0 and its pinned LLVM source are still absent from the restored
+source pool. The current build staging tree contains only three RPM files
+(Click, Hugging Face Hub, and Tokenizers); no complete provider set or
+Torchaudio SRPM is present there.
+
+The official openRuyi Creek 2026.09 RVA23 Server-cloud image and UEFI firmware
+were downloaded from the [release directory](https://releases.openruyi.cn/creek/2026.09/rva23/)
+and matched its `SHA256SUMS`: QCOW2
+`2045e94d448ec12dbd3d7613c68005e8fdbe0748faf837f6e212af475dc8bc47`, CODE
+`4dc955ecb8fa727e3989e8f40c1b846bffc38cd2830601a97eaa620807480c01`, and VARS
+template `ea8094e953b1215444bd001ee1cf22818f1f7f8abcb158e62180cbaa6c1f70af`.
+`qemu-img check` reported no image errors. QEMU 11.1.1 booted it with
+`-cpu rva23s64` on an 8 GiB disposable COW overlay; the base QCOW2 remains
+unchanged. The guest reports kernel `7.2.6-1.0_555.1.or`, glibc 2.44,
+RPM 6.0.1, and Python 3.13.8, with 5.7 GiB free after automatic filesystem
+expansion. A read-only 9p mount exposes the staged source pool and evidence.
+
+The guest's enabled rolling `Base` repository advertises generic Python
+3.14.7 packages. Its `python3-devel` RPM provides the `python3.14-devel`
+capability, and `python3` provides `python(abi) = 3.14` plus
+`/usr/bin/python3.14`. However, a `dnf install --assumeno` simulation for
+`python3` 3.14.7 and `python3-devel` 3.14.7 would replace/upgrade 31 installed
+packages, including Python 3.13.8 and its Python modules. The simulation was
+aborted without installing anything. These generic providers therefore do not
+coexist with the guest's 2026.09 Python 3.13 baseline; the `python314`
+compatibility flavor in `SPECS/python/python.spec` remains necessary for that
+baseline if it is part of the supported target matrix.
+
+The guest has no `rpm-build`, GCC, Clang 22, CMake, or Make installed. No
+package build, SGLang RPM transaction, install, private import, coexistence
+test, CPU engine startup, or `/generate` inference was performed in this
+recheck. The dependency closure and Python 3.14 compatibility provider remain
+release blockers.
+
+## Isolated provider install and import probe (2026-10-27)
+
+The current guest is reachable at `127.0.0.1:22025` and remains on Python
+3.13.8/RPM 6.0.1. A main-root `dnf install --assumeno` for the three staged
+Click, Hugging Face Hub, and Tokenizers RPMs proposed replacing 31 installed
+packages, including Python 3.13.8 with Python 3.14.7. The simulation was
+aborted; the base guest RPM database was not changed.
+
+An isolated `/var/tmp` installroot using the guest's rolling `Base` repository
+successfully installed those three RPMs and their dependencies with Python
+3.14.7. With the private core site-packages directory on `PYTHONPATH`, imports
+and focused behavior checks passed for Click 8.4.2, Hugging Face Hub 1.31.0,
+and Tokenizers 0.23.2. The checks ran a Click command, validated a Hub repo ID,
+and encoded text with a Tokenizers WordLevel model. The temporary installroot
+was removed after the checks; the base guest remains on Python 3.13.8 with
+5.7 GiB free.
+
+This validates only these three provider RPM payloads in an isolated Python
+3.14 root. The complete RPM inventory remains three RPMs and no SRPMs. There
+are still no usable SGLang, Torch 2.14, SGLang CPU kernel 0.4.7,
+TorchVision 0.29, Torchaudio 2.11, TorchCodec 0.12, Transformers 5.19,
+Triton 3.8, XGrammar 0.2.7, LLGuidance 1.7.6, or Mistral Common provider RPMs
+in the staging paths. The main-root transaction,
+full SGLang import, CPU engine startup, compatibility test against existing
+software, and `/generate` inference remain unverified.
+
+The host Homebrew LLVM 23.1.3 and LLD expose the RISC-V target, but this guest
+has no exported target sysroot or Python 3.14 development headers. Host
+`rustc`/`cargo` are unavailable, and Homebrew `rpmbuild` defaults to Darwin
+without the openRuyi RPM macros. No dependency RPM was cross-built in this
+recheck; the earlier minimal ELF cross-build remains a separate toolchain smoke.
+
+## Isolated RPM Builds and Complete Metadata Scan (2026-10-27)
+
+The reachable QEMU RVA23 guest is `127.0.0.1:22025`. Its system remains at
+Python 3.13.8/RPM 6.0.1 with 286 installed RPMs. Builds and installs below ran
+only inside `/var/tmp/sglang-mainline-buildroot`, which uses Python 3.14.7/RPM
+6.0.1; the guest's main RPM database was not changed. Current Base metadata
+reports Torch 2.13.0, TorchAudio 2.11.0, TorchVision 0.28.0, Triton 3.7.1,
+Transformers 5.12.1, Tokenizers 0.22.2, Hugging Face Hub 1.16.0, XGrammar
+0.2.1, LLGuidance 1.7.5, Apache TVM FFI 0.1.10, and timm 1.0.28. Only timm
+meets its selected version and remains a shared Base dependency.
+
+`sglang-rpm-macros` 0.1.2 was built from the current SPEC and passed all 37
+`%check` tests. The dependency rewriter now removes installer extras from RPM
+distribution capabilities. Mistral Common declares `pydantic-extra-types` and
+`pycountry` separately because Base RPM metadata does not provide an extras
+capability.
+
+Transformers 5.19.0 matched the source SHA256 in its SPEC:
+`87f38dd25e4521151b97e94520ac457f44a0ae8a8358a5b112daff6c64a822d6`. Its
+RISC-V RPM passed the SPEC import checks and an offline BERT `AutoConfig` smoke;
+its header provides the private Transformers capability and contains no
+`rpmlib(Shortcircuited)`. RPM SHA256:
+`ba9ace3b5ec4bb603d11eab510061b076ffd326df0ac51a8ef6be92ca507ee9f`. SRPM
+SHA256: `755910996dbe6bfc0a9dd88e464955a2d122c17c20abb692b2ac7bbf0cc2221b`.
+
+Mistral Common 1.12.0 source and license matched their SPEC SHA256 values
+`d0f150926733cf422d4750ca19b47568df1f714557c9054a432b866f1f30bf52` and
+`5ed6f79e77734b5a60740dd821af5ecac9a6f33709c860eea4e20fcb6cca7fcc`. Its
+RISC-V `%check` imported all modules. After an isolated install,
+`MistralTokenizer`, `Tekkenizer`, and the `pycountry` runtime check passed.
+RPM SHA256: `06fe35306dde27f62f39967a408fdb357ccc80e44859db07b9484a281db1c3d4`.
+SRPM SHA256: `fb69b3eedc43241acd500737d0c1ac53e13fe6d967103a20be66d46f9d0e96d0`.
+An isolated RPM transaction dry-run passed. These results cover these Python
+providers only, not SGLang.
+
+The SGLang v0.5.21 archive downloaded in the guest matched its SPEC SHA256
+`c44951b7871dac61262fc04e9fca628175758a97fa5f603c522b31dc31b94249`. The
+current CPU SPEC `%prep` applied the RISC-V patch and generated its patched
+project metadata. After installing Base `python-setuptools-scm` into the
+isolated root, `%generate_buildrequires` completed. The local DNF solver ran
+with all repositories disabled and still failed, so no SGLang RPM was built.
+
+Unresolved private SGLang providers are Torch CPU 2.14.0, TorchAudio 2.11.0,
+TorchVision 0.29.0, Triton 3.8.0, SGLang CPU kernel 0.4.7, XGrammar 0.2.7,
+LLGuidance 1.7.6 or newer below 2, TorchCodec 0.12.0, and SMG gRPC Servicer
+0.9 or newer. Base has lower versions for Torch, TorchVision, Triton,
+XGrammar, LLGuidance, and Apache TVM FFI. Base Torchaudio does not provide the
+private SGLang capability.
+
+The same local solver reported public Python requirements missing from the
+current isolated RPM database, including aiohttp, compressed-tensors, datasets,
+easydict, einops, gguf, interegular, ipython, modelscope, msgspec, orjson,
+outlines, partial-json-parser, psutil, py-spy, pybase64, pytest,
+python-multipart, scipy, setproctitle, tabulate, uvloop, xxhash, zstandard,
+Blobfile 3.2+, OpenAI 2.40+, OpenAI Harmony 0.0.8+, Anthropic, Prometheus
+Client, PyZMQ, SentencePiece 0.2.1, SoundFile 0.13.1, and timm 1.0.28. All
+repositories were disabled during this check, so this list does not establish
+that each public dependency is absent from Base. A separate Base metadata
+query confirms timm 1.0.28 is available.
+
+Build artifacts and logs are staged under
+`/private/tmp/openruyi-build/offline-sglang-build/ARTIFACTS`. A complete
+SGLang RPM transaction, SGLang import, CPU engine startup, coexistence test
+against installed Base software, and `/generate` inference remain unverified.
+CUDA and ROCm remain reserved non-buildable flavors.
+
+## Reconnected QEMU guest and private import recheck (2026-10-27)
+
+The user-authorized RVA23 guest is reachable at `127.0.0.1:22025` using the
+existing SSH key. It reports `openruyi-sglang`, kernel `7.2.6-1.0_555.1.or`,
+`riscv64`, system Python 3.13.8, and RPM 6.0.1. Port `12055` is closed;
+`22024` reaches a different 2026.06 guest with Python 3.13.8/RPM 4.20.1 and
+insufficient disk space, so it was not used for package validation.
+
+The existing isolated buildroot contained Python 3.14.7/RPM 6.0.1 and the
+macros, Click 8.4.2, Hugging Face Hub 1.31.0, Tokenizers 0.23.2, Transformers
+5.19.0, and Mistral Common 1.12.0 RPMs. With the private `LD_LIBRARY_PATH`
+and `PYTHONPATH` set, Python 3.14 imported all five modules and reported those
+versions. Transformers warned that PyTorch was unavailable. Torch, Triton,
+XGrammar, LLGuidance, and SGLang were absent, so this remains a provider import
+smoke, not an SGLang import or engine test.
+
+A cache-only Base solver plan showed CMake 4.3.2, LLVM 22.1.8, Ninja, and
+Python 3.14 development files could be installed into that isolated root, but
+XGrammar still lacks its exact private Torch 2.14.0 and Apache TVM FFI >=
+0.1.11 providers. No build tools were installed and no additional RPM was
+built. The private buildroot was removed after confirming no build process was
+running; guest root free space increased from 4.1 GiB to 5.7 GiB. Existing
+RPM/SRPM artifacts, source archives, and logs remain in host staging. The
+guest's system RPM database was not used for installation.
+
+The complete SGLang RPM transaction, `import sglang`, CPU engine startup,
+coexistence test, and `/generate` inference remain unverified. CUDA and ROCm
+remain reserved non-buildable flavors.
+
+## Python ABI capability isolation (2026-10-28)
+
+A read-only review of OpenRuyi's Python RPM generators confirmed that generic
+`python3dist(NAME)` capabilities can be supplied by the default Python minor
+version and do not identify the interpreter that can import the files. The
+private SGLang Python tree therefore now uses the configured
+`%{_sglang_private_python}` ABI in generated and hand-written Python
+capabilities. In the current candidate this resolves to
+`python3.14dist(NAME)`. Private Python Provides are normalized the same way,
+including generated major-version aliases. Build requirements for the versioned
+interpreter development metadata use `pkgconfig(python-3.14)`, matching the
+versioned `.pc` file shipped by the repository's `python314` flavor.
+
+Private native-library capabilities now use
+`sglang(python3.14elf(SONAME))`. This prevents a private Torch or extension
+library built for another Python ABI from satisfying the SGLang transaction.
+System SONAME dependencies remain ordinary global ELF requirements. The
+`timm` 1.0.28 provider is selected from the private SGLang tree so its imports
+and Torch dependency use the same ABI. The SGLang SPEC also records Transformers
+5.19.0 as a downstream compatibility selection; upstream v0.5.21's CPU
+metadata pins 5.12.1.
+
+The regression suite now has 40 cases, including a scan of all 33 private
+SGLang package SPECs for generic Python capabilities. All 40 passed on the host
+and in the user-authorized QEMU guest (`riscv64` RVA23, Python 3.13.8, RPM
+6.0.1). Host `rpmspec` expansion of the SGLang and Mistral Common recipes
+confirmed Python 3.14-qualified requirements. The guest's 286-package RPM
+database and Python 3.13.8 baseline remained unchanged; temporary test files
+were removed and 5.6 GiB remained free.
+
+This validates the dependency capability rules and the target-side regression
+suite, not a newly built macro RPM. The guest has no `rpmbuild` or Python 3.14
+interpreter, and its enabled Base repository metadata returned no `rpm-build`
+candidate. Staged artifacts still lack Torch 2.14.0, Triton 3.8.0 and the
+remaining private provider RPM/SRPM closure. A full RPM transaction, SGLang
+import, CPU engine startup, coexistence check, and `/generate` inference are
+still unverified.
+
+## RVA23 regression rerun (2026-10-28)
+
+The current 43-case `test_sglang_deps.py` suite passed in the local
+openRuyi Creek QEMU guest: `python3 -m unittest -v test_sglang_deps.py`
+reported `Ran 43 tests in 22.155s` and `OK`. The target was `riscv64` on
+QEMU 11.1.1 with the RVA23 CPU, kernel `7.2.6-1.0_555.1.or`, Python 3.13.8,
+and RPM 6.0.1. This rerun supersedes the 40-case count above and exercises
+capability rewriting, private Python/ELF ABI checks, RPM closure helpers, and
+the current SPEC scan.
+
+The guest still has 286 installed RPMs and no `python3.14`, `rpmbuild`, or
+`sglang` command. The available offline build staging contains Click 8.4.2,
+Hugging Face Hub 1.31.0, Tokenizers 0.23.2, Mistral Common 1.12.0,
+Transformers 5.19.0, and `sglang-rpm-macros` 0.1.2 RPMs, plus a SGLang
+build-requirements metadata RPM. It contains no SGLang binary RPM and no
+selected private Torch CPU 2.14.0, Torchaudio 2.11.0, TorchVision 0.29.0,
+Triton 3.8.0, SGLang CPU kernel 0.4.7, XGrammar 0.2.7, LLGuidance 1.7.6,
+TorchCodec 0.12.0, or SMG gRPC provider RPMs. The complete RPM transaction was
+therefore not attempted.
+
+No SGLang import, CPU engine startup, `/health`, `/generate`, or coexistence
+transaction was run in this rerun. The recipe's existing offline dummy-weight
+CPU smoke does exercise engine startup and one generated token without model
+weights, but it still requires the complete runtime RPM closure and installed
+SGLang launchers. The 43 passing tests validate dependency rules and regression
+helpers only; they do not establish a complete SGLang installation or working
+inference engine. The guest RPM database remained unchanged.
+
+The QEMU RPM transaction harness was updated to require versioned private
+Python capabilities (`python3.14dist(...)`) for the selected provider set and
+to recognize versioned CUDA/ROCm flavor capabilities when rejecting reserved
+candidates. `bash -n` passed on the host and Linux RPM VM. The host `pre-commit`
+run could not initialize its external hook checkout because DNS resolution for
+`github.com` failed; no pre-commit hook changes were applied.
+
+The Torch compatibility recipe's explicit private SONAME Provides now use the
+same ABI-qualified form as the generated ELF attributes,
+`sglang(python3.14elf(SONAME))`; this keeps the Torch provider and SGLang
+native-extension requirements on one Python ABI.

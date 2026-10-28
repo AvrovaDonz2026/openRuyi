@@ -26,7 +26,6 @@ MODULES = (
 # These modules are supplied by the system and must remain outside the private
 # SGLang tree, even when the transaction installs them as new dependencies.
 SYSTEM_MODULES = (
-    "timm",
     "numpy", "scipy", "fsspec", "datasets", "pandas", "PIL",
 )
 BASELINE_MODULES = MODULES
@@ -34,15 +33,13 @@ DIST_NAMES = {
     "huggingface_hub": "huggingface-hub",
     "PIL": "Pillow",
 }
-SHARED_RUNTIME_MODULE_VERSIONS = {
-    "timm": "1.0.28",
-}
 PRIVATE_MODULE_VERSIONS = {
     "transformers": "5.19.0",
     "tokenizers": "0.23.2",
     "huggingface_hub": "1.31.0",
+    "timm": "1.0.28",
 }
-PRIVATE_MODULE_NAMES = frozenset(("torch", "transformers", "tokenizers", "huggingface_hub"))
+PRIVATE_MODULE_NAMES = frozenset(("torch", "transformers", "tokenizers", "huggingface_hub", "timm"))
 OPTIONAL_BASELINE_MODULES = frozenset(
     (*SYSTEM_MODULES, *PRIVATE_MODULE_NAMES)
 )
@@ -271,6 +268,28 @@ def private_site_path(root, python_version):
     return root / ("python" + python_version) / "site-packages"
 
 
+def private_site_roots(roots, python_version):
+    return [private_site_path(root, python_version) for root in roots]
+
+
+def under_private_site(path, roots, python_version):
+    return under_any(path, private_site_roots(roots, python_version))
+
+
+def private_site_abi(path, roots):
+    """Return the Python ABI of a versioned private site-packages path."""
+    for root in roots:
+        if not under_any(path, [root]):
+            continue
+        relative = os.path.relpath(os.path.realpath(path), os.path.realpath(root))
+        parts = Path(relative).parts
+        if len(parts) >= 2 and parts[1] == "site-packages":
+            match = re.fullmatch(r"python(3\.\d+)", parts[0])
+            if match:
+                return match.group(1)
+    return None
+
+
 def verbose_import_paths(output):
     """Extract Python files reported by ``PYTHONVERBOSE`` from launcher output."""
     return sorted(set(re.findall(
@@ -326,42 +345,40 @@ def under_any(path, roots):
         return False
 
 
-def validate_private(result, expected, roots, private_module, private_versions):
+def validate_private(
+    result, expected, roots, private_module, private_versions, private_python_version
+):
     if not result.get("modules"):
         raise RuntimeError("private probe returned no modules")
     torch_path = result["modules"].get("torch", {}).get("path")
-    if not torch_path or not under_any(torch_path, roots):
-        raise RuntimeError("private torch is outside private roots: %s" % torch_path)
+    if not torch_path or not under_private_site(torch_path, roots, private_python_version):
+        raise RuntimeError(
+            "private torch is outside its Python %s site-packages tree: %s"
+            % (private_python_version, torch_path)
+        )
     for name in SYSTEM_MODULES:
         actual = result["modules"].get(name, {})
         before = expected["modules"].get(name, {})
         if before.get("absent"):
             if actual.get("absent"):
-                if name not in SHARED_RUNTIME_MODULE_VERSIONS:
-                    continue
-                raise RuntimeError("shared runtime module %s is missing" % name)
+                continue
             module_path = actual.get("path")
             if not module_path or under_any(module_path, roots):
                 raise RuntimeError("shared module %s loaded from private tree: %s" % (name, module_path))
         elif actual != before:
             raise RuntimeError("system module %s changed under private launcher" % name)
-        if name in SHARED_RUNTIME_MODULE_VERSIONS:
-            module_path = actual.get("path")
-            if not module_path or under_any(module_path, roots):
-                raise RuntimeError("shared module %s loaded from private tree: %s" % (name, module_path))
-            version = SHARED_RUNTIME_MODULE_VERSIONS[name]
-            if actual.get("version") != version:
-                raise RuntimeError(
-                    "shared module %s has version %s, expected %s"
-                    % (name, actual.get("version"), version)
-                )
     private_names = dict(private_versions)
     private_names[private_module] = private_names.get(private_module)
     for name, version in private_names.items():
         actual = result["modules"].get(name, {})
         private_path = actual.get("path")
-        if not private_path or not under_any(private_path, roots):
-            raise RuntimeError("private module %s is outside private roots: %s" % (name, private_path))
+        if not private_path or not under_private_site(
+            private_path, roots, private_python_version
+        ):
+            raise RuntimeError(
+                "private module %s is outside its Python %s site-packages tree: %s"
+                % (name, private_python_version, private_path)
+            )
         if version is not None and actual.get("version") != version:
             raise RuntimeError(
                 "private module %s has version %s, expected %s"
@@ -370,6 +387,16 @@ def validate_private(result, expected, roots, private_module, private_versions):
     native = [path for path in result.get("native_paths", []) if under_any(path, roots)]
     if not native:
         raise RuntimeError("private probe loaded no native .so from private roots")
+    wrong_abi_native = [
+        path for path in native
+        if (abi := private_site_abi(path, roots)) is not None
+        and abi != private_python_version
+    ]
+    if wrong_abi_native:
+        raise RuntimeError(
+            "private native library loaded from the wrong Python ABI tree: %s"
+            % wrong_abi_native[0]
+        )
     system_torch_native = [
         path for path in result.get("native_paths", [])
         if re.search(r"/(?:libtorch|libc10)[^/]*\.so(?:\.[0-9]+)*$", path)
@@ -380,6 +407,7 @@ def validate_private(result, expected, roots, private_module, private_versions):
     private_torch_native = [
         path for path in native
         if re.search(r"/(?:libtorch|libc10)[^/]*\.so(?:\.[0-9]+)*$", path)
+        and under_private_site(path, roots, private_python_version)
     ]
     if len(private_torch_native) < 2:
         raise RuntimeError("private Torch did not load both libtorch and libc10 native libraries")
@@ -399,12 +427,6 @@ def baseline_matches_after_install(actual, expected, roots):
         module = actual_modules.get(name, {})
         if module.get("absent"):
             continue
-        version = SHARED_RUNTIME_MODULE_VERSIONS.get(name)
-        if version is not None and module.get("version") != version:
-            raise RuntimeError(
-                "new shared module %s has version %s, expected %s"
-                % (name, module.get("version"), version)
-            )
         module_path = module.get("path")
         if not module_path or under_any(module_path, roots):
             raise RuntimeError("shared module %s is not loaded from the system" % name)
@@ -473,7 +495,14 @@ def main():
     private = private_probe(args.private_launcher, roots, args.private_module, args.probe_timeout)
     if private.get("python", {}).get("version") != private_python_version:
         raise RuntimeError("private launcher changed Python ABI between probes")
-    validate_private(private, expected, roots, args.private_module, private_versions)
+    validate_private(
+        private,
+        expected,
+        roots,
+        args.private_module,
+        private_versions,
+        private_python_version,
+    )
     run_sglang_launcher(args.sglang_launcher, roots, private_python_version, args.probe_timeout)
     after = baseline_probe(args.probe_timeout)
     if not baseline_matches_after_install(after, expected, roots):

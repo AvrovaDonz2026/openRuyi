@@ -83,22 +83,22 @@ BuildRequires:  gcc-c++
 BuildRequires:  ffmpeg-devel%{?_isa} >= 4
 BuildRequires:  ffmpeg-devel%{?_isa} < 9
 BuildRequires:  pkgconfig
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  file
 BuildRequires:  pkgconfig(pybind11)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
-BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
 Requires:       ffmpeg%{?_isa} >= 4
 Requires:       ffmpeg%{?_isa} < 9
-Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
 # Keep the complete upstream version alongside the generator's normalized
 # capability for exact SGLang requirements.
-Provides:       sglang(python3dist(torchcodec)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(torchcodec)) = %{version}
 Provides:       sglang(python%{_sglang_private_python}dist(torchcodec)) = %{version}
 
 %description

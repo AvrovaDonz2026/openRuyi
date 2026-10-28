@@ -89,11 +89,11 @@ BuildRequires:  ninja
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(pybind11)
 BuildRequires:  pkgconfig(protobuf)
-BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
-BuildRequires:  python3dist(wheel)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 # Could not find a package configuration file provided by "Torch"
 %if %{with rocm}
 BuildRequires:  python-torch-sglang-2.14-rocm-devel = 2.14.0
@@ -108,11 +108,11 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
-Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
 # pyproject-rpm-macros emits the normalized major/minor capability for the
 # private tree. Keep the upstream 2.11.0 capability as well so exact SGLang
 # requirements resolve without weakening the package metadata.
-Provides:       sglang(python3dist(torchaudio)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(torchaudio)) = %{version}
 Provides:       sglang(python%{_sglang_private_python}dist(torchaudio)) = %{version}
 
 %description

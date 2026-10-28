@@ -47,11 +47,11 @@ BuildOption(check):  -e 'llguidance.torch'
 BuildRequires:  cargo
 BuildRequires:  gcc-c++
 BuildRequires:  pkgconfig
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(maturin)
-BuildRequires:  python3dist(numpy)
-BuildRequires:  python3dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(maturin)
+BuildRequires:  python%{_sglang_private_python}dist(numpy)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
 BuildRequires:  rust >= 1.87
 BuildRequires:  rust-rpm-macros
 %ifarch riscv64

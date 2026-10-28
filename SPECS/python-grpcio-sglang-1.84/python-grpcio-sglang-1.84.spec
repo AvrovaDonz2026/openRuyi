@@ -25,12 +25,12 @@ BuildSystem:    pyproject
 BuildOption(install):  -l grpc
 
 BuildRequires:  gcc-c++
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(cython)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(cython)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 %ifarch riscv64
 BuildRequires:  clang
 BuildRequires:  clang(major) = 22

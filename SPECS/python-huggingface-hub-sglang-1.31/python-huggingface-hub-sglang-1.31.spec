@@ -26,27 +26,27 @@ BuildSystem:    pyproject
 # pythondistdeps normalizes the automatic capability to ``1.31`` by removing
 # trailing zero components. Keep an exact-version capability for consumers
 # whose RPM requirement is written as >= 1.31.0.
-Provides:       sglang(python3dist(huggingface-hub)) = 1.31.0
-Provides:       sglang(python%{python3_version}dist(huggingface-hub)) = 1.31.0
+Provides:       sglang(python%{_sglang_private_python}dist(huggingface-hub)) = 1.31.0
+Provides:       sglang(python%{_sglang_private_python}dist(huggingface-hub)) = 1.31.0
 
 BuildOption(install):  -l huggingface_hub +auto
 # The default import scan traverses optional OAuth, MCP, and provider modules;
 # the focused smoke test below exercises the local API without network access.
 BuildOption(check):  -e 'huggingface_hub.*'
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
 # The offline API smoke below imports the complete client surface.
-BuildRequires:  sglang(python3dist(click)) >= 8.4.2
-BuildRequires:  python3dist(filelock) >= 3.10.0
-BuildRequires:  python3dist(fsspec) >= 2023.5.0
-BuildRequires:  python3dist(httpx) >= 0.23.0
-BuildRequires:  python3dist(packaging) >= 20.9
-BuildRequires:  python3dist(pyyaml) >= 5.1
-BuildRequires:  python3dist(tqdm) >= 4.42.1
-BuildRequires:  python3dist(typing-extensions) >= 4.1.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(click)) >= 8.4.2
+BuildRequires:  python%{_sglang_private_python}dist(filelock) >= 3.10.0
+BuildRequires:  python%{_sglang_private_python}dist(fsspec) >= 2023.5.0
+BuildRequires:  python%{_sglang_private_python}dist(httpx) >= 0.23.0
+BuildRequires:  python%{_sglang_private_python}dist(packaging) >= 20.9
+BuildRequires:  python%{_sglang_private_python}dist(pyyaml) >= 5.1
+BuildRequires:  python%{_sglang_private_python}dist(tqdm) >= 4.42.1
+BuildRequires:  python%{_sglang_private_python}dist(typing-extensions) >= 4.1.0
 
 %description
 Hugging Face Hub client library to download and publish models, datasets, and

@@ -8,7 +8,7 @@
 
 %global srcname DeepGEMM
 %global pypi_name sgl-deep-gemm
-%global tvm_ffi_capability sglang(python3dist(apache-tvm-ffi))
+%global tvm_ffi_capability sglang(python%{_sglang_private_python}dist(apache-tvm-ffi))
 
 # CUDA remains a reserved flavor until a matching provider and target
 # validation are available.  Keep the default recipe parseable so the build
@@ -56,17 +56,17 @@ BuildRequires:  cuda-toolkit
 BuildRequires:  elfutils-libelf-devel
 BuildRequires:  gcc-c++
 BuildRequires:  ninja
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
-BuildRequires:  python3dist(packaging)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools) >= 77
-BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
+BuildRequires:  python%{_sglang_private_python}dist(packaging)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools) >= 77
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
 BuildRequires:  %{tvm_ffi_capability} = 0.1.11
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
-Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
 Requires:       %{tvm_ffi_capability} = 0.1.11
 
 %description

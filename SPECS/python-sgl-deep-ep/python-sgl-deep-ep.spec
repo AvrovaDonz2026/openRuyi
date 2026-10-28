@@ -53,17 +53,17 @@ BuildRequires:  cuda-toolkit
 BuildRequires:  gcc-c++
 BuildRequires:  nccl-devel
 BuildRequires:  nvshmem-devel
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pybind11-devel
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
-BuildRequires:  python3dist(ninja)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(ninja)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
-Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
 Requires:       nccl
 Requires:       nvshmem
 

@@ -28,18 +28,18 @@ BuildSystem:    pyproject
 BuildOption(install):  -l scikit_build_core
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(hatchling)
-BuildRequires:  python3dist(hatch-vcs)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(hatchling)
+BuildRequires:  python%{_sglang_private_python}dist(hatch-vcs)
 %if %{with test}
 BuildRequires:  cmake
 BuildRequires:  ninja
 BuildRequires:  gcc-c++
-BuildRequires:  python3dist(pytest)
-BuildRequires:  python3dist(virtualenv)
-BuildRequires:  python3dist(numpy)
+BuildRequires:  python%{_sglang_private_python}dist(pytest)
+BuildRequires:  python%{_sglang_private_python}dist(virtualenv)
+BuildRequires:  python%{_sglang_private_python}dist(numpy)
 %endif
 
 %description

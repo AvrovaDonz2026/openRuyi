@@ -24,18 +24,18 @@ BuildSystem:    pyproject
 
 BuildOption(install):  -l grpc_health
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  sglang(python3dist(grpcio)) >= %{version}
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(protobuf) >= 7.35.1
-BuildRequires:  python3dist(protobuf) < 8.0.0
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio)) >= %{version}
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(protobuf) >= 7.35.1
+BuildRequires:  python%{_sglang_private_python}dist(protobuf) < 8.0.0
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
-Requires:       sglang(python3dist(grpcio)) >= %{version}
-Requires:       python3dist(protobuf) >= 7.35.1
-Requires:       python3dist(protobuf) < 8.0.0
+Requires:       sglang(python%{_sglang_private_python}dist(grpcio)) >= %{version}
+Requires:       python%{_sglang_private_python}dist(protobuf) >= 7.35.1
+Requires:       python%{_sglang_private_python}dist(protobuf) < 8.0.0
 %description
 This package provides the standard health checking service for gRPC.
 

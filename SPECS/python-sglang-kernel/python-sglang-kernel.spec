@@ -70,14 +70,14 @@ BuildRequires:  file
 BuildRequires:  gcc-c++
 BuildRequires:  ninja
 BuildRequires:  patchelf
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
-BuildRequires:  sglang(python3dist(scikit-build-core)) >= 0.10
-BuildRequires:  sglang(python3dist(torch-cuda)) = 2.14.0
-BuildRequires:  python3dist(wheel)
+BuildRequires:  sglang(python%{_sglang_private_python}dist(scikit-build-core)) >= 0.10
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
-Requires:       sglang(python3dist(torch-cuda)) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
 
 %description
 SGLang Kernel provides optimized CUDA compute primitives used by the SGLang

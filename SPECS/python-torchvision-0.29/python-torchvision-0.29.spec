@@ -92,19 +92,19 @@ BuildRequires:  pkgconfig(libjpeg)
 BuildRequires:  pkgconfig(libpng)
 BuildRequires:  pkgconfig(libwebp)
 BuildRequires:  pkgconfig(pybind11)
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pkgconfig(zlib)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
-BuildRequires:  python3dist(numpy)
-BuildRequires:  python3dist(packaging)
-BuildRequires:  python3dist(pillow)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(requests)
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(numpy)
+BuildRequires:  python%{_sglang_private_python}dist(packaging)
+BuildRequires:  python%{_sglang_private_python}dist(pillow)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(requests)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 %if %{with test}
-BuildRequires:  python3dist(pytest)
+BuildRequires:  python%{_sglang_private_python}dist(pytest)
 %endif
 %if %{with rocm}
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -120,13 +120,13 @@ BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
 BuildRequires:  hipcc
 BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
-BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
 BuildRequires:  python-torch-sglang-2.14-rocm-devel = 2.14.0
 BuildRequires:  rocm-device-libs
 BuildRequires:  rocm-llvm-macros
 %else
 BuildRequires:  gcc-c++
-BuildRequires:  sglang(python3dist(%{torch_capability})) = 2.14.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
 BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
 %ifarch riscv64
 BuildRequires:  clang
@@ -137,13 +137,13 @@ BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 %endif
 
-Requires:       python3dist(numpy)
-Requires:       python3dist(pillow)
-Requires:       python3dist(requests)
-Requires:       sglang(python3dist(%{torch_capability})) = 2.14.0
+Requires:       python%{_sglang_private_python}dist(numpy)
+Requires:       python%{_sglang_private_python}dist(pillow)
+Requires:       python%{_sglang_private_python}dist(requests)
+Requires:       sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
 # Keep the complete upstream version alongside the generator's normalized
 # capability for exact SGLang requirements.
-Provides:       sglang(python3dist(torchvision)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(torchvision)) = %{version}
 Provides:       sglang(python%{_sglang_private_python}dist(torchvision)) = %{version}
 
 %patchlist

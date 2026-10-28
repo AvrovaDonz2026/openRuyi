@@ -25,17 +25,17 @@ BuildSystem:    pyproject
 BuildOption(install):  -l %{srcname}
 
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools) >= 77
-BuildRequires:  sglang(python3dist(grpcio)) >= 1.84.0
-BuildRequires:  sglang(python3dist(grpcio-tools)) >= 1.84.0
-BuildRequires:  python3dist(protobuf) >= 7.35.1
-BuildRequires:  python3dist(protobuf) < 8.0.0
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools) >= 77
+BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio)) >= 1.84.0
+BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio-tools)) >= 1.84.0
+BuildRequires:  python%{_sglang_private_python}dist(protobuf) >= 7.35.1
+BuildRequires:  python%{_sglang_private_python}dist(protobuf) < 8.0.0
 
-Requires:       sglang(python3dist(grpcio)) >= 1.84.0
-Requires:       python3dist(protobuf) >= 7.35.1
-Requires:       python3dist(protobuf) < 8.0.0
+Requires:       sglang(python%{_sglang_private_python}dist(grpcio)) >= 1.84.0
+Requires:       python%{_sglang_private_python}dist(protobuf) >= 7.35.1
+Requires:       python%{_sglang_private_python}dist(protobuf) < 8.0.0
 
 %description
 Protocol Buffer definitions and pre-compiled Python gRPC stubs for SMG

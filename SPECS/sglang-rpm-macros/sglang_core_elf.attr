@@ -6,8 +6,8 @@
 # SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MulanPSL-2.0
 
-%__sglang_core_elf_provides %{_rpmconfigdir}/sglang-elfdeps.py --profile core --namespace sglang --provides --multifile
-%__sglang_core_elf_requires %{_rpmconfigdir}/sglang-elfdeps.py --profile core --namespace sglang --requires --multifile
+%__sglang_core_elf_provides %{_rpmconfigdir}/sglang-elfdeps.py --profile core --namespace sglang --python-version %{_sglang_private_python} --provides --multifile
+%__sglang_core_elf_requires %{_rpmconfigdir}/sglang-elfdeps.py --profile core --namespace sglang --python-version %{_sglang_private_python} --requires --multifile
 %__sglang_core_elf_magic ^(setuid,? )?(setgid,? )?(sticky )?ELF (32|64)-bit.*$
 %__sglang_core_elf_protocol multifile
 %__sglang_core_elf_path ^/usr/lib(64)?/sglang/core/(python[3-9]\\.[[:digit:]]+/site-packages/.*|lib/.*)$

@@ -81,13 +81,13 @@ BuildRequires:  clang
 BuildRequires:  file
 BuildRequires:  patchelf
 BuildRequires:  pkgconfig(numa)
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
-BuildRequires:  sglang(python3dist(scikit-build-core)) >= 0.10
-BuildRequires:  sglang(python3dist(torch-cpu)) = 2.14.0
-BuildRequires:  python3dist(wheel)
-BuildRequires:  python3dist(ninja) >= 1.5
+BuildRequires:  sglang(python%{_sglang_private_python}dist(scikit-build-core)) >= 0.10
+BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(ninja) >= 1.5
 BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
 
 %ifarch riscv64
@@ -98,12 +98,12 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
-Requires:       sglang(python3dist(torch-cpu)) = 2.14.0
+Requires:       sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
 # Keep both the compatibility name and the upstream project capability.  The
 # upstream CPU metadata still requires sglang-kernel, while the RISC-V package
 # name identifies the isolated provider as sglang-kernel-cpu.
-Provides:       sglang(python3dist(%{srcname})) = %{version}
-Provides:       sglang(python3dist(sglang-kernel)) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(%{srcname})) = %{version}
+Provides:       sglang(python%{_sglang_private_python}dist(sglang-kernel)) = %{version}
 
 %patchlist
 # RISC-V source selection and explicit cross-target ISA handling.

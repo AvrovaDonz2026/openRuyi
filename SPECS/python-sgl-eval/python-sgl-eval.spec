@@ -24,35 +24,35 @@ BuildSystem:    pyproject
 
 BuildOption(install):  -l sgl_eval
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(setuptools) >= 68
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(setuptools) >= 68
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
-Requires:       sglang-extras(python3dist(datasets)) >= 2.14
-Requires:       sglang-extras(python3dist(datasets)) < 5
-Requires:       python3dist(editdistance) >= 0.6
-Requires:       python3dist(editdistance) < 1
-Requires:       python3dist(httpx) >= 0.24
-Requires:       python3dist(httpx) < 1
-Requires:       python3dist(latex2sympy2-extended) >= 1
-Requires:       python3dist(latex2sympy2-extended) < 2
-Requires:       python3dist(math-verify) >= 0.5
-Requires:       python3dist(math-verify) < 1
-Requires:       python3dist(math-verify[antlr4_9_3]) >= 0.5
-Requires:       python3dist(numpy) >= 1.24
-Requires:       python3dist(numpy) < 3
-Requires:       python3dist(openai) >= 1
-Requires:       python3dist(openai) < 3
-Requires:       sglang-extras(python3dist(pandas)) >= 2
-Requires:       sglang-extras(python3dist(pandas)) < 3
-Requires:       sglang-extras(python3dist(pillow)) >= 10
-Requires:       sglang-extras(python3dist(pillow)) < 12
-Requires:       python3dist(pyyaml) >= 6
-Requires:       python3dist(pyyaml) < 7
-Requires:       python3dist(tqdm) >= 4.65
-Requires:       python3dist(tqdm) < 5
+Requires:       sglang-extras(python%{_sglang_private_python}dist(datasets)) >= 2.14
+Requires:       sglang-extras(python%{_sglang_private_python}dist(datasets)) < 5
+Requires:       python%{_sglang_private_python}dist(editdistance) >= 0.6
+Requires:       python%{_sglang_private_python}dist(editdistance) < 1
+Requires:       python%{_sglang_private_python}dist(httpx) >= 0.24
+Requires:       python%{_sglang_private_python}dist(httpx) < 1
+Requires:       python%{_sglang_private_python}dist(latex2sympy2-extended) >= 1
+Requires:       python%{_sglang_private_python}dist(latex2sympy2-extended) < 2
+Requires:       python%{_sglang_private_python}dist(math-verify) >= 0.5
+Requires:       python%{_sglang_private_python}dist(math-verify) < 1
+Requires:       python%{_sglang_private_python}dist(math-verify[antlr4_9_3]) >= 0.5
+Requires:       python%{_sglang_private_python}dist(numpy) >= 1.24
+Requires:       python%{_sglang_private_python}dist(numpy) < 3
+Requires:       python%{_sglang_private_python}dist(openai) >= 1
+Requires:       python%{_sglang_private_python}dist(openai) < 3
+Requires:       sglang-extras(python%{_sglang_private_python}dist(pandas)) >= 2
+Requires:       sglang-extras(python%{_sglang_private_python}dist(pandas)) < 3
+Requires:       sglang-extras(python%{_sglang_private_python}dist(pillow)) >= 10
+Requires:       sglang-extras(python%{_sglang_private_python}dist(pillow)) < 12
+Requires:       python%{_sglang_private_python}dist(pyyaml) >= 6
+Requires:       python%{_sglang_private_python}dist(pyyaml) < 7
+Requires:       python%{_sglang_private_python}dist(tqdm) >= 4.65
+Requires:       python%{_sglang_private_python}dist(tqdm) < 5
 
 %description
 SGL-Eval is an accuracy evaluation harness for SGLang with common language

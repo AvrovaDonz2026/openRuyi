@@ -52,6 +52,9 @@ SONAME = re.compile(r"^(?:lib|ld-)[^/]+\.so(?:\.[0-9]+)*$")
 
 def _capability_name(capability: str) -> str:
     unwrapped = re.sub(r"^(?:sglang|sglang-extras)\((.*)\)$", r"\1", capability)
+    versioned_elf = re.fullmatch(r"python[0-9]+(?:\.[0-9]+)?elf\((.*)\)", unwrapped)
+    if versioned_elf:
+        unwrapped = versioned_elf.group(1)
     return unwrapped.split("(", 1)[0]
 
 
@@ -79,12 +82,16 @@ def _private_path(marker: str, profile: str | None = None) -> bool:
     return bool(match and (profile is None or match.group(1) == profile))
 
 
-def _namespace(capability: str, namespace: str) -> str:
-    if capability.startswith(namespace + "("):
-        return capability
+def _namespace(capability: str, namespace: str, python_version: str | None = None) -> str:
     # A generator should emit raw capabilities, but canonicalize an already
     # namespaced private capability instead of producing nested namespaces.
     capability = re.sub(r"^(?:sglang|sglang-extras)\((.*)\)$", r"\1", capability)
+    if python_version:
+        versioned_elf = re.fullmatch(
+            r"python[0-9]+(?:\.[0-9]+)?elf\((.*)\)", capability
+        )
+        soname = versioned_elf.group(1) if versioned_elf else capability
+        capability = f"python{python_version}elf({soname})"
     return f"{namespace}({capability})"
 
 
@@ -98,8 +105,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--profile", choices=("core", "extras"), required=True)
     parser.add_argument("--namespace", required=True)
+    parser.add_argument("--python-version", help="private Python minor ABI, for example 3.14")
     parser.add_argument("--generator", default="/usr/lib/rpm/elfdeps")
     args, passthrough = parser.parse_known_args()
+    if args.python_version and not re.fullmatch(r"[0-9]+\.[0-9]+", args.python_version):
+        parser.error("--python-version must be a Python minor version such as 3.14")
     if not any(flag in passthrough for flag in
                ("--provides", "-P", "--requires", "-R")):
         parser.error("one of --provides or --requires is required")
@@ -126,7 +136,7 @@ def main() -> int:
         capability = line.strip()
         if capability and provides and private_file:
             print(_namespace(capability, _requires_namespace(
-                capability, args.namespace)))
+                capability, args.namespace), args.python_version))
         elif (
             capability
             and not provides
@@ -134,7 +144,7 @@ def main() -> int:
             and _private(capability)
         ):
             print(_namespace(capability, _requires_namespace(
-                capability, args.namespace)))
+                capability, args.namespace), args.python_version))
         else:
             print(line)
     return result.returncode

@@ -25,20 +25,20 @@ BuildSystem:    pyproject
 
 BuildOption(install):  -l grpc_status
 
-BuildRequires:  pkgconfig(python3)
+BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python3dist(googleapis-common-protos) >= 1.5.5
-BuildRequires:  sglang(python3dist(grpcio)) >= %{version}
-BuildRequires:  python3dist(pip)
-BuildRequires:  python3dist(protobuf) >= 6.33.5
-BuildRequires:  python3dist(protobuf) < 8.0.0
-BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(wheel)
+BuildRequires:  python%{_sglang_private_python}dist(googleapis-common-protos) >= 1.5.5
+BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio)) >= %{version}
+BuildRequires:  python%{_sglang_private_python}dist(pip)
+BuildRequires:  python%{_sglang_private_python}dist(protobuf) >= 6.33.5
+BuildRequires:  python%{_sglang_private_python}dist(protobuf) < 8.0.0
+BuildRequires:  python%{_sglang_private_python}dist(setuptools)
+BuildRequires:  python%{_sglang_private_python}dist(wheel)
 
-Requires:       python3dist(googleapis-common-protos) >= 1.5.5
-Requires:       sglang(python3dist(grpcio)) >= %{version}
-Requires:       python3dist(protobuf) >= 6.33.5
-Requires:       python3dist(protobuf) < 8.0.0
+Requires:       python%{_sglang_private_python}dist(googleapis-common-protos) >= 1.5.5
+Requires:       sglang(python%{_sglang_private_python}dist(grpcio)) >= %{version}
+Requires:       python%{_sglang_private_python}dist(protobuf) >= 6.33.5
+Requires:       python%{_sglang_private_python}dist(protobuf) < 8.0.0
 
 %description
 grpcio-status provides a mapping between rich Protobuf status messages and
