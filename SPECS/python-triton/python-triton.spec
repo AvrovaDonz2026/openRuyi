@@ -1,10 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 # SPDX-FileContributor: Yifan Xu <xuyifan@iscas.ac.cn>
 # SPDX-FileContributor: CHEN Xuan <chenxuan@iscas.ac.cn>
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -35,7 +32,6 @@ Source0:        https://github.com/triton-lang/triton/releases/download/v%{versi
 #!RemoteAsset:  sha256:b6aa9fbc954895bbd69374529593bbcdc4342b0812d8884698bbfd3d92d3426d
 Source1:        https://codeload.github.com/llvm/llvm-project/tar.gz/%{llvm_commit}#/llvm-project-%{llvm_commit}.tar.gz
 BuildSystem:    pyproject
-ExclusiveArch:  x86_64 riscv64
 
 BuildOption(install):  -l %{srcname}
 BuildOption(check):  -e 'triton.instrumentation.*'
@@ -114,11 +110,6 @@ cmake -S "$llvm_src/llvm" -B "$llvm_src/build" -G Ninja \
     -DCMAKE_INSTALL_PREFIX="$llvm_install" \
     -DCMAKE_C_COMPILER="$CC" \
     -DCMAKE_CXX_COMPILER="$CXX" \
-%ifarch riscv64
-    -DCMAKE_C_COMPILER_TARGET="%{_target_platform}" \
-    -DCMAKE_CXX_COMPILER_TARGET="%{_target_platform}" \
-    -DLLVM_DEFAULT_TARGET_TRIPLE="%{_target_platform}" \
-%endif
     -DLLVM_USE_LINKER=lld \
     -DLLVM_ENABLE_PROJECTS="mlir;lld" \
     -DLLVM_TARGETS_TO_BUILD="$llvm_targets" \

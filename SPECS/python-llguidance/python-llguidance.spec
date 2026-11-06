@@ -1,9 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: Kimmy <yucheng.or@isrc.iscas.ac.cn>
-# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -47,8 +44,8 @@ BuildRequires:  rust >= 1.87
 BuildRequires:  rust-rpm-macros
 BuildRequires:  crate(anyhow-1/default) >= 1.0.95
 BuildRequires:  crate(bytemuck-1/default) >= 1.21.0
-BuildRequires:  crate(derivre-0.3/ahash) >= 0.3.12
-BuildRequires:  crate(derivre-0.3/compress) >= 0.3.12
+BuildRequires:  crate(derivre-0.3/ahash) >= 0.3.11
+BuildRequires:  crate(derivre-0.3/compress) >= 0.3.11
 BuildRequires:  crate(indexmap-2/default) >= 2.7.1
 BuildRequires:  crate(jsonschema-0.29/default) >= 0.29.0
 BuildRequires:  crate(lazy-static-1/default) >= 1.5.0

@@ -2,22 +2,19 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: Gui-Yue <xiangwei.riscv@isrc.iscas.ac.cn>
 # SPDX-FileContributor: yyjeqhc <jialin.oerv@isrc.iscas.ac.cn>
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
-# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global srcname hf_xet
 
 Name:           python-hf-xet
-Version:        1.5.2
+Version:        1.5.1
 Release:        %autorelease
 Summary:        Fast transfer layer for large files on Hugging Face Hub
 License:        Apache-2.0
 URL:            https://pypi.org/project/hf-xet/
 VCS:            git:https://github.com/huggingface/xet-core
-#!RemoteAsset:  sha256:73044bd31bae33c984af832d19c752a0dffb67518fee9ddbd91d616e1101cf47
+#!RemoteAsset:  sha256:51ef4500dab3764b41135ee1381a4b62ce56fc54d4c92b719b59e597d6df5bf6
 Source0:        https://files.pythonhosted.org/packages/source/h/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 

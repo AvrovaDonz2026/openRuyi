@@ -1,4 +1,3 @@
 <multibuild>
   <package>bootstrap</package>
-  <package>python314</package>
 </multibuild>
