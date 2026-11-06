@@ -11,14 +11,14 @@
 %{!?_kf6_version: %global _kf6_version %{version}}
 
 Name:           kf6-kio
-Version:        6.29.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        Network transparent access to files and data
 License:        LGPL-2.1-or-later
 URL:            https://www.kde.org
 VCS:            git:https://invent.kde.org/frameworks/kio
-#!RemoteAsset:  sha256:9f06313cd7d6cdde8db43067126d650fc5cc904b6f0b89159274a03e4805a91a
-Source:         https://download.kde.org/stable/frameworks/6.29/%{rname}-%{version}.tar.xz
+#!RemoteAsset:  sha256:cdc8e3787be1f4a5c8f8a45fabab5cf540ef6380c549c6fd984f15f093b5eac0
+Source:         https://download.kde.org/stable/frameworks/6.31/%{rname}-%{version}.tar.xz
 BuildSystem:    cmake
 
 BuildOption(conf):  -DBUILD_TESTING=OFF
@@ -128,6 +128,7 @@ Development files.
 %{_kf6_libexecdir}/kioworker
 %{_kf6_plugindir}/designer/kio6widgets.so
 %{_kf6_plugindir}/kf6/kded/remotenotifier.so
+%{_kf6_plugindir}/kf6/kded/trashdirnotify.so
 %{_kf6_plugindir}/kf6/kio/kio_file.so
 %{_kf6_plugindir}/kf6/kio/kio_ftp.so
 %{_kf6_plugindir}/kf6/kio/kio_ghelp.so

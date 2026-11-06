@@ -7,16 +7,16 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 Name:           brotli
-Version:        1.2.0
+Version:        1.2.1
 Release:        %autorelease
 Summary:        Lossless Compression Algorithm
 License:        MIT
 URL:            https://github.com/google/brotli
-#!RemoteAsset:  sha256:816c96e8e8f193b40151dad7e8ff37b1221d019dbcb9c35cd3fadbfe6477dfec
+#!RemoteAsset:  sha256:98d35d11a78dc453aebb7d10c3748f3f73ff78c8267c0dc697b8631f67bf7e8f
 Source:         https://github.com/google/brotli/archive/v%{version}.tar.gz
 BuildSystem:    cmake
 
-BuildRequires:  cmake >= 2.8.6
+BuildRequires:  cmake >= 3.15
 BuildRequires:  gcc-c++
 BuildRequires:  gzip
 BuildRequires:  pkg-config
@@ -46,7 +46,7 @@ Brotli general purpose lossless compression algorithm.
 The specification of the Brotli Compressed Data Format is defined in
 RFC 7932.
 
-%build -p
+%conf -p
 export CFLAGS="%{optflags} -DBROTLI_ENCODER_CLEANUP_ON_OOM"
 
 %install -a

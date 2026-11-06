@@ -64,18 +64,18 @@
 %bcond have_spice 0
 
 # liburing support.
-%bcond have_liburing 0
+%bcond have_liburing 1
 
-# openRuyi: virtio-gpu not supported yet
-%bcond have_virgl 0
+# virtio-gpu support
+%bcond have_virgl 1
 
-# VNC and SDL image and QEMU-UI not supported yet
-%bcond have_vnc 0
+# gvnc_devel & sdl_image support not in place
+%bcond have_vnc 1
 %bcond have_gvnc_devel 0
 %bcond have_sdl_image 0
-%bcond have_opengl 0
-%bcond have_egl 0
-%bcond have_gtk3 0
+%bcond have_opengl 1
+%bcond have_egl 1
+%bcond have_gtk3 1
 
 # openRuyi: persistent memory not supported yet
 %bcond have_pmem 0
@@ -101,8 +101,8 @@
 # openRuyi: QEMU multipath not supported yet
 %bcond have_multipath 0
 
-# openRuyi: QEMU USB not supported yet
-%bcond have_usb 0
+# USB support
+%bcond have_usb 1
 
 # openRuyi: QEMU usbredir not supported yet
 %bcond have_usbredir 0
@@ -116,37 +116,31 @@
 # openRuyi: Capstone disassembler not supported yet
 %bcond have_capstone 0
 
-# openRuyi: QEMU pipewire not supported yet
-%bcond have_pipewire 0
+# pipewire support
+%bcond have_pipewire 1
 
-# openRuyi: QEMU keymap not supported yet
-%bcond have_cryptodev_backend_lkcf 0
-%bcond have_xkb 0
+# cryptodev-backend-lkcf / XKB keymap support
+%bcond have_cryptodev_backend_lkcf 1
+%bcond have_xkb 1
 
 # openRuyi: systemtap and dtrace not supported yet
 %bcond have_systemtap 0
 %bcond have_dtrace 0
 
-# openRuyi: SLIRP networking backend not supported yet
+# slirp support
 %bcond have_slirp 1
 
-# openRuyi: QEMU Audio support not ready yet
-%bcond have_audio 0
+# audio support
+%bcond have_audio 1
 
 # openRuyi: QEMU dwarf not supported yet
 %bcond have_dwarf 0
-
-# openRuyi: QEMU USB support not ready yet
-%bcond have_usb 0
 
 # All modules should be listed here.
 %bcond have_block_rbd 1
 
 # Not supported on x86_64 and riscv64
 %bcond have_block_iscsi 0
-
-# Not supported on x86_64 and riscv64
-%bcond have_block_gluster 0
 
 # Not supported on x86_64 and riscv64
 %bcond have_block_nfs 0
@@ -166,7 +160,7 @@
 # openRuyi: QEMU igvm not supported yet
 %bcond have_igvm 0
 
-# openRuyi: QEMU man not supported yet
+# openRuyi: QEMU manuals not supported yet
 %bcond have_man 0
 
 # openRuyi: QEMU fdt default enabled
@@ -177,13 +171,13 @@
 %global qemudocdir %{_docdir}/%{name}
 
 Name:           qemu
-Version:        11.0.1
+Version:        11.1.2
 Release:        %autorelease
 Summary:        Machine emulator and virtualizer
 License:        BSD-2-Clause AND BSD-3-Clause AND GPL-2.0-only AND GPL-2.0-or-later AND LGPL-2.1-or-later AND MIT
 URL:            http://www.qemu.org/
 VCS:            git:https://gitlab.com/qemu-project/qemu
-#!RemoteAsset:  sha256:0d235f5820278d914a3155ec27af8e4258d697ea892895570807d69c0cb8cd64
+#!RemoteAsset:  sha256:731b5681e4bb18be313231579b8efd0296c5b015fa36dc533874b639ba838016
 Source0:        https://download.qemu.org/%{name}-%{version}.tar.xz
 Source1:        qemu-guest-agent.service
 Source2:        qemu-ga.sysconfig
@@ -192,9 +186,6 @@ Source4:        kvm.conf
 Source5:        kvm-x86.conf
 Source6:        kvm-riscv.conf
 BuildSystem:    autotools
-
-# Patch fixing ACPI table generation for KVM with PLIC emu
-Patch1:         0001-FROMLIST-hw-riscv-virt-acpi-build-Fix-RINTC-PLIC-con.patch
 
 BuildRequires:  hostname
 BuildRequires:  meson
@@ -271,6 +262,7 @@ BuildRequires:  pkgconfig(libpmem)
 %if %{with have_xkb}
 # qemu-keymap
 BuildRequires:  pkgconfig(xkbcommon)
+BuildRequires:  xkeyboard-config
 %endif
 %if %{with have_opengl}
 BuildRequires:  pkgconfig(epoxy)
@@ -312,10 +304,6 @@ BuildRequires:  pkgconfig(libjpeg)
 %if %{with have_brlapi}
 # Braille device support
 BuildRequires:  brlapi-devel
-%endif
-%if %{with have_block_gluster}
-# gluster block driver
-BuildRequires:  pkgconfig(glusterfs-api)
 %endif
 # GTK frontend
 %if %{with have_gtk3}
@@ -372,7 +360,7 @@ BuildRequires:  pkgconfig(gvnc-1.0)
 %endif
 %if %{with have_pipewire}
 # Used by pipewire audio backend
-BuildRequires:  pkgconfig(pipewire)
+BuildRequires:  pkgconfig(libpipewire-0.3)
 %endif
 %if %{with have_cryptodev_backend_lkcf}
 # Used by cryptodev-backend-lkcf
@@ -425,6 +413,9 @@ BuildArch:      noarch
 
 %package        tools
 Summary:        %{name} support tools
+%if %{with have_xkb}
+Requires:       xkeyboard-config
+%endif
 %if %{with have_systemtap}
 Recommends:     systemtap-client
 Recommends:     systemtap-devel
@@ -533,10 +524,8 @@ mkdir -p %{static_builddir}
   --disable-gcrypt                       \\\
   --disable-gettext                      \\\
   --disable-gio                          \\\
-  --disable-glusterfs                    \\\
   --disable-gnutls                       \\\
   --disable-gtk                          \\\
-  --disable-gtk-clipboard                \\\
   --disable-guest-agent                  \\\
   --disable-guest-agent-msi              \\\
   --disable-hv-balloon                   \\\
@@ -824,9 +813,6 @@ qemu_configure                                          \
   --enable-dmg                                          \
   --enable-fuse                                         \
   --enable-gio                                          \
-%if %{with have_block_gluster}
-  --enable-glusterfs                                    \
-%endif
 %if %{with have_gtk3}
   --enable-gtk                                          \
 %endif
@@ -1117,6 +1103,8 @@ rm -rf %{static_buildroot}
 # endif user_static
 %endif
 
+%find_lang %{name}
+
 # endif !tools_only
 %endif
 
@@ -1272,9 +1260,6 @@ popd
 %{_libdir}/%{name}/ui-opengl.so
 %endif
 %{_libdir}/%{name}/block-dmg-bz2.so
-%if %{with have_block_gluster}
-%{_libdir}/%{name}/block-gluster.so
-%endif
 %if %{with have_block_nfs}
 %{_libdir}/%{name}/block-nfs.so
 %endif
@@ -1302,7 +1287,7 @@ popd
 %if %{with have_gtk3}
 %{_libdir}/%{name}/ui-gtk.so
 %endif
-%if %{with have_sdl_image}
+%if %{with have_audio}
 %{_libdir}/%{name}/ui-sdl.so
 %endif
 %if %{with have_egl}
@@ -1336,6 +1321,8 @@ popd
 %{_libdir}/%{name}/hw-uefi-vars.so
 %if %{with have_usb}
 %{_libdir}/%{name}/hw-usb-host.so
+%endif
+%if %{with have_usbredir}
 %{_libdir}/%{name}/hw-usb-redirect.so
 %endif
 %if %{with have_libcacard}
@@ -1697,7 +1684,7 @@ popd
 #endif %{user_static}
 %endif
 
-%files system
+%files system -f %{name}.lang
 %{_bindir}/qemu-system-aarch64
 %{_bindir}/qemu-system-alpha
 %{_bindir}/qemu-system-hppa
@@ -1753,6 +1740,7 @@ popd
 %{_mandir}/man1/qemu-system-alpha.1*
 %{_mandir}/man1/qemu-system-arm.1*
 %{_mandir}/man1/qemu-system-avr.1*
+%{_mandir}/man1/qemu-system-hexagon.1*
 %{_mandir}/man1/qemu-system-hppa.1*
 %{_mandir}/man1/qemu-system-i386.1*
 %{_mandir}/man1/qemu-system-loongarch64.1*
@@ -1782,6 +1770,7 @@ popd
 %endif
 %{_bindir}/qemu-system-arm
 %{_bindir}/qemu-system-avr
+%{_bindir}/qemu-system-hexagon
 %{_bindir}/qemu-system-m68k
 %{_bindir}/qemu-system-microblaze
 %{_bindir}/qemu-system-mips
@@ -1833,6 +1822,9 @@ popd
 %{_datadir}/systemtap/tapset/qemu-system-avr.stp
 %{_datadir}/systemtap/tapset/qemu-system-avr-log.stp
 %{_datadir}/systemtap/tapset/qemu-system-avr-simpletrace.stp
+%{_datadir}/systemtap/tapset/qemu-system-hexagon.stp
+%{_datadir}/systemtap/tapset/qemu-system-hexagon-log.stp
+%{_datadir}/systemtap/tapset/qemu-system-hexagon-simpletrace.stp
 %{_datadir}/systemtap/tapset/qemu-system-m68k.stp
 %{_datadir}/systemtap/tapset/qemu-system-m68k-log.stp
 %{_datadir}/systemtap/tapset/qemu-system-m68k-simpletrace.stp

@@ -7,12 +7,12 @@
 %global srcname brotli
 
 Name:           python-%{srcname}
-Version:        1.2.0
+Version:        1.2.1
 Release:        %autorelease
 Summary:        Brotli compression format
 License:        MIT
 URL:            https://github.com/google/brotli
-#!RemoteAsset:  sha256:e310f77e41941c13340a95976fe66a8a95b01e783d430eeaf7a2f87e0a57dd0a
+#!RemoteAsset:  sha256:02b2f7b5a83485efe448a44ddf7983def05c3bb1dcf917d4f7154070260e13de
 Source0:        https://files.pythonhosted.org/packages/source/b/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 

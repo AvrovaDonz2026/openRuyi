@@ -11,12 +11,12 @@
 
 Name:           mesa
 Summary:        The Mesa 3D graphics library
-Version:        26.2.2
+Version:        26.2.4
 Release:        %autorelease
 License:        MIT
 URL:            https://mesa3d.org/
 VCS:            git:https://gitlab.freedesktop.org/mesa/mesa
-#!RemoteAsset:  sha256:eeb29ca7e56cfaa8e8a79538dcf834e3b18e501c31bef5145e959ea437cc4216
+#!RemoteAsset:  sha256:bce5f7fbebb934373b86c999a064d52fb5065878dc57f287f95346648ec832e9
 Source:         https://archive.mesa3d.org/mesa-%{version}.tar.xz
 BuildSystem:    meson
 
@@ -26,6 +26,8 @@ BuildSystem:    meson
 Patch1:         mesa-26.2.1-zink-kmsro-for-img-blob.patch
 # Patches to fix CTS failures and advertise BXM-4-64 as conformant
 Patch2:         mesa-26.2.1-pvr-conformance.patch
+# Patches backport from Mesa main for pvr driver
+Patch3:         mesa-26.2.4-pvr-backport.patch
 
 BuildOption(conf):  -Dgallium-drivers=llvmpipe,softpipe,r300,r600,radeonsi,nouveau,virgl,iris,etnaviv,zink,crocus
 BuildOption(conf):  -Dvulkan-drivers=amd,intel,swrast,imagination,virtio,gfxstream,intel_hasvk,nouveau
@@ -152,6 +154,9 @@ Summary:        The core gallium driver file
 # Open code to allow any version of drirc, for mixing gallium part and
 # vulkan part from different Mesa releases if needed
 Requires:       %{name}-drirc
+# Recommend Vulkan drivers for Zink operation (newer Nouveau and PowerVR
+# are Vulkan only and use Zink as their gallium driver)
+Recommends:     %{name}-vulkan-drivers
 
 %description    gallium
 This package contains a shared library that holds all core code for gallium

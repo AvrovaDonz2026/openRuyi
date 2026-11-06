@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: Zephyr Du <zhonghang.or@isrc.iscas.ac.cn>
 # SPDX-FileContributor: panglars <panghao.riscv@isrc.iscas.ac.cn>
+# SPDX-FileContributor: misaka00251 <liuxin@iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -13,18 +14,15 @@
 %global _test_target test
 
 Name:           php
-Version:        8.5.9
+Version:        8.5.12
 Release:        %autorelease
 Summary:        The PHP Interpreter
 License:        PHP-3.01
 URL:            https://www.php.net
 VCS:            git:https://github.com/php/php-src
-#!RemoteAsset:  sha256:d735459c2cbaeb0673d416c33d372d9ff261d562f6b29da48f3e6aeaeca083af
+#!RemoteAsset:  sha256:81a0f450349e84b08eb43faa85f8a4c835684f3cc1c50471775d1317a046c525
 Source0:        https://www.php.net/distributions/%{name}-%{version}.tar.gz
 BuildSystem:    autotools
-
-Patch0:         0001-Regenerate-the-expired-ext-ftp-tests-cert.pem.patch
-Patch1:         0002-tests-GHSA-x692-q9x7-8c3f.phpt-Add-extensions-required.patch
 
 BuildOption(conf):  --enable-re2c-cgoto
 BuildOption(conf):  --with-config-file-path=%{_sysconfdir}/php
@@ -37,6 +35,7 @@ BuildOption(conf):  --with-openssl=shared
 BuildOption(conf):  --enable-pcntl=shared
 BuildOption(conf):  --with-zip=shared
 BuildOption(conf):  --with-zlib=shared
+BuildOption(conf):  --enable-bcmath
 BuildOption(conf):  EXTENSION_DIR=%{_libdir}/php/extensions
 BuildOption(build):  CFLAGS="$RPM_OPT_FLAGS"
 BuildOption(build):  LDFLAGS="$RPM_LD_FLAGS"

@@ -1,24 +1,23 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: wangyf0611 <wangyufeng@iscas.ac.cn>
+# SPDX-FileContributor: Li Guan <guanli.oerv@isrc.iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %define _name           containerd
 %define go_import_path  github.com/containerd/containerd/v2
-%global commit          aad11006b869517fcd3009450b6f82da282e1a9b
+%global commit          b7a25261e029d68978bbf290df0a62fc819b3c51
 
 Name:           containerd
-Version:        2.3.3
+Version:        2.4.2
 Release:        %autorelease
 Summary:        Industry-standard container runtime
 License:        Apache-2.0
 URL:            https://containerd.io
 VCS:            git:https://github.com/containerd/containerd.git
-#!RemoteAsset:  sha256:fcff2096ef20f1bc1d939bc55a8b831ea3eface574463fd7dc770b33ffe317b2
+#!RemoteAsset:  sha256:02cbbecd0ef78a521d124afa791b843ba5458ef206e1f7f017999ff45c80c0b4
 Source0:        https://github.com/containerd/containerd/archive/refs/tags/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
-#!RemoteAsset:  sha256:8ae9b2ee0114498438353ac489e98db2a03fb3ae44725d70ee318c7fbe7f2a64
-Source1:        https://github.com/software-vendor/go-containerd-vendor/releases/download/v%{version}/containerd-v%{version}-vendor.tar.gz
 
 BuildRequires:  go >= 1.26.3
 BuildRequires:  make
@@ -36,8 +35,6 @@ The CRI plugin is included for Kubernetes integration.
 
 %prep
 %autosetup -n %{name}-%{version}
-rm -rf vendor
-tar -xzf %{SOURCE1}
 
 %build
 export GO111MODULE=on
@@ -62,6 +59,9 @@ install -d %{buildroot}%{_sysconfdir}/containerd
 bin/containerd config default > %{buildroot}%{_sysconfdir}/containerd/config.toml
 
 %check
+export GOTOOLCHAIN=local
+export GOCACHE=%{_builddir}/go-build-cache
+CGO_ENABLED=0 go test -mod=vendor ./core/images/...
 %{buildroot}%{_bindir}/containerd --version
 %{buildroot}%{_bindir}/ctr --version
 %{buildroot}%{_bindir}/containerd-shim-runc-v2 --help >/dev/null
@@ -78,8 +78,8 @@ grep -q 'io.containerd.grpc.v1.cri' \
 %systemd_postun_with_restart containerd.service
 
 %files
-%license LICENSE NOTICE vendor/modules.txt
 %doc README.md RELEASES.md docs/
+%license LICENSE NOTICE vendor/modules.txt
 %{_bindir}/containerd
 %{_bindir}/containerd-shim-runc-v2
 %{_bindir}/ctr

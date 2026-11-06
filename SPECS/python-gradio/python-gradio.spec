@@ -7,12 +7,12 @@
 %global srcname gradio
 
 Name:           python-%{srcname}
-Version:        6.21.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        Python library for easily interacting with trained machine learning models
 License:        Apache-2.0
 URL:            https://github.com/gradio-app/gradio
-#!RemoteAsset:  sha256:a27fe156ce971469b5104e8d8878f1cb136ae022b18abb1d99bce41f882e4e4a
+#!RemoteAsset:  sha256:40cf094fe8ea1b8ada0fc4c10b685c4c5f09c4061d34c073be25bab342e14e22
 Source0:        https://files.pythonhosted.org/packages/source/g/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    pyproject
@@ -37,6 +37,10 @@ Build and share delightful machine learning apps, all in Python.
 %prep -a
 sed -i 's/tomlkit>=0.12.0,<0.15.0/tomlkit>=0.12.0/g' requirements.txt
 sed -i 's/Requires-Dist: tomlkit<0.15.0,>=0.12.0/Requires-Dist: tomlkit>=0.12.0/g' PKG-INFO
+
+# Backport Pillow 13 compatibility from https://github.com/gradio-app/gradio/pull/14005
+sed -i 's/pillow>=8.0,<13.0/pillow>=8.0,<14.0/' requirements.txt
+sed -i '/^Requires-Dist: pillow/s/<13\.0/<14.0/' PKG-INFO
 
 %generate_buildrequires
 %pyproject_buildrequires

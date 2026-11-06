@@ -7,18 +7,18 @@
 %define qt6_version 6.8.0
 
 %define rname kdoctools
-# Full KF6 version (e.g. 6.29.0)
+# Full KF6 version (e.g. 6.31.0)
 %{!?_kf6_version: %global _kf6_version %{version}}
 
 Name:           kf6-kdoctools
-Version:        6.29.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        Tools to create documentation from DocBook
 License:        LGPL-2.1-or-later AND MIT
 URL:            https://www.kde.org
 VCS:            git:https://invent.kde.org/frameworks/kdoctools
-#!RemoteAsset:  sha256:1e1cb8bbf53e4f0482a916e1db9e202c8a8e8f4f2264dbcf98e837876ef83fae
-Source:         https://download.kde.org/stable/frameworks/6.29/%{rname}-%{version}.tar.xz
+#!RemoteAsset:  sha256:6a54b0319d775b8d0d5ebaffd1149b7862621e997fec564da0fb2fcbd694a060
+Source:         https://download.kde.org/stable/frameworks/6.31/%{rname}-%{version}.tar.xz
 BuildSystem:    cmake
 
 BuildOption(conf):  -DBUILD_TESTING=OFF

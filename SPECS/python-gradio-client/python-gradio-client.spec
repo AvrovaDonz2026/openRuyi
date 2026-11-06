@@ -9,12 +9,12 @@
 %global pypi_name gradio_client
 
 Name:           python-%{srcname}
-Version:        2.6.0
+Version:        2.7.2
 Release:        %autorelease
 Summary:        Python library for easily interacting with trained machine learning models
 License:        Apache-2.0
 URL:            https://github.com/gradio-app/gradio
-#!RemoteAsset:  sha256:e648110efa31347bb8b1abda150a7a975b40a9658fdd8562803e2ad6a300d033
+#!RemoteAsset:  sha256:5b568b8189b86cfdacab39fecc2ee66900348cdd83a1c0bb968a98c83eafc198
 Source0:        https://files.pythonhosted.org/packages/source/g/%{srcname}/%{pypi_name}-%{version}.tar.gz
 #!RemoteAsset:  sha256:c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
 Source1:        https://raw.githubusercontent.com/gradio-app/gradio/refs/tags/@gradio/client@2.2.0/LICENSE

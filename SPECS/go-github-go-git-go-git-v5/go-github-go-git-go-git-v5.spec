@@ -43,6 +43,8 @@ Patch0:         0001-Compute-zlib-output-in-tests-instead-of-hardcoding-it.patch
 # accepts empty subsection names; adjust that single compatibility assertion.
 # - HNO3Miracle
 Patch2000:      2000-adjust-config-test-for-packaged-gcfg.patch
+# Use the canonical import path of the packaged gcfg 2.0.2 module.
+Patch2001:      2001-use-gcfg-v2.patch
 
 BuildRequires:  go
 BuildRequires:  go-rpm-macros
@@ -56,7 +58,7 @@ BuildRequires:  go(github.com/davecgh/go-spew)
 BuildRequires:  go(github.com/elazarl/goproxy)
 BuildRequires:  go(github.com/emirpasic/gods)
 BuildRequires:  go(github.com/gliderlabs/ssh)
-BuildRequires:  go(github.com/go-git/gcfg)
+BuildRequires:  go(github.com/go-git/gcfg/v2)
 BuildRequires:  go(github.com/go-git/go-billy/v5)
 BuildRequires:  go(github.com/go-git/go-git-fixtures/v4)
 BuildRequires:  go(github.com/golang/groupcache)
@@ -94,7 +96,7 @@ Requires:       go(github.com/cyphar/filepath-securejoin)
 Requires:       go(github.com/elazarl/goproxy)
 Requires:       go(github.com/emirpasic/gods)
 Requires:       go(github.com/gliderlabs/ssh)
-Requires:       go(github.com/go-git/gcfg)
+Requires:       go(github.com/go-git/gcfg/v2)
 Requires:       go(github.com/go-git/go-billy/v5)
 Requires:       go(github.com/go-git/go-git-fixtures/v4)
 Requires:       go(github.com/golang/groupcache)

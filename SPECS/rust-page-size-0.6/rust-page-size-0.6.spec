@@ -1,8 +1,6 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
-# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
+# SPDX-FileContributor: Jvle <keke.oerv@isrc.iscas.ac.cn>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -26,8 +24,10 @@ BuildRequires:  rust-rpm-macros
 Requires:       crate(libc-0.2/default) >= 0.2.0
 Provides:       crate(%{pkgname}) = %{version}
 Provides:       crate(%{pkgname}/default) = %{version}
+Provides:       crate(%{pkgname}/no-std) = %{version}
 
 %description
+Provides an easy, fast, cross-platform way to retrieve the memory page size.
 Source code for takopackized Rust crate "page_size"
 
 %files

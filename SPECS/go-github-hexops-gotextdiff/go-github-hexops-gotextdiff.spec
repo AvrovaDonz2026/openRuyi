@@ -13,7 +13,7 @@ Release:        %autorelease
 Summary:        Unified text diffing in Go (copy of the internal diffing packages the officlal Go language server uses)
 License:        BSD-3-Clause
 URL:            https://github.com/hexops/gotextdiff
-#!RemoteAsset
+#!RemoteAsset:  sha256:95ca5abd3c132e04ca1a0deeeac130b6bfe871e504e3775cb53e43ad3fc8183d
 Source0:        https://github.com/hexops/gotextdiff/archive/v%{version}.tar.gz#/%{_name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    golangmodules
@@ -22,6 +22,8 @@ BuildRequires:  go
 BuildRequires:  go-rpm-macros
 
 Provides:       go(github.com/hexops/gotextdiff) = %{version}
+Provides:       go(github.com/hexops/gotextdiff/myers) = %{version}
+Provides:       go(github.com/hexops/gotextdiff/span) = %{version}
 
 %description
 gotextdiff - unified text diffing in Go
@@ -37,4 +39,4 @@ generate unified diffs.
 %{go_sys_gopath}/%{go_import_path}
 
 %changelog
-%{?autochangelog}
+%autochangelog

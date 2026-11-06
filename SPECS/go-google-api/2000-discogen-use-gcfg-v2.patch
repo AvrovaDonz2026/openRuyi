@@ -1,0 +1,42 @@
+From 50d57e0e003fe445e632bde1282c292e7aca2cda Mon Sep 17 00:00:00 2001
+From: Kimmy <yucheng.or@isrc.iscas.ac.cn>
+Date: Wed, 28 Oct 2026 13:05:52 +0800
+Subject: [PATCH] discogen: use the packaged go-git dependency on gcfg v2
+
+The distribution go-git/v5 package uses gcfg/v2. Keep the discogen module metadata aligned with that dependency instead of requiring the removed unversioned gcfg module.
+---
+ internal/kokoro/discogen/go.mod | 2 +-
+ internal/kokoro/discogen/go.sum | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/internal/kokoro/discogen/go.mod b/internal/kokoro/discogen/go.mod
+index b3cca28..003317e 100644
+--- a/internal/kokoro/discogen/go.mod
++++ b/internal/kokoro/discogen/go.mod
+@@ -15,7 +15,7 @@ require (
+ 	github.com/cloudflare/circl v1.6.3 // indirect
+ 	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
+ 	github.com/emirpasic/gods v1.18.1 // indirect
+-	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
++	github.com/go-git/gcfg/v2 v2.0.2 // indirect
+ 	github.com/go-git/go-billy/v5 v5.9.0 // indirect
+ 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+ 	github.com/google/go-querystring v1.1.0 // indirect
+diff --git a/internal/kokoro/discogen/go.sum b/internal/kokoro/discogen/go.sum
+index feb3b75..5f03272 100644
+--- a/internal/kokoro/discogen/go.sum
++++ b/internal/kokoro/discogen/go.sum
+@@ -22,8 +22,8 @@ github.com/emirpasic/gods v1.18.1 h1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc
+ github.com/emirpasic/gods v1.18.1/go.mod h1:8tpGGwCnJ5H4r6BWwaV6OrWmMoPhUl5jm/FMNAnJvWQ=
+ github.com/gliderlabs/ssh v0.3.8 h1:a4YXD1V7xMF9g5nTkdfnja3Sxy1PVDCj1Zg4Wb8vY6c=
+ github.com/gliderlabs/ssh v0.3.8/go.mod h1:xYoytBv1sV0aL3CavoDuJIQNURXkkfPA/wxQ1pL1fAU=
+-github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 h1:+zs/tPmkDkHx3U66DAb0lQFJrpS6731Oaa12ikc+DiI=
+-github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376/go.mod h1:an3vInlBmSxCcxctByoQdvwPiA7DTK7jaaFDBTtu0ic=
++github.com/go-git/gcfg/v2 v2.0.2 h1:MY5SIIfTGGEMhdA7d7JePuVVxtKL7Hp+ApGDJAJ7dpo=
++github.com/go-git/gcfg/v2 v2.0.2/go.mod h1:/lv2NsxvhepuMrldsFilrgct6pxzpGdSRC13ydTLSLs=
+ github.com/go-git/go-billy/v5 v5.9.0 h1:jItGXszUDRtR/AlferWPTMN4j38BQ88XnXKbilmmBPA=
+ github.com/go-git/go-billy/v5 v5.9.0/go.mod h1:jCnQMLj9eUgGU7+ludSTYoZL/GGmii14RxKFj7ROgHw=
+ github.com/go-git/go-git-fixtures/v4 v4.3.2-0.20231010084843-55a94097c399 h1:eMje31YglSBqCdIqdhKBW8lokaMrL3uTkpGYlE2OOT4=
+-- 
+2.56.0
+

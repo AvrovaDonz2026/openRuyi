@@ -8,19 +8,19 @@
 
 %define rname kguiaddons
 
-# Full KF6 version (e.g. 6.29.0)
+# Full KF6 version (e.g. 6.31.0)
 # %%{!?_kf6_version: %%global _kf6_version %%{version}}
-%global _kf6_version 6.29.0
+%global _kf6_version 6.31.0
 
 Name:           kf6-kguiaddons
-Version:        6.29.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        Utilities for graphical user interfaces
 License:        LGPL-2.1-or-later
 URL:            https://www.kde.org
 VCS:            git:https://invent.kde.org/frameworks/kguiaddons
-#!RemoteAsset:  sha256:6d0c4a4ddc7d4833ae537b1bf146896beba76135ec4b8bcf2a9525e33e39b3a4
-Source:         https://download.kde.org/stable/frameworks/6.29/%{rname}-%{version}.tar.xz
+#!RemoteAsset:  sha256:d440bbe350282b03c828d5987a6db1f0a4f5d87a528907bf19e1e5bb76d4b219
+Source:         https://download.kde.org/stable/frameworks/6.31/%{rname}-%{version}.tar.xz
 BuildSystem:    cmake
 
 BuildOption(conf):  -DBUILD_TESTING=OFF
@@ -71,6 +71,7 @@ of colors, fonts, text, images, keyboard input. Development files.
 %files
 %doc README.md
 %license LICENSES/*
+%{_kf6_applicationsdir}/cartes-geo-handler.desktop
 %{_kf6_applicationsdir}/google-maps-geo-handler.desktop
 %{_kf6_applicationsdir}/openstreetmap-geo-handler.desktop
 %{_kf6_applicationsdir}/wheelmap-geo-handler.desktop

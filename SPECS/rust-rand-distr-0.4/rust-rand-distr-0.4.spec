@@ -1,8 +1,5 @@
 # SPDX-FileCopyrightText: (C) 2026 Institute of Software, Chinese Academy of Sciences (ISCAS)
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
-# SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
-# SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
@@ -24,7 +21,8 @@ BuildSystem:    rustcrates
 BuildRequires:  rust-rpm-macros
 
 Requires:       crate(num-traits-0.2/libm) >= 0.2.0
-Requires:       crate(rand-0.8/default) >= 0.8.0
+Requires:       crate(rand-0.8) >= 0.8.0
+
 Provides:       crate(%{pkgname}) = %{version}
 
 %description
@@ -37,36 +35,50 @@ Requires:       crate(rand-0.8/alloc) >= 0.8.0
 Provides:       crate(%{pkgname}/alloc) = %{version}
 
 %description -n %{name}+alloc
-This metapackage enables feature "alloc" for the Rust rand_distr crate.
+This metapackage enables feature "alloc" for the Rust rand_distr crate, by pulling in any additional dependencies needed by that feature.
 
-%package     -n %{name}+default
-Summary:        Sampling from random number distributions - feature "default"
+%package     -n %{name}+serde
+Summary:        Sampling from random number distributions - feature "serde"
 Requires:       crate(%{pkgname}) = %{version}
-Requires:       crate(%{pkgname}/std) = %{version}
-Provides:       crate(%{pkgname}/default) = %{version}
+Requires:       crate(serde-1/default) >= 1.0.103
+Requires:       crate(serde-1/derive) >= 1.0.103
+Provides:       crate(%{pkgname}/serde) = %{version}
 
-%description -n %{name}+default
-This metapackage enables feature "default" for the Rust rand_distr crate.
-
-%package     -n %{name}+std
-Summary:        Sampling from random number distributions - feature "std"
-Requires:       crate(%{pkgname}) = %{version}
-Requires:       crate(%{pkgname}/alloc) = %{version}
-Requires:       crate(rand-0.8/std) >= 0.8.0
-Provides:       crate(%{pkgname}/std) = %{version}
-
-%description -n %{name}+std
-This metapackage enables feature "std" for the Rust rand_distr crate.
+%description -n %{name}+serde
+This metapackage enables feature "serde" for the Rust rand_distr crate, by pulling in any additional dependencies needed by that feature.
 
 %package     -n %{name}+serde1
 Summary:        Sampling from random number distributions - feature "serde1"
 Requires:       crate(%{pkgname}) = %{version}
+Requires:       crate(%{pkgname}/serde) = %{version}
 Requires:       crate(rand-0.8/serde1) >= 0.8.0
-Requires:       crate(serde-1/derive) >= 1.0.103
 Provides:       crate(%{pkgname}/serde1) = %{version}
 
 %description -n %{name}+serde1
-This metapackage enables feature "serde1" for the Rust rand_distr crate.
+This metapackage enables feature "serde1" for the Rust rand_distr crate, by pulling in any additional dependencies needed by that feature.
+
+%package     -n %{name}+std
+Summary:        Sampling from random number distributions - feature "std" and 1 more
+Requires:       crate(%{pkgname}) = %{version}
+Requires:       crate(%{pkgname}/alloc) = %{version}
+Requires:       crate(rand-0.8/std) >= 0.8.0
+Provides:       crate(%{pkgname}/default) = %{version}
+Provides:       crate(%{pkgname}/std) = %{version}
+
+%description -n %{name}+std
+This metapackage enables feature "std" for the Rust rand_distr crate, by pulling in any additional dependencies needed by that feature.
+
+Additionally, this package also provides the "default" feature.
+
+%package     -n %{name}+std-math
+Summary:        Sampling from random number distributions - feature "std_math"
+Requires:       crate(%{pkgname}) = %{version}
+Requires:       crate(num-traits-0.2/libm) >= 0.2.0
+Requires:       crate(num-traits-0.2/std) >= 0.2.0
+Provides:       crate(%{pkgname}/std-math) = %{version}
+
+%description -n %{name}+std-math
+This metapackage enables feature "std_math" for the Rust rand_distr crate, by pulling in any additional dependencies needed by that feature.
 
 %files
 %{_datadir}/cargo/registry/%{crate_name}-%{version}/

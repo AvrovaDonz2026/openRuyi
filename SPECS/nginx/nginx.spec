@@ -10,13 +10,13 @@
 %global nginx_moduleconfdir %{_datadir}/nginx/modules
 
 Name:           nginx
-Version:        1.31.3
+Version:        1.31.8
 Release:        %autorelease
 Summary:        High performance web server and reverse proxy server
 License:        BSD-2-Clause
 URL:            https://nginx.org
 VCS:            git:https://github.com/nginx/nginx.git
-#!RemoteAsset:  sha256:a7657c50811c2d92d9895395e8b873ef60398142c4db21eb647811c38f6dd525
+#!RemoteAsset:  sha256:0652b760b3b772d2ec17b47c2fc15d9a95e6fe35cd5b877eadc1a62d9bc75af1
 Source0:        https://nginx.org/download/nginx-%{version}.tar.gz
 Source1:        nginx.service
 Source2:        nginx.logrotate

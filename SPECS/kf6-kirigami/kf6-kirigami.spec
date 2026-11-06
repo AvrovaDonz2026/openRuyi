@@ -7,18 +7,18 @@
 %define qt6_version 6.8.0
 
 %define rname kirigami
-# Full KF6 version (e.g. 6.29.0)
+# Full KF6 version (e.g. 6.31.0)
 %{!?_kf6_version: %global _kf6_version %{version}}
 
 Name:           kf6-kirigami
-Version:        6.29.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        Set of QtQuick components
 License:        LGPL-2.1-or-later
 URL:            https://www.kde.org
 VCS:            git:https://invent.kde.org/frameworks/kirigami
-#!RemoteAsset:  sha256:ec5943b4d7efdc18c506ea0db543acdcd5313452615c66d72a1d5ff8d428296a
-Source:         https://download.kde.org/stable/frameworks/6.29/%{rname}-%{version}.tar.xz
+#!RemoteAsset:  sha256:811a8a150e636216269c0346e62470997fa282113a39e32b2d332bd5969926f0
+Source:         https://download.kde.org/stable/frameworks/6.31/%{rname}-%{version}.tar.xz
 BuildSystem:    cmake
 
 BuildOption(conf):  -DBUILD_TESTING=OFF

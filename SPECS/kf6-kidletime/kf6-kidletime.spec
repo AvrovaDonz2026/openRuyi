@@ -7,18 +7,18 @@
 %define qt6_version 6.8.0
 
 %define rname kidletime
-# Full KF6 version (e.g. 6.29.0)
+# Full KF6 version (e.g. 6.31.0)
 %{!?_kf6_version: %global _kf6_version %{version}}
 
 Name:           kf6-kidletime
-Version:        6.29.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        User and system idle time reporting singleton
 License:        LGPL-2.1-or-later
 URL:            https://www.kde.org
 VCS:            git:https://invent.kde.org/frameworks/kidletime.git
-#!RemoteAsset:  sha256:484002b1da719c72e6b6859422cf0d4351fbb61665aab04c3c2451edc320946b
-Source:         https://download.kde.org/stable/frameworks/6.29/%{rname}-%{version}.tar.xz
+#!RemoteAsset:  sha256:88a2933f0d32196ce050f1cf0a931174bd0c0149aa7fa58cafb8012d9b780643
+Source:         https://download.kde.org/stable/frameworks/6.31/%{rname}-%{version}.tar.xz
 BuildSystem:    cmake
 
 BuildOption(conf):  -DBUILD_TESTING=OFF

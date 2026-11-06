@@ -4,16 +4,16 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 %global crate_name rustls-webpki
-%global full_version 0.103.10
+%global full_version 0.103.16
 %global pkgname rustls-webpki-0.103
 
 Name:           rust-rustls-webpki-0.103
-Version:        0.103.10
+Version:        0.103.16
 Release:        %autorelease
 Summary:        Rust crate "rustls-webpki"
 License:        ISC
 URL:            https://github.com/rustls/webpki
-#!RemoteAsset:  sha256:df33b2b81ac578cabaf06b89b0631153a3f416b0a886e8a7a1707fb51abbd1ef
+#!RemoteAsset:  sha256:4443b1b6d39d7c663139942cc4558262562d2c84123bb6282ef177009ca8b281
 Source:         https://static.crates.io/crates/%{crate_name}/%{full_version}/download#/%{name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    rustcrates
@@ -22,6 +22,7 @@ BuildRequires:  rust-rpm-macros
 
 Requires:       crate(rustls-pki-types-1) >= 1.12.0
 Requires:       crate(untrusted-0.9/default) >= 0.9.0
+
 Provides:       crate(%{pkgname}) = %{version}
 
 %description
@@ -38,35 +39,28 @@ Provides:       crate(%{pkgname}/alloc) = %{version}
 This metapackage enables feature "alloc" for the Rust rustls-webpki crate, by pulling in any additional dependencies needed by that feature.
 
 %package     -n %{name}+aws-lc-rs
-Summary:        Web PKI X.509 Certificate Verification - feature "aws-lc-rs"
+Summary:        Web PKI X.509 Certificate Verification - feature "aws-lc-rs" and 1 more
 Requires:       crate(%{pkgname}) = %{version}
-Requires:       crate(aws-lc-rs-1) >= 1.14.0
-Requires:       crate(aws-lc-rs-1/aws-lc-sys) >= 1.14.0
-Requires:       crate(aws-lc-rs-1/prebuilt-nasm) >= 1.14.0
+Requires:       crate(aws-lc-rs-1) >= 1.18.0
+Requires:       crate(aws-lc-rs-1/aws-lc-sys) >= 1.18.0
+Requires:       crate(aws-lc-rs-1/prebuilt-nasm) >= 1.18.0
 Provides:       crate(%{pkgname}/aws-lc-rs) = %{version}
+Provides:       crate(%{pkgname}/aws-lc-rs-unstable) = %{version}
 
 %description -n %{name}+aws-lc-rs
 This metapackage enables feature "aws-lc-rs" for the Rust rustls-webpki crate, by pulling in any additional dependencies needed by that feature.
 
+Additionally, this package also provides the "aws-lc-rs-unstable" feature.
+
 %package     -n %{name}+aws-lc-rs-fips
 Summary:        Web PKI X.509 Certificate Verification - feature "aws-lc-rs-fips"
 Requires:       crate(%{pkgname}) = %{version}
-Requires:       crate(aws-lc-rs-1) >= 1.14.0
-Requires:       crate(aws-lc-rs-1/fips) >= 1.14.0
+Requires:       crate(aws-lc-rs-1) >= 1.18.0
+Requires:       crate(aws-lc-rs-1/fips) >= 1.18.0
 Provides:       crate(%{pkgname}/aws-lc-rs-fips) = %{version}
 
 %description -n %{name}+aws-lc-rs-fips
 This metapackage enables feature "aws-lc-rs-fips" for the Rust rustls-webpki crate, by pulling in any additional dependencies needed by that feature.
-
-%package     -n %{name}+aws-lc-rs-unstable
-Summary:        Web PKI X.509 Certificate Verification - feature "aws-lc-rs-unstable"
-Requires:       crate(%{pkgname}) = %{version}
-Requires:       crate(%{pkgname}/aws-lc-rs) = %{version}
-Requires:       crate(aws-lc-rs-1/unstable) >= 1.14.0
-Provides:       crate(%{pkgname}/aws-lc-rs-unstable) = %{version}
-
-%description -n %{name}+aws-lc-rs-unstable
-This metapackage enables feature "aws-lc-rs-unstable" for the Rust rustls-webpki crate, by pulling in any additional dependencies needed by that feature.
 
 %package     -n %{name}+ring
 Summary:        Web PKI X.509 Certificate Verification - feature "ring"

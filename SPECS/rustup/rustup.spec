@@ -5,12 +5,12 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 Name:           rustup
-Version:        1.29.0
+Version:        1.29.2
 Release:        %autorelease
 Summary:        The Rust toolchain installer
 License:        MIT OR Apache-2.0
 URL:            https://github.com/rust-lang/rustup
-#!RemoteAsset:  sha256:de73d1a62f4d5409a2f6bdb1c523d8dc08aa6d9d63588db62493c19ca8f8bf55
+#!RemoteAsset:  sha256:ba43980f0651730631174635a0e7764831e810be08a06ae53f9c0620caef019d
 Source:         https://github.com/rust-lang/rustup/archive/refs/tags/%{version}.tar.gz#/%{name}-%{version}.tar.gz
 BuildSystem:    rust
 
@@ -23,7 +23,6 @@ BuildRequires:  crate(anstream-1/default) >= 1.0.0
 BuildRequires:  crate(anstyle-1/default) >= 1.0.11
 BuildRequires:  crate(anyhow-1/default) >= 1.0.69
 BuildRequires:  crate(cc-1/default) >= 1.0.0
-BuildRequires:  crate(cfg-if-1/default) >= 1.0.0
 BuildRequires:  crate(chrono-0.4/std) >= 0.4.0
 BuildRequires:  crate(clap-4/default) >= 4.0.0
 BuildRequires:  crate(clap-4/derive) >= 4.0.0
@@ -33,18 +32,25 @@ BuildRequires:  crate(clap-cargo-0.18/default) >= 0.18.3
 BuildRequires:  crate(clap-complete-4/default) >= 4.0.0
 BuildRequires:  crate(console-0.16/default) >= 0.16.0
 BuildRequires:  crate(effective-limits-0.5/default) >= 0.5.5
-BuildRequires:  crate(enum-map-2/default) >= 2.5.0
+BuildRequires:  crate(enum-map-3/default) >= 3.0.0
+BuildRequires:  crate(faster-hex-0.10/default) >= 0.10.0
 BuildRequires:  crate(flate2-1/zlib-rs) >= 1.1.1
 BuildRequires:  crate(fs-at-0.2/default) >= 0.2.1
 BuildRequires:  crate(futures-util-0.3/default) >= 0.3.31
 BuildRequires:  crate(git-testament-0.2/default) >= 0.2.0
 BuildRequires:  crate(home-0.5/default) >= 0.5.4
+BuildRequires:  crate(http-body-util-0.1/default) >= 0.1.0
+BuildRequires:  crate(hyper-1/http1) >= 1.0.0
+BuildRequires:  crate(hyper-1/server) >= 1.0.0
+BuildRequires:  crate(hyper-util-0.1/default) >= 0.1.1
+BuildRequires:  crate(hyper-util-0.1/tokio) >= 0.1.1
 BuildRequires:  crate(indicatif-0.18/default) >= 0.18.0
-BuildRequires:  crate(itertools-0.14/default) >= 0.14.0
+BuildRequires:  crate(itertools-0.15/default) >= 0.15.0
 BuildRequires:  crate(libc-0.2/default) >= 0.2.0
+BuildRequires:  crate(libz-sys-1/default) >= 1.1.24
 BuildRequires:  crate(opener-0.8/default) >= 0.8.0
-BuildRequires:  crate(platforms-3) >= 3.4.0
-BuildRequires:  crate(platforms-3/default) >= 3.4.0
+BuildRequires:  crate(platforms-4) >= 4.0.0
+BuildRequires:  crate(platforms-4/default) >= 4.0.0
 BuildRequires:  crate(pulldown-cmark-0.13) >= 0.13.0
 BuildRequires:  crate(rand-0.10/default) >= 0.10.0
 BuildRequires:  crate(rayon-1/default) >= 1.10.0
@@ -59,7 +65,7 @@ BuildRequires:  crate(scopeguard-1/default) >= 1.0.0
 BuildRequires:  crate(semver-1/default) >= 1.0.0
 BuildRequires:  crate(serde-1/default) >= 1.0.0
 BuildRequires:  crate(serde-1/derive) >= 1.0.0
-BuildRequires:  crate(sha2-0.10/default) >= 0.10.0
+BuildRequires:  crate(sha2-0.11/default) >= 0.11.0
 BuildRequires:  crate(sharded-slab-0.1/default) >= 0.1.1
 BuildRequires:  crate(strsim-0.11/default) >= 0.11.0
 BuildRequires:  crate(tar-0.4/default) >= 0.4.26
@@ -74,8 +80,8 @@ BuildRequires:  crate(tokio-stream-0.1/default) >= 0.1.14
 BuildRequires:  crate(toml-1/default) >= 1.0.0
 BuildRequires:  crate(tracing-0.1/default) >= 0.1.0
 BuildRequires:  crate(tracing-log-0.2/default) >= 0.2.0
-BuildRequires:  crate(tracing-subscriber-0.3/default) >= 0.3.19
-BuildRequires:  crate(tracing-subscriber-0.3/env-filter) >= 0.3.19
+BuildRequires:  crate(tracing-subscriber-0.3/default) >= 0.3.23
+BuildRequires:  crate(tracing-subscriber-0.3/env-filter) >= 0.3.23
 BuildRequires:  crate(url-2/default) >= 2.4.0
 BuildRequires:  crate(wait-timeout-0.2/default) >= 0.2.0
 BuildRequires:  crate(windows-registry-0.6/default) >= 0.6.0
@@ -114,7 +120,7 @@ BuildRequires:  crate(reqwest-0.13/rustls-no-provider) >= 0.13.0
 BuildRequires:  crate(rustls-0.23/aws-lc-rs) >= 0.23.0
 BuildRequires:  crate(rustls-0.23/logging) >= 0.23.0
 BuildRequires:  crate(rustls-0.23/tls12) >= 0.23.0
-BuildRequires:  crate(rustls-platform-verifier-0.6/default) >= 0.6.0
+BuildRequires:  crate(rustls-platform-verifier-0.7/default) >= 0.7.0
 # Features: openssl
 BuildRequires:  pkgconfig(openssl)
 BuildRequires:  crate(openssl-sys-0.9/default) >= 0.9
@@ -134,12 +140,10 @@ Conflicts:      cargo
 Conflicts:      rust
 
 %patchlist
-# We already on the fixed openssl version...
-2000-Remove-pinned-openssl-src-version.patch
-2001-Delete-opentelemetry.patch
-2002-Remove-pinned-tracing-subscriber-version.patch
+2000-Delete-opentelemetry.patch
 # Use the actual build target triple in tests
-2003-Fix-RVA23-host-triple-detection-in-rustup-test.patch
+2001-Fix-RVA23-host-triple-detection-in-rustup-test.patch
+2002-Relax-dependency-on-libz-sys.patch
 
 %description
 Rustup installs The Rust Programming Language from the official release channels,

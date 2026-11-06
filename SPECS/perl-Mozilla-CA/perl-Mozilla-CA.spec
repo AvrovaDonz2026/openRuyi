@@ -6,15 +6,18 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 Name:           perl-Mozilla-CA
-Version:        20250602
+Version:        20261020
 Release:        %autorelease
 Summary:        Mozilla's CA cert bundle in PEM format
 License:        MPL-2.0
 URL:            https://metacpan.org/dist/Mozilla-CA
-#!RemoteAsset:  sha256:adeac0752440b2da094e8036bab6c857e22172457658868f5ac364f0c7b35481
+#!RemoteAsset:  sha256:1aeed97a463389e582e085e82de03ae0bffae74d46cf8ee4c511341e5508c21d
 Source0:        https://www.cpan.org/authors/id/L/LW/LWP/Mozilla-CA-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    perlmaker
+
+# Use a CA bundle from ca-certificates-mozilla package
+Patch2000:      2000-Mozilla-CA-20261020-Redirect-to-ca-certificates-bundle.patch
 
 BuildOption(build):  INSTALLDIRS=vendor
 
@@ -24,6 +27,9 @@ BuildRequires:  perl-rpm-macros
 BuildRequires:  perl-macros
 BuildRequires:  perl(ExtUtils::MakeMaker)
 BuildRequires:  perl(Test::More) >= 0.94
+BuildRequires:  ca-certificates-mozilla
+
+Requires:       ca-certificates-mozilla
 
 %description
 Mozilla::CA provides a copy of Mozilla's bundle of Certificate Authority

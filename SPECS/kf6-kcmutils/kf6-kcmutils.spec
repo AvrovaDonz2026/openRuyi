@@ -10,18 +10,18 @@
 # Internal QML import
 %global __requires_exclude qt6qmlimport\\(org\\.kde\\.kcmutils\\.private.*\\)
 
-# Full KF6 version (e.g. 6.29.0)
+# Full KF6 version (e.g. 6.31.0)
 %{!?_kf6_version: %global _kf6_version %{version}}
 
 Name:           kf6-kcmutils
-Version:        6.29.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        Classes to work with KCModules
 License:        LGPL-2.1-or-later
 URL:            https://www.kde.org
 VCS:            git:https://invent.kde.org/frameworks/kcmutils
-#!RemoteAsset:  sha256:762943ea8eff8c27a5b89bc483aef0af5955b716270b0820e0addae2c38392a6
-Source:         https://download.kde.org/stable/frameworks/6.29/%{rname}-%{version}.tar.xz
+#!RemoteAsset:  sha256:e7c96296f2cc31b68c323559890df1e197dcb9c663822682dc97737c1b811610
+Source:         https://download.kde.org/stable/frameworks/6.31/%{rname}-%{version}.tar.xz
 BuildSystem:    cmake
 
 BuildOption(conf):  -DBUILD_TESTING=OFF

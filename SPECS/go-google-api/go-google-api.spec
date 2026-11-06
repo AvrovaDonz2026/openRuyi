@@ -35,6 +35,9 @@ Source0:        https://github.com/googleapis/google-api-go-client/archive/v%{ve
 BuildArch:      noarch
 BuildSystem:    golangmodules
 
+# Match discogen metadata to the packaged go-git/v5 dependency on gcfg/v2.
+Patch2000:      2000-discogen-use-gcfg-v2.patch
+
 BuildRequires:  go
 BuildRequires:  go-rpm-macros
 BuildRequires:  go(cloud.google.com/go/auth)
@@ -46,7 +49,7 @@ BuildRequires:  go(github.com/cloudflare/circl)
 BuildRequires:  go(github.com/cyphar/filepath-securejoin)
 BuildRequires:  go(github.com/emirpasic/gods)
 BuildRequires:  go(github.com/felixge/httpsnoop)
-BuildRequires:  go(github.com/go-git/gcfg)
+BuildRequires:  go(github.com/go-git/gcfg/v2)
 BuildRequires:  go(github.com/go-git/go-billy/v5)
 BuildRequires:  go(github.com/go-git/go-git/v5)
 BuildRequires:  go(github.com/go-logr/logr)
@@ -87,6 +90,8 @@ BuildRequires:  go(google.golang.org/protobuf)
 BuildRequires:  go(gopkg.in/warnings.v0)
 
 Provides:       go(google.golang.org/api) = %{version}
+Provides:       go(google.golang.org/api/option) = %{version}
+Provides:       go(google.golang.org/api/transport) = %{version}
 
 Requires:       go(cloud.google.com/go/auth)
 Requires:       go(cloud.google.com/go/auth/oauth2adapt)
@@ -97,7 +102,7 @@ Requires:       go(github.com/cloudflare/circl)
 Requires:       go(github.com/cyphar/filepath-securejoin)
 Requires:       go(github.com/emirpasic/gods)
 Requires:       go(github.com/felixge/httpsnoop)
-Requires:       go(github.com/go-git/gcfg)
+Requires:       go(github.com/go-git/gcfg/v2)
 Requires:       go(github.com/go-git/go-billy/v5)
 Requires:       go(github.com/go-git/go-git/v5)
 Requires:       go(github.com/go-logr/logr)

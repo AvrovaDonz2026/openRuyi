@@ -7,12 +7,12 @@
 %define go_import_path  github.com/alibabacloud-go/tea
 
 Name:           go-github-alibabacloud-go-tea
-Version:        1.1.19
+Version:        1.5.3
 Release:        %autorelease
 Summary:        Darabonba runtime library for Go
 License:        Apache-2.0
 URL:            https://github.com/alibabacloud-go/tea
-#!RemoteAsset:  sha256:80823505a632ee0f7065889b257985d2959deb758a04afe9907f2dcd16da992b
+#!RemoteAsset:  sha256:b7d22a7244d5c760348c27042f57677ec349842fcbbdcc1d7f1f2afef618128a
 Source0:        https://github.com/alibabacloud-go/tea/archive/v%{version}.tar.gz#/%{_name}-%{version}.tar.gz
 BuildArch:      noarch
 BuildSystem:    golangmodules
@@ -23,6 +23,9 @@ BuildRequires:  go(github.com/alibabacloud-go/debug)
 BuildRequires:  go(github.com/json-iterator/go)
 BuildRequires:  go(github.com/modern-go/reflect2)
 BuildRequires:  go(golang.org/x/net)
+BuildRequires:  go(github.com/alibabacloud-go/tea-utils/v2)
+BuildRequires:  go(github.com/clbanning/mxj/v2)
+BuildRequires:  go(github.com/gorilla/websocket)
 
 Provides:       go(%{go_import_path}) = %{version}
 Provides:       go(%{go_import_path}/tea) = %{version}

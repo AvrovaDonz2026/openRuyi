@@ -7,18 +7,18 @@
 %define qt6_version 6.8.0
 
 %define rname baloo
-# Full KF6 version (e.g. 6.29.0)
+# Full KF6 version (e.g. 6.31.0)
 %{!?_kf6_version: %global _kf6_version %{version}}
 
 Name:           kf6-baloo
-Version:        6.29.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        Framework for searching and managing metadata
 License:        GPL-2.0-or-later AND LGPL-2.1-or-later AND LGPL-3.0-only
 URL:            https://www.kde.org
 VCS:            git:https://invent.kde.org/frameworks/baloo.git
-#!RemoteAsset:  sha256:be0f85dc22ed8a6ffe06b2b260b739da15bbeed95064a4f663632701e3170ed0
-Source:         https://download.kde.org/stable/frameworks/6.29/%{rname}-%{version}.tar.xz
+#!RemoteAsset:  sha256:178d6550a7c55a820322182814a96a7564343a506772971e4aac8b1e7e4d1829
+Source:         https://download.kde.org/stable/frameworks/6.31/%{rname}-%{version}.tar.xz
 BuildSystem:    cmake
 
 BuildOption(conf):  -DBUILD_TESTING=OFF

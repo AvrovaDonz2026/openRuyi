@@ -7,16 +7,16 @@
 %global srcname pyvex
 
 Name:           python-%{srcname}
-Version:        9.2.214
+Version:        10.0.5
 Release:        %autorelease
 Summary:        A Python interface to libvex and VEX IR
 License:        BSD-2-Clause AND GPL-3.0-or-later AND LGPL-2.0-only
 URL:            https://github.com/angr/pyvex
-#!RemoteAsset:  sha256:4e2e1220de8b8cb163d8e500c8eb6eca964184d78aefad392526488cdfb64416
+#!RemoteAsset:  sha256:17d9fc9ab931c47e3022d3c01cda7b88a814ff35dcf5240451a0dcc9c1e51bd3
 Source0:        https://files.pythonhosted.org/packages/source/p/%{srcname}/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
 
-# Allow repository-provided scikit-build-core 0.12.x.
+# Allow repository-provided python-scikit-build-core 1.1.1.
 Patch2000:         2000-relax-scikit-build-core-upper-bound.patch
 
 BuildOption(install):  -l %{srcname}
@@ -27,7 +27,7 @@ BuildRequires:  cmake
 BuildRequires:  ninja
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
-BuildRequires:  python3dist(scikit-build-core) >= 0.11.4
+BuildRequires:  python3dist(scikit-build-core) >= 1.0.2
 BuildRequires:  python3dist(cffi) >= 1.0.3
 BuildRequires:  python3dist(bitstring)
 BuildRequires:  python3dist(pytest)

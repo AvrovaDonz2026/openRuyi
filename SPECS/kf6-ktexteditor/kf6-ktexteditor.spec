@@ -7,18 +7,18 @@
 %define qt6_version 6.8.0
 
 %define rname ktexteditor
-# Full KF6 version (e.g. 6.29.0)
+# Full KF6 version (e.g. 6.31.0)
 %{!?_kf6_version: %global _kf6_version %{version}}
 
 Name:           kf6-ktexteditor
-Version:        6.29.0
+Version:        6.31.0
 Release:        %autorelease
 Summary:        Embeddable text editor component
 License:        LGPL-2.1-or-later
 URL:            https://www.kde.org
 VCS:            git:https://invent.kde.org/frameworks/ktexteditor.git
-#!RemoteAsset:  sha256:ab28187332c2e4af1706999bc1fb51256f32dc2ebd28bc21081062b8ff1e4ce7
-Source:         https://download.kde.org/stable/frameworks/6.29/%{rname}-%{version}.tar.xz
+#!RemoteAsset:  sha256:02e2d9dbe40b517861af7ad8dd7151d08cbf84be9f8c4e0fecf005b3fc741dac
+Source:         https://download.kde.org/stable/frameworks/6.31/%{rname}-%{version}.tar.xz
 BuildSystem:    cmake
 
 BuildOption(conf):  -DENABLE_KAUTH:BOOL=FALSE
