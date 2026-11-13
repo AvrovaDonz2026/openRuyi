@@ -2,61 +2,44 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
+# Sponsored by cha86.dev <https://cha86.dev>
 %global srcname smg_grpc_servicer
 %global pypi_name smg-grpc-servicer
 
-Name:           python-smg-grpc-servicer
-BuildRequires:  sglang-rpm-macros >= 0.1-1000
-%sglang_python_compat core
+Name:           python-%{pypi_name}
 Version:        0.9.1
 Release:        %autorelease
 Summary:        SMG gRPC servicer implementations for LLM inference engines
 License:        Apache-2.0
-URL:            https://pypi.org/project/%{pypi_name}/
+URL:            https://github.com/smg-project/smg
 VCS:            git:https://github.com/smg-project/smg.git
 #!RemoteAsset:  sha256:1e3e18fe7db76bd4f320876366d14ba4cd2b5c0aea46c08c3457708cd6d95dbf
 Source0:        https://files.pythonhosted.org/packages/source/s/%{pypi_name}/%{srcname}-%{version}.tar.gz
+BuildArch:      noarch
 BuildSystem:    pyproject
 
 BuildOption(install):  -l %{srcname}
+# Each engine integration imports its inference engine at module load time.
+BuildOption(check):  -e 'smg_grpc_servicer.mlx*'
+BuildOption(check):  -e 'smg_grpc_servicer.sglang*'
+BuildOption(check):  -e 'smg_grpc_servicer.tokenspeed*'
+BuildOption(check):  -e 'smg_grpc_servicer.vllm*'
 
-BuildRequires:  pkgconfig(python-%{_sglang_private_python})
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio)) >= 1.81.1
-BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio-health-checking)) >= 1.81.1
-BuildRequires:  sglang(python%{_sglang_private_python}dist(grpcio-reflection)) >= 1.81.1
-BuildRequires:  python%{_sglang_private_python}dist(pip)
-BuildRequires:  python%{_sglang_private_python}dist(setuptools) >= 77
-BuildRequires:  sglang(python%{_sglang_private_python}dist(smg-grpc-proto)) >= 0.4.18
+BuildRequires:  pkgconfig(python3)
 
-Requires:       sglang(python%{_sglang_private_python}dist(grpcio)) >= 1.81.1
-Requires:       sglang(python%{_sglang_private_python}dist(grpcio-health-checking)) >= 1.81.1
-Requires:       sglang(python%{_sglang_private_python}dist(grpcio-reflection)) >= 1.81.1
-Requires:       sglang(python%{_sglang_private_python}dist(smg-grpc-proto)) >= 0.4.18
+Provides:       python3-%{pypi_name} = %{version}-%{release}
+%python_provide python3-%{pypi_name}
 
 %description
 This package provides gRPC servicer implementations for LLM inference engines,
 including vLLM, MLX, TokenSpeed, and SGLang.
 
 %generate_buildrequires
-%sglang_pyproject_buildrequires
-
-%check -a
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}" %{python3} - <<'PY'
-import importlib
-import importlib.metadata
-
-assert importlib.metadata.version("smg-grpc-servicer") == "%{version}"
-importlib.import_module("grpc")
-importlib.import_module("grpc_health.v1.health_pb2")
-importlib.import_module("grpc_reflection.v1alpha.reflection")
-importlib.import_module("smg_grpc_proto.generated.sglang_scheduler_pb2_grpc")
-importlib.import_module("smg_grpc_servicer")
-PY
+%pyproject_buildrequires
 
 %files -f %{pyproject_files}
 %doc README.md
