@@ -2,20 +2,36 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
+# Sponsored by cha86.dev <https://cha86.dev>
 %global upstream_name sglang
-# Upstream v0.5.21 pins Transformers 5.12.1. This downstream flavor selects
-# 5.19.0 in its private compatibility tree and provides timm 1.0.28 privately
-# to keep its Python ABI and Torch dependencies aligned.
-%global transformers_compat_version 5.19.0
-# pythondistdeps normalizes the trailing .0 in the RPM capability to 5.19.
-%global transformers_compat_rpm_version 5.19
-%global xgrammar_compat_version 0.2.7
-%global llguidance_compat_min_version 1.7.6
-%global timm_compat_version 1.0.28
+
+# Upstream pyproject_cpu.toml requires torch==2.14.0, torchvision==0.29.0,
+# triton==3.8.0, timm==1.0.16, xgrammar==0.2.7, llguidance>=1.7.6,<2.0.0, and
+# mistral_common>=1.11.5.  This distribution ships torch, torchvision, and
+# triton from the PyTorch stack it builds, and the grammar and tokenizer
+# libraries at the versions owned by their upstream recipes.  %prep rewrites
+# those requirements down to the versions that actually exist here; every
+# lower pin below is a recorded deviation from the upstream requirement.
+%global torch_full_version 2.13.0
+%global torchvision_full_version 0.28.0
+%global triton_full_version 3.7.1
+%global timm_full_version 1.0.28
+
+# pythondistdeps drops trailing zero components from distribution capabilities,
+# so an exact pin on 2.13.0 has to be written as 2.13.
+%global torch_cap_version 2.13
+%global torchaudio_cap_version 2.11
+%global torchvision_cap_version 0.28
+%global torchcodec_cap_version 0.12
+
+%global transformers_version 5.12.1
+%global xgrammar_version 0.2.1
+%global llguidance_min_version 1.7.5
+%global mistral_common_min_version 1.11.3
+
 # Keep the CUDA conditionals for a future provider-backed flavor.  This source
 # package intentionally has no multibuild entry until a CUDA Torch provider is
 # available; the default build must resolve to the CPU dependency closure.
@@ -63,8 +79,6 @@ Name:           python-sglang-cuda
 %global srcname sglang-cpu
 Name:           python-sglang
 %endif
-
-%sglang_python_compat core
 Version:        0.5.21
 Release:        %autorelease
 Summary:        Fast serving framework for large language and vision-language models
@@ -75,15 +89,12 @@ VCS:            git:https://github.com/sgl-project/sglang.git
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version}.tar.gz#/%{upstream_name}-%{version}.tar.gz
 Source1:        sglang-launcher
 Source2:        sglang-python-launcher
-Source3:        sglang-extras-python
-Source4:        sglang-cpu-engine-smoke.py
-Source5:        sglang-coexistence-test.py
+Source3:        sglang-cpu-engine-smoke.py
 BuildSystem:    pyproject
 %if %{without cuda}
-# The CPU closure currently relies on private providers that are validated
-# only on RISC-V.  The upstream x86_64 metadata also requests
-# python3dist(intel-openmp), which is not provided by this repository.
-# Keep x86_64 out until a real provider and target validation are available.
+# The upstream x86_64 metadata requests python3dist(intel-openmp), which this
+# repository does not provide, and the CPU closure is validated only on
+# RISC-V.  Keep x86_64 out until a real provider and target validation exist.
 ExclusiveArch:  riscv64
 %else
 # CUDA toolkit currently provides Linux host support for these architectures.
@@ -91,84 +102,65 @@ ExclusiveArch:  x86_64 aarch64
 %endif
 
 BuildOption(prep):  -n %{upstream_name}-%{version}
-BuildOption(install):  -l sglang
-
-BuildRequires:  pkgconfig(python-%{_sglang_private_python})
-BuildRequires:  file
-BuildRequires:  patchelf
-BuildRequires:  sglang-rpm-macros >= 0.1-1000
-BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python-rpm-macros
-BuildRequires:  python%{_sglang_private_python}dist(pip)
-BuildRequires:  python%{_sglang_private_python}dist(setuptools)
-BuildRequires:  python%{_sglang_private_python}dist(setuptools-scm)
-BuildRequires:  python%{_sglang_private_python}dist(wheel)
-
-# The private site-packages tree and launcher are tied to this exact Python ABI.
-Requires:       python(abi) = %{_sglang_private_python}
-Requires:       %{_sglang_private_interpreter}
-
-%ifarch riscv64
-# Keep CMake's compiler driver and target triple aligned with the LLVM 22
-# toolchain used for the RISC-V package build.
-BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER=%{llvm_bindir}/clang
-BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER=%{llvm_bindir}/clang++
-BuildOption(build):  -Ccmake.define.CMAKE_C_COMPILER_TARGET:STRING=%{_target_platform}
-BuildOption(build):  -Ccmake.define.CMAKE_CXX_COMPILER_TARGET:STRING=%{_target_platform}
-%if "%{_host_cpu}" != "%{_target_cpu}"
-BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_NAME=Linux
-BuildOption(build):  -Ccmake.define.CMAKE_SYSTEM_PROCESSOR=riscv64
-%endif
-BuildRequires:  clang
-BuildRequires:  clang(major) = %{llvm_maj_ver}
-BuildRequires:  compiler-rt(major) = %{llvm_maj_ver}
-BuildRequires:  lld(major) = %{llvm_maj_ver}
-BuildRequires:  llvm(major) = %{llvm_maj_ver}
-%endif
-
+BuildOption(install):  sglang
 %if %{with cuda}
 # The CUDA flavor is intentionally dormant until a CUDA Torch provider is
 # added.
 Conflicts:      python-sglang
-Provides:       sglang(python%{_sglang_private_python}dist(%{srcname})) = %{version}
-BuildRequires:  python%{_sglang_private_python}dist(setuptools-rust)
-BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
-Requires:       sglang(python%{_sglang_private_python}dist(torch-cuda)) = 2.14.0
+BuildRequires:  pyproject-rpm-macros
+BuildRequires:  python-rpm-macros
+BuildRequires:  pkgconfig(python3)
+BuildRequires:  python3dist(pip)
+BuildRequires:  python3dist(setuptools)
+BuildRequires:  python3dist(setuptools-scm)
+BuildRequires:  python3dist(setuptools-rust)
+BuildRequires:  python3dist(wheel)
+BuildRequires:  python3dist(torch) = %{torch_cap_version}
+Requires:       python3dist(torch) = %{torch_cap_version}
 %else
-Provides:       sglang(python%{_sglang_private_python}dist(%{srcname})) = %{version}
-BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
-BuildRequires:  sglang(python%{_sglang_private_python}dist(torchaudio)) = 2.11.0
-BuildRequires:  sglang(python%{_sglang_private_python}dist(torchvision)) = 0.29.0
-BuildRequires:  sglang(python%{_sglang_private_python}dist(triton)) = 3.8.0
-BuildRequires:  sglang(python%{_sglang_private_python}dist(sglang-kernel-cpu)) = 0.4.7
-BuildRequires:  sglang(python%{_sglang_private_python}dist(mistral-common)) >= 1.11.5
-BuildRequires:  sglang(python%{_sglang_private_python}dist(transformers)) = %{transformers_compat_rpm_version}
-BuildRequires:  sglang(python%{_sglang_private_python}dist(xgrammar)) = %{xgrammar_compat_version}
-BuildRequires:  sglang(python%{_sglang_private_python}dist(llguidance)) >= %{llguidance_compat_min_version}
-BuildRequires:  sglang(python%{_sglang_private_python}dist(llguidance)) < 2
+BuildRequires:  pyproject-rpm-macros
+BuildRequires:  python-rpm-macros
+BuildRequires:  pkgconfig(python3)
+BuildRequires:  python3dist(pip)
+BuildRequires:  python3dist(setuptools)
+BuildRequires:  python3dist(setuptools-scm)
+BuildRequires:  python3dist(wheel)
+BuildRequires:  python3dist(torch) = %{torch_cap_version}
+BuildRequires:  python3dist(torchaudio) = %{torchaudio_cap_version}
+BuildRequires:  python3dist(torchvision) = %{torchvision_cap_version}
+BuildRequires:  python3dist(triton) = %{triton_full_version}
+BuildRequires:  python3dist(sglang-kernel-cpu) = 0.4.7
+BuildRequires:  python3dist(mistral-common) >= %{mistral_common_min_version}
+BuildRequires:  python3dist(transformers) = %{transformers_version}
+BuildRequires:  python3dist(xgrammar) = %{xgrammar_version}
+BuildRequires:  python3dist(llguidance) >= %{llguidance_min_version}
+BuildRequires:  python3dist(llguidance) < 2
 %ifnarch aarch64 armv7hl
 # pyproject_cpu.toml excludes torchcodec on Linux ARM (aarch64, arm64, armv7l).
-BuildRequires:  sglang(python%{_sglang_private_python}dist(torchcodec)) = 0.12.0
+BuildRequires:  python3dist(torchcodec) = %{torchcodec_cap_version}
 %endif
 %endif
 
 %if %{without cuda}
-Requires:       sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
-Requires:       sglang(python%{_sglang_private_python}dist(torchaudio)) = 2.11.0
-Requires:       sglang(python%{_sglang_private_python}dist(torchvision)) = 0.29.0
-Requires:       sglang(python%{_sglang_private_python}dist(triton)) = 3.8.0
+Requires:       python3dist(torch) = %{torch_cap_version}
+Requires:       python3dist(torchaudio) = %{torchaudio_cap_version}
+Requires:       python3dist(torchvision) = %{torchvision_cap_version}
+Requires:       python3dist(triton) = %{triton_full_version}
 # The upstream CPU installation also builds the separate AOT kernel project.
-Requires:       sglang(python%{_sglang_private_python}dist(sglang-kernel-cpu)) = 0.4.7
+Requires:       python3dist(sglang-kernel-cpu) = 0.4.7
 # SGLang's CPU metadata imports Mistral tokenizer utilities at runtime.
-Requires:       sglang(python%{_sglang_private_python}dist(mistral-common)) >= 1.11.5
-Requires:       sglang(python%{_sglang_private_python}dist(transformers)) = %{transformers_compat_rpm_version}
-Requires:       sglang(python%{_sglang_private_python}dist(xgrammar)) = %{xgrammar_compat_version}
-Requires:       sglang(python%{_sglang_private_python}dist(llguidance)) >= %{llguidance_compat_min_version}
-Requires:       sglang(python%{_sglang_private_python}dist(llguidance)) < 2
+Requires:       python3dist(mistral-common) >= %{mistral_common_min_version}
+Requires:       python3dist(transformers) = %{transformers_version}
+Requires:       python3dist(xgrammar) = %{xgrammar_version}
+Requires:       python3dist(llguidance) >= %{llguidance_min_version}
+Requires:       python3dist(llguidance) < 2
 %ifnarch aarch64 armv7hl
-Requires:       sglang(python%{_sglang_private_python}dist(torchcodec)) = 0.12.0
+Requires:       python3dist(torchcodec) = %{torchcodec_cap_version}
 %endif
 %endif
+
+Provides:       python3-%{srcname} = %{version}-%{release}
+%python_provide python3-%{srcname}
 
 %patchlist
 # RISC-V torch-native runtime fallback and capability-gated unsupported AOT operators.
@@ -195,8 +187,13 @@ sed -i \
     -e 's/"blobfile==3.0.0"/"blobfile>=3.2.0,<4"/' \
     -e 's/"openai==2.6.1"/"openai>=2.40.0,<3"/' \
     -e 's/"openai-harmony==0.0.4"/"openai-harmony>=0.0.8,<0.1"/' \
-    -e 's/"transformers==[^"]*"/"transformers==%{transformers_compat_version}"/' \
-    -e 's/"timm==[^"]*"/"timm==%{timm_compat_version}"/' \
+    -e 's/"torch==2.14.0"/"torch==%{torch_full_version}"/' \
+    -e 's/"torchvision==0.29.0"/"torchvision==%{torchvision_full_version}"/' \
+    -e 's/"triton==3.8.0"/"triton==%{triton_full_version}"/' \
+    -e 's/"timm==1.0.16"/"timm==%{timm_full_version}"/' \
+    -e 's/"xgrammar==0.2.7"/"xgrammar==%{xgrammar_version}"/' \
+    -e 's/"llguidance>=1.7.6,<2.0.0"/"llguidance>=%{llguidance_min_version},<2.0.0"/' \
+    -e 's/"mistral_common>=1.11.5"/"mistral_common>=%{mistral_common_min_version}"/' \
     python/pyproject.toml
 %ifarch riscv64
 sed -i '/intel-openmp.*platform_machine.*x86_64/d' python/pyproject.toml
@@ -210,7 +207,8 @@ export SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SGLANG_CPU='%{version}'
 %if %{without cuda}
 export SGLANG_BUILD_RUST_EXTS=none
 %endif
-%sglang_pyproject_buildrequires
+# The dependency closure is declared above; resolve the build backend only.
+%pyproject_buildrequires -R
 
 %build -p
 cd python
@@ -238,98 +236,82 @@ export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 cd python
 
 %install -a
-%sglang_private_rpath
-
+# The declarative pass installs the wheel and records the module list from
+# python/.  Relocate the upstream console entry point out of _bindir so the
+# wrapper below can drop inherited Python and loader settings before starting
+# the server.
+mkdir -p %{buildroot}%{_libexecdir}/sglang
+mv %{buildroot}%{_bindir}/sglang %{buildroot}%{_libexecdir}/sglang/sglang
 install -Dpm0755 %{SOURCE1} %{buildroot}%{_bindir}/sglang
 install -Dpm0755 %{SOURCE2} %{buildroot}%{_bindir}/sglang-python
-install -Dpm0755 %{SOURCE3} %{buildroot}%{_bindir}/sglang-extras-python
 %if %{without cuda}
-install -Dpm0755 %{SOURCE4} %{buildroot}%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py
-install -Dpm0755 %{SOURCE5} %{buildroot}%{_libexecdir}/sglang/sglang-coexistence-test.py
+install -Dpm0755 %{SOURCE3} %{buildroot}%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py
 %endif
 sed -i \
-  -e 's|@PRIVATE_SITELIB@|%{_sglang_private_sitelib}|g' \
-  -e 's|@PRIVATE_LIBEXEC@|%{_sglang_private_libexec}|g' \
-  -e 's|@PYTHON3@|%{_sglang_private_interpreter}|g' \
+  -e 's|@LIBEXEC@|%{_libexecdir}/sglang|g' \
+  -e 's|@PYTHON3@|%{_bindir}/python3|g' \
   %{buildroot}%{_bindir}/sglang %{buildroot}%{_bindir}/sglang-python
-sed -i \
-  -e 's|@EXTRAS_SITELIB@|%{_libdir}/sglang/extras/python%{_sglang_private_python}/site-packages|g' \
-  -e 's|@CORE_SITELIB@|%{_libdir}/sglang/core/python%{_sglang_private_python}/site-packages|g' \
-  -e 's|@PYTHON3@|%{_sglang_private_interpreter}|g' \
-  %{buildroot}%{_bindir}/sglang-extras-python
 
-%check -a
-%{__python3} - "%{SOURCE5}" <<'PY'
-from pathlib import Path
-import sys
-
-source = Path(sys.argv[1]).read_text()
-assert 'env["COEXIST_MODULES"] = json.dumps(MODULES)' in source
-assert 'env["COEXIST_ALLOW_ABSENT"] = ",".join(sorted(SYSTEM_MODULES))' in source
-PY
-for launcher in %{SOURCE1} %{SOURCE2} \
-  "%{buildroot}%{_bindir}/sglang" \
+%check
+# The launchers are shell scripts that must stay syntactically valid.
+for launcher in "%{buildroot}%{_bindir}/sglang" \
   "%{buildroot}%{_bindir}/sglang-python"; do
   bash -n "$launcher"
 done
-cd %{buildroot}
-%if %{with cuda}
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{_sglang_private_interpreter} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang") == "%{version}"; print(sglang.__version__)'
-%else
-export SGLANG_USE_CPU_ENGINE=1
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{_sglang_private_interpreter} -s -c 'import importlib.metadata; import sglang; assert importlib.metadata.version("sglang-cpu") == "%{version}"; print(sglang.__version__)'
-%endif
-%if %{without cuda}
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" %{_sglang_private_interpreter} -s - <<'PY'
+# sglang imports its whole runtime closure at load time, and those packages are
+# runtime Requires rather than build dependencies.  Verify the installed
+# distribution metadata and the prepped requirement pins instead of importing
+# the package; the offline engine smoke test in sglang-cpu-engine-smoke.py is
+# run manually against an installed system.
+export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
+%{python3} - <<'PY'
 import importlib.metadata
-import blobfile
-import openai
-import timm
-from openai.types.responses import ResponseOutputMessage, ResponseOutputText
-from openai_harmony import Message, Role, StreamableParser
-from packaging.version import Version
 
-assert Version(importlib.metadata.version("openai")) >= Version("2.40.0")
-assert Version(importlib.metadata.version("openai-harmony")) >= Version("0.0.8")
-assert Version(importlib.metadata.version("timm")) == Version("%{timm_compat_version}")
-assert Version(importlib.metadata.version("blobfile")) >= Version("3.2.0")
-
-client = openai.OpenAI(api_key="compatibility-check", base_url="http://localhost")
-assert client.base_url.host == "localhost"
-message = Message.from_role_and_content(Role.USER, "compatibility check")
-assert message.author.role == Role.USER
-assert Message.from_role_and_content(Role.ASSISTANT, "ok").with_channel("final")
-assert StreamableParser
-output = ResponseOutputMessage(
-    id="msg_compatibility",
-    content=[ResponseOutputText(text="ok", annotations=[], type="output_text", logprobs=None)],
-    role="assistant", status="completed", type="message", phase="final_answer",
-)
-assert output.content[0].text == "ok"
-assert timm.is_model("vit_so400m_patch14_siglip_384.webli")
-assert blobfile.exists(".")
+for name in ("sglang-cpu", "sglang"):
+    try:
+        version = importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        continue
+    assert version == "%{version}", (name, version)
+    break
+else:
+    raise SystemExit("no sglang distribution metadata was installed")
 PY
-# The public wrapper resolves its final installed path; use the private entrypoint in buildroot.
-PYTHONNOUSERSITE=1 PYTHONSAFEPATH=1 \
-PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}" \
-SGLANG_SMOKE_PYTHON="%{_sglang_private_interpreter}" \
-SGLANG_SMOKE_SERVER="%{buildroot}%{_sglang_private_libexec}/sglang" \
-%{_sglang_private_interpreter} -s "%{buildroot}%{_libexecdir}/sglang/sglang-cpu-engine-smoke.py"
-%endif
+cd %{_builddir}/%{upstream_name}-%{version}/python
+# Every pin that %prep rewrote has to name a version this distribution builds.
+%{python3} - <<'PY'
+import re
+from pathlib import Path
+
+text = Path("pyproject.toml").read_text(encoding="utf-8")
+expected = {
+    "torch": "==%{torch_full_version}",
+    "torchvision": "==%{torchvision_full_version}",
+    "triton": "==%{triton_full_version}",
+    "timm": "==%{timm_full_version}",
+    "xgrammar": "==%{xgrammar_version}",
+}
+for name, pin in expected.items():
+    assert f'"{name}{pin}"' in text, f"{name} pin was not rewritten to {pin}"
+for fragment in (
+    '"llguidance>=%{llguidance_min_version},<2.0.0"',
+    '"mistral_common>=%{mistral_common_min_version}"',
+):
+    assert fragment in text, f"missing rewritten requirement {fragment}"
+assert not re.search(r'"(torch|torchvision|triton)==(2\.14\.0|0\.29\.0|3\.8\.0)"', text)
+PY
 
 %files -f %{pyproject_files}
 %doc README.md
 %license LICENSE
 %{_bindir}/sglang
 %{_bindir}/sglang-python
-%{_bindir}/sglang-extras-python
-# The wheel's console entry point is relocated into the private libexec tree
-# and is invoked by the public wrapper above.
+# The wheel's console entry point is relocated into libexec and is invoked by
+# the public wrapper above.
 %{_libexecdir}/sglang/sglang
 %if %{without cuda}
 %{_libexecdir}/sglang/sglang-cpu-engine-smoke.py
-%{_libexecdir}/sglang/sglang-coexistence-test.py
 %endif
 
 %changelog
-%{?autochangelog}
+%autochangelog

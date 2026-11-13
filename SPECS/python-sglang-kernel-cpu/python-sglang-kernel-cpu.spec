@@ -3,13 +3,21 @@
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
 #
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MulanPSL-2.0
 
+# Sponsored by cha86.dev <https://cha86.dev>
 %global srcname sglang-kernel-cpu
 %global toolchain clang
 %global version_upstream 0.5.21
-%global sglang_private_build_deps scikit-build-core
+
+# The upstream AOT metadata pins torch==2.14.0.  This distribution builds
+# torch 2.13.0, so %prep rewrites that requirement down; the pin below is the
+# recorded deviation from the upstream requirement.
+%global torch_full_version 2.13.0
+# pythondistdeps drops trailing zero components from distribution capabilities,
+# so an exact pin on 2.13.0 has to be written as 2.13.
+%global torch_cap_version 2.13
+
 %global flavor @BUILD_FLAVOR@%{nil}
 %if "%{flavor}" == "cuda"
 %bcond cuda 1
@@ -35,8 +43,6 @@
 %endif
 
 Name:           python-%{srcname}
-BuildRequires:  sglang-rpm-macros >= 0.1-1000
-%sglang_python_compat core
 Version:        0.4.7
 Release:        %autorelease
 Summary:        CPU kernel library for SGLang
@@ -47,16 +53,18 @@ VCS:            git:https://github.com/sgl-project/sglang.git
 Source0:        https://github.com/sgl-project/sglang/archive/refs/tags/v%{version_upstream}.tar.gz#/sglang-%{version_upstream}.tar.gz
 Source1:        sglang-kernel-cpu-smoke.py
 BuildSystem:    pyproject
-# The private CPU kernel is currently validated only as part of the RISC-V
-# SGLang closure.  Do not publish an x86_64 provider while the corresponding
-# SGLang CPU metadata still requires unavailable intel-openmp capability.
+# The CPU kernel is currently validated only as part of the RISC-V SGLang
+# closure.  Do not publish an x86_64 provider while the corresponding SGLang
+# CPU metadata still requires unavailable intel-openmp capability.
 ExclusiveArch:  riscv64
 Conflicts:      python-sglang-kernel
 
 BuildOption(prep):  -n sglang-%{version_upstream}
-BuildOption(install):  -l sgl_kernel -L
+BuildOption(install):  sgl_kernel
+# flash_attn and rotary_embedding need a live device runtime.
 BuildOption(check):  -e sgl_kernel.flash_attn
 BuildOption(check):  -e sgl_kernel.testing.rotary_embedding
+
 %ifarch riscv64
 %if "%{openruyi_riscv_arch}" == "-march=rva23u64"
 %global sglang_cpu_march rva23u64
@@ -81,14 +89,17 @@ BuildRequires:  clang
 BuildRequires:  file
 BuildRequires:  patchelf
 BuildRequires:  pkgconfig(numa)
-BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  pkgconfig(python3)
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
-BuildRequires:  sglang(python%{_sglang_private_python}dist(scikit-build-core)) >= 0.10
-BuildRequires:  sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
-BuildRequires:  python%{_sglang_private_python}dist(wheel)
-BuildRequires:  python%{_sglang_private_python}dist(ninja) >= 1.5
-BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
+# The distribution ships scikit-build-core 1.1.1, which satisfies the
+# upstream >= 0.10 floor and the >= 1.0.2 pin used by python-pyvex.
+BuildRequires:  python3dist(scikit-build-core) >= 0.10
+BuildRequires:  python3dist(torch) = %{torch_cap_version}
+BuildRequires:  python3dist(wheel)
+BuildRequires:  python3dist(ninja) >= 1.5
+# Torch installs its CMake package files in the -devel subpackage.
+BuildRequires:  python-torch-devel
 
 %ifarch riscv64
 BuildRequires:  clang(major) = %{llvm_maj_ver}
@@ -98,12 +109,14 @@ BuildRequires:  lld(major) = %{llvm_maj_ver}
 BuildRequires:  llvm(major) = %{llvm_maj_ver}
 %endif
 
-Requires:       sglang(python%{_sglang_private_python}dist(torch-cpu)) = 2.14.0
-# Keep both the compatibility name and the upstream project capability.  The
+Requires:       python3dist(torch) = %{torch_cap_version}
+
+Provides:       python3-%{srcname} = %{version}-%{release}
+%python_provide python3-%{srcname}
+# Keep both the provider name and the upstream project capability.  The
 # upstream CPU metadata still requires sglang-kernel, while the RISC-V package
 # name identifies the isolated provider as sglang-kernel-cpu.
-Provides:       sglang(python%{_sglang_private_python}dist(%{srcname})) = %{version}
-Provides:       sglang(python%{_sglang_private_python}dist(sglang-kernel)) = %{version}
+Provides:       python3dist(sglang-kernel) = %{version}
 
 %patchlist
 # RISC-V source selection and explicit cross-target ISA handling.
@@ -118,10 +131,12 @@ engine. It uses the upstream CPU build configuration from SGLang 0.5.21.
 %prep -a
 cd python/sglang/kernels/aot
 cp pyproject_cpu.toml pyproject.toml
+sed -i -e 's/"torch==2.14.0"/"torch==%{torch_full_version}"/' pyproject.toml
 
 %generate_buildrequires
 cd python/sglang/kernels/aot
-%sglang_pyproject_buildrequires
+# The dependency closure is declared above; resolve the build backend only.
+%pyproject_buildrequires -R
 
 %build -p
 cd python/sglang/kernels/aot
@@ -138,21 +153,28 @@ export CXXFLAGS="%{build_cxxflags} --target=%{_target_platform}"
 export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
-%install -a
+%install -p
 cd python/sglang/kernels/aot
-%sglang_private_rpath
+
+%install -a
 install -Dpm0755 %{SOURCE1} %{buildroot}%{_libexecdir}/sglang/sglang-kernel-cpu-smoke.py
+# The extension loads torch's shared libraries from the sibling torch package
+# at runtime, so record relative entries instead of a private library path.
+for so in $(find %{buildroot}%{python3_sitearch} -type f -name '*.so*'); do
+  if file "$so" | grep -q 'ELF'; then
+    patchelf --set-rpath '$ORIGIN:$ORIGIN/../torch/lib' "$so"
+  fi
+done
 
 %check -a
-export PYTHONPATH="%{buildroot}%{_sglang_private_sitelib}:%{_sglang_private_pythonpath}"
 cd %{buildroot}
-%ifarch riscv64
-# Check the built extension with the Torch build dependency.
-# The smoke script validates registration, two-rank reduction, and
-# synchronization with the native shared-memory implementation.
+# Torch is a build dependency of this recipe, so the built extension can be
+# imported straight out of the buildroot.  The smoke script validates
+# registration, two-rank reduction, and synchronization with the native
+# shared-memory implementation.
+PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}" \
 LOCAL_SIZE=1 MASTER_ADDR=127.0.0.1 MASTER_PORT=29599 \
-  %{_sglang_private_interpreter} %{SOURCE1}
-%endif
+  %{python3} "%{buildroot}%{_libexecdir}/sglang/sglang-kernel-cpu-smoke.py"
 
 %files -f %{pyproject_files}
 %license LICENSE
@@ -160,4 +182,4 @@ LOCAL_SIZE=1 MASTER_ADDR=127.0.0.1 MASTER_PORT=29599 \
 %{_libexecdir}/sglang/sglang-kernel-cpu-smoke.py
 
 %changelog
-%{?autochangelog}
+%autochangelog

@@ -2,12 +2,11 @@
 # SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 # SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 # SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>
-# SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 #
 # SPDX-License-Identifier: MulanPSL-2.0
 
+# Sponsored by cha86.dev <https://cha86.dev>
 %global srcname torchcodec
-%global compat_name python-torchcodec-sglang-0.12
 
 # TorchCodec is packaged only for the validated SGLang CPU provider.  CUDA and
 # ROCm flavors are reserved until matching providers and target validation are
@@ -32,7 +31,10 @@
 %if %{with rocm}
 %{error:ROCm SGLang TorchCodec flavor is reserved and is not supported by this SPEC}
 %endif
-%global torch_capability torch-cpu
+
+# pythondistdeps drops trailing zero components from distribution capabilities,
+# so an exact pin on 2.13.0 has to be written as 2.13.
+%global torch_cap_version 2.13
 
 %ifarch riscv64
 %global llvm_maj_ver 22
@@ -40,9 +42,7 @@
 %global llvm_bindir %{_libdir}/llvm%{llvm_maj_ver}/bin
 %endif
 
-Name:           %{compat_name}
-BuildRequires:  sglang-rpm-macros >= 0.1-1000
-%sglang_python_compat core
+Name:           python-%{srcname}
 Version:        0.12.0
 Release:        %autorelease
 Summary:        PyTorch video decoding and encoding library
@@ -52,7 +52,7 @@ VCS:            git:https://github.com/meta-pytorch/torchcodec.git
 #!RemoteAsset:  sha256:f0cc21c1f99439cff30eb43080e9bc8e43c6b9505b4f327cb42ee132075bcec4
 Source0:        %{url}/archive/refs/tags/v%{version}.tar.gz#/%{srcname}-%{version}.tar.gz
 BuildSystem:    pyproject
-# The private CPU Torch/SGLang closure is currently validated only on RISC-V.
+# The CPU Torch/SGLang closure is currently validated only on RISC-V.
 ExclusiveArch:  riscv64
 
 BuildOption(install):  -l %{srcname}
@@ -83,30 +83,33 @@ BuildRequires:  gcc-c++
 BuildRequires:  ffmpeg-devel%{?_isa} >= 4
 BuildRequires:  ffmpeg-devel%{?_isa} < 9
 BuildRequires:  pkgconfig
-BuildRequires:  pkgconfig(python-%{_sglang_private_python})
+BuildRequires:  pkgconfig(python3)
 BuildRequires:  file
 BuildRequires:  pkgconfig(pybind11)
 BuildRequires:  pyproject-rpm-macros
-BuildRequires:  python-torch-sglang-2.14-devel = 2.14.0
-BuildRequires:  sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
-BuildRequires:  python%{_sglang_private_python}dist(pip)
-BuildRequires:  python%{_sglang_private_python}dist(setuptools)
-BuildRequires:  python%{_sglang_private_python}dist(wheel)
+BuildRequires:  python-rpm-macros
+# TorchCodec includes PyTorch headers, so it builds against the runtime rather
+# than a pinned release.  Torch installs its CMake package files in -devel.
+BuildRequires:  python-torch-devel
+BuildRequires:  python3dist(torch) = %{torch_cap_version}
+BuildRequires:  python3dist(pip)
+BuildRequires:  python3dist(setuptools)
+BuildRequires:  python3dist(wheel)
 
 Requires:       ffmpeg%{?_isa} >= 4
 Requires:       ffmpeg%{?_isa} < 9
-Requires:       sglang(python%{_sglang_private_python}dist(%{torch_capability})) = 2.14.0
-# Keep the complete upstream version alongside the generator's normalized
-# capability for exact SGLang requirements.
-Provides:       sglang(python%{_sglang_private_python}dist(torchcodec)) = %{version}
-Provides:       sglang(python%{_sglang_private_python}dist(torchcodec)) = %{version}
+Requires:       python3dist(torch) = %{torch_cap_version}
+
+Provides:       python3-%{srcname} = %{version}-%{release}
+Provides:       python3dist(torchcodec) = %{version}
+%python_provide python3-%{srcname}
 
 %description
 TorchCodec provides PyTorch bindings for decoding and encoding audio and video
 with the system FFmpeg libraries.
 
 %generate_buildrequires
-%sglang_pyproject_buildrequires
+%pyproject_buildrequires -R
 
 %build -p
 # The build links to the system FFmpeg package instead of downloading or
@@ -128,10 +131,17 @@ export LDFLAGS="-fuse-ld=lld --target=%{_target_platform} %{build_ldflags}"
 %endif
 
 %install -a
-%sglang_private_rpath
+# The extension resolves torch's shared libraries in the same site-packages
+# tree at runtime. Record relative entries so the module is found without
+# depending on a loader cache entry for an installed environment.
+for so in $(find %{buildroot}%{python3_sitearch} -type f -name '*.so*'); do
+  if file "$so" | grep -q 'ELF'; then
+    patchelf --set-rpath '$ORIGIN:$ORIGIN/../torch/lib' "$so"
+  fi
+done
 
 %check -a
-PYTHONPATH="%{buildroot}%{_sglang_private_sitearch}" \
+PYTHONPATH="%{buildroot}%{python3_sitearch}:" \
 %{python3} - <<'PY'
 from torchcodec._core import get_ffmpeg_library_versions
 
@@ -144,4 +154,4 @@ PY
 %license LICENSE
 
 %changelog
-%{?autochangelog}
+%autochangelog

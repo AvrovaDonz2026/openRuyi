@@ -6,10 +6,11 @@
 # SPDX-File-AttributionText: Sponsored by cha86.dev <https://cha86.dev>
 # SPDX-License-Identifier: MulanPSL-2.0
 
+# Run Python with the same environment the SGLang launcher uses, without a
+# server command line.
 set -e
 unset PYTHONHOME PYTHONPATH
 unset LD_LIBRARY_PATH LD_PRELOAD
 export PYTHONNOUSERSITE=1
 export PYTHONSAFEPATH=1
-export PYTHONPATH='@PRIVATE_SITELIB@'
 exec @PYTHON3@ -sP "$@"
