@@ -82,6 +82,10 @@ BuildRequires:  gcc-c++
 %endif
 BuildRequires:  ffmpeg-devel%{?_isa} >= 4
 BuildRequires:  ffmpeg-devel%{?_isa} < 9
+# Upstream expects fmt to be bundled in PyTorch's include directory and builds
+# it in header-only mode.  This distribution's PyTorch does not install those
+# headers, so the library must come from the system copy instead.
+BuildRequires:  fmt-devel
 BuildRequires:  pkgconfig
 BuildRequires:  pkgconfig(python3)
 BuildRequires:  file
@@ -107,6 +111,14 @@ Provides:       python3dist(torchcodec) = %{version}
 %description
 TorchCodec provides PyTorch bindings for decoding and encoding audio and video
 with the system FFmpeg libraries.
+
+%prep
+%setup -q -n %{srcname}-%{version}
+# Upstream's version.txt carries a pre-release suffix ("0.12.0a0") that does not
+# match the release version this package ships.  Pin it so the installed
+# distribution metadata and the RPM EVR agree, otherwise the automatic
+# python3.*dist(torchcodec) capability disagrees with the explicit Provides.
+echo '%{version}' > version.txt
 
 %generate_buildrequires
 %pyproject_buildrequires -R
@@ -140,7 +152,11 @@ for so in $(find %{buildroot}%{python3_sitearch} -type f -name '*.so*'); do
   fi
 done
 
-%check -a
+# The bundled libtorchcodec_* objects are internal backend libraries that the
+# package loads with ctypes; they export no PyInit_ symbol and must not be
+# imported as extension modules.
+%check
+%pyproject_check_import -e 'torchcodec.libtorchcodec_*'
 PYTHONPATH="%{buildroot}%{python3_sitearch}:" \
 %{python3} - <<'PY'
 from torchcodec._core import get_ffmpeg_library_versions
