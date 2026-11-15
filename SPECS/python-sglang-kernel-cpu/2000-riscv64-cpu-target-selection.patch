@@ -18,7 +18,7 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
 @@ -1,6 +1,13 @@
  cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
  project(sgl_kernel)
-
+ 
 +# Cross builds must select the target CPU explicitly; host-specific ISA flags
 +# are invalid when the compiler host and target differ.
 +set(SGLANG_CPU_TARGET_ARCH "${CMAKE_SYSTEM_PROCESSOR}" CACHE STRING
@@ -30,7 +30,7 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
  set(CMAKE_CXX_STANDARD_REQUIRED ON)
  set(CMAKE_CXX_EXTENSIONS OFF)
 @@ -36,22 +43,25 @@
-
+ 
  # Platform-specific source and library directory
  set(MY_ARCH_DIR "")
 -if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
@@ -57,19 +57,19 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
 +    file(GLOB_RECURSE ARCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/riscv64/*.cpp")
 +    list(APPEND SOURCES ${ARCH_SOURCES})
  endif()
-
+ 
  # Conda library path support
 @@ -102,8 +109,8 @@ set(SGLANG_CPU_X86_ONLY_SOURCES
      ${CMAKE_CURRENT_SOURCE_DIR}/mamba/conv.cpp
  )
-
+ 
 -if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
 -    add_compile_definitions(SGLANG_CPU_ARM64_SKIP_X86_ONLY_OPS)
 +if(NOT SGLANG_CPU_TARGET_ARCH MATCHES "x86_64|AMD64")
 +    add_compile_definitions(SGLANG_CPU_SKIP_X86_ONLY_OPS)
      list(REMOVE_ITEM SOURCES ${SGLANG_CPU_X86_ONLY_SOURCES})
  endif()
-
+ 
 @@ -132,9 +139,11 @@ else()
      add_compile_options(
          -O3
@@ -81,14 +81,14 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
 +        add_compile_options("-march=${SGLANG_CPU_MARCH}")
 +    endif()
  endif()
-
+ 
  Python_add_library(common_ops MODULE USE_SABI ${SKBUILD_SABI_VERSION} WITH_SOABI ${SOURCES})
 --- a/python/sglang/kernels/aot/csrc/cpu/torch_extension_cpu.cpp
 +++ b/python/sglang/kernels/aot/csrc/cpu/torch_extension_cpu.cpp
 @@ -327,6 +327,7 @@ at::Tensor convert_scale_packed(at::Tensor& scale);
  // quant
  std::tuple<at::Tensor, at::Tensor> per_token_quant_int8_cpu(at::Tensor& A);
-
+ 
 +#if !defined(SGLANG_CPU_SKIP_X86_ONLY_OPS)
  // igemm
  at::Tensor int8_scaled_mm_cpu(
@@ -98,13 +98,13 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
      at::ScalarType out_dtype,
      bool is_vnni);
 +#endif
-
+ 
  // fp8 gemm
  at::Tensor fp8_scaled_mm_cpu(
 @@ -359,6 +361,7 @@ at::Tensor fp8_per_tensor_scaled_mm_cpu(
  at::Tensor mxfp4_scaled_mm_cpu(
      at::Tensor& mat1, at::Tensor& mat2, at::Tensor& scales2, const std::optional<at::Tensor>& bias, bool is_vnni);
-
+ 
 +#if !defined(SGLANG_CPU_SKIP_X86_ONLY_OPS)
  // quant + igemm
  at::Tensor int8_scaled_mm_with_quant(
@@ -114,7 +114,7 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
      at::ScalarType out_dtype,
      bool is_vnni);
 +#endif
-
+ 
 -#if !defined(SGLANG_CPU_ARM64_SKIP_X86_ONLY_OPS)
 +#if !defined(SGLANG_CPU_SKIP_X86_ONLY_OPS)
  // int4 gemm
@@ -123,7 +123,7 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
 @@ -396,6 +400,7 @@ at::Tensor fused_linear_sigmoid_mul(
  // bmm
  void bmm_cpu(at::Tensor& out, at::Tensor& mat1, at::Tensor& mat2, bool is_vnni, const std::optional<at::Tensor>& scale);
-
+ 
 +#if !defined(SGLANG_CPU_SKIP_X86_ONLY_OPS)
  // fused moe
  at::Tensor fused_experts_cpu(
@@ -139,7 +139,7 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
      at::Tensor& w1,
 @@ -838,10 +841,12 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
    m.impl("per_token_quant_int8_cpu", torch::kCPU, &per_token_quant_int8_cpu);
-
+ 
    // igemm
 +#if !defined(SGLANG_CPU_SKIP_X86_ONLY_OPS)
    m.def(
@@ -147,13 +147,13 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
        "out_dtype, bool is_vnni) -> Tensor");
    m.impl("int8_scaled_mm_cpu", torch::kCPU, &int8_scaled_mm_cpu);
 +#endif
-
+ 
    // fp8 gemm
    m.def(
 @@ -857,13 +862,15 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
    m.def("mxfp4_scaled_mm_cpu(Tensor mat1, Tensor mat2, Tensor scales2, Tensor? bias, bool is_vnni) -> Tensor");
    m.impl("mxfp4_scaled_mm_cpu", torch::kCPU, &mxfp4_scaled_mm_cpu);
-
+ 
 +#if !defined(SGLANG_CPU_SKIP_X86_ONLY_OPS)
    // quant + igemm
    m.def(
@@ -161,7 +161,7 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
        "is_vnni) -> Tensor");
    m.impl("int8_scaled_mm_with_quant", torch::kCPU, &int8_scaled_mm_with_quant);
 +#endif
-
+ 
 -#if !defined(SGLANG_CPU_ARM64_SKIP_X86_ONLY_OPS)
 +#if !defined(SGLANG_CPU_SKIP_X86_ONLY_OPS)
    // int4 gemm
@@ -169,7 +169,7 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
    m.impl("int4_scaled_mm_cpu", torch::kCPU, &int4_scaled_mm_cpu);
 @@ -889,6 +896,7 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
    m.impl("bmm_cpu", torch::kCPU, &bmm_cpu);
-
+ 
    // moe
 +#if !defined(SGLANG_CPU_SKIP_X86_ONLY_OPS)
    m.def(
@@ -178,14 +178,14 @@ Upstream-Status: Downstream (RISC-V target selection and source exclusion)
 @@ -896,7 +904,6 @@ TORCH_LIBRARY_FRAGMENT(sgl_kernel, m) {
        "limit, bool is_vnni, str? activation=None) -> Tensor");
    m.impl("fused_experts_cpu", torch::kCPU, &fused_experts_cpu);
-
+ 
 -#if !defined(SGLANG_CPU_ARM64_SKIP_X86_ONLY_OPS)
    // weight absorption
    m.def(
        "qkv_proj_with_rope(Tensor hidden_states, Tensor q_a_proj_weight, Tensor q_b_proj_weight, Tensor "
 --- /dev/null
 +++ b/python/sglang/kernels/aot/csrc/cpu/riscv64/gemm_int8.cpp
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,39 @@
 +// SPDX-FileCopyrightText: (C) 2026 openRuyi Project Contributors
 +// SPDX-FileContributor: A.Donz <avrova.minix@donz.si>
 +// SPDX-FileContributor: MMLA-org <https://github.com/MMLA-org>

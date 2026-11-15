@@ -90,6 +90,10 @@ BuildRequires:  file
 BuildRequires:  patchelf
 BuildRequires:  pkgconfig(numa)
 BuildRequires:  pkgconfig(python3)
+# Caffe2/public/protobuf.cmake in Torch's CMake package resolves protobuf with
+# find_package(Protobuf CONFIG), so the CMake package files this package ships
+# are needed even though the kernels never include a protobuf header directly.
+BuildRequires:  protobuf-devel
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  python-rpm-macros
 # The distribution ships scikit-build-core 1.1.1, which satisfies the
@@ -140,6 +144,12 @@ cd python/sglang/kernels/aot
 
 %build -p
 cd python/sglang/kernels/aot
+# scikit-build-core discovers CMake and Ninja by probing them with a hardcoded
+# five-second timeout; under a saturated build queue that probe is starved and
+# metadata generation aborts with CMakeNotFoundError.  Name the programs and
+# bound the job count so the probe cannot time out.
+export CMAKE_MAKE_PROGRAM=%{_bindir}/ninja
+export CMAKE_BUILD_PARALLEL_LEVEL=%{?_smp_build_ncpus}%{!?_smp_build_ncpus:2}
 %ifarch riscv64
 export PATH="%{llvm_bindir}:$PATH"
 export CC="%{llvm_bindir}/clang"
