@@ -79,6 +79,10 @@ running Python process without requiring changes to the profiled program.
 %prep -a
 %rust_setup_registry
 rm -f Cargo.lock
+# The test-data dev-dependency is not packaged, and cargo metadata resolves
+# dev-dependencies even for release builds.  Drop the entries so the offline
+# system-registry resolution succeeds.
+sed -i -e '/^\[dev-dependencies\]/d' -e '/^py-spy-testdata = /d' Cargo.toml
 
 %generate_buildrequires
 export CARGO_NET_OFFLINE=true
