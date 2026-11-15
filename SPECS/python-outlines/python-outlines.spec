@@ -39,7 +39,6 @@ BuildRequires:  python3dist(pillow)
 BuildRequires:  python3dist(pydantic) >= 2
 BuildRequires:  python3dist(pip)
 BuildRequires:  python3dist(setuptools)
-BuildRequires:  python3dist(setuptools-scm) >= 6.2
 BuildRequires:  python3dist(typing-extensions)
 BuildRequires:  python3dist(wheel)
 
@@ -61,8 +60,27 @@ Provides:       python3-%{srcname} = %{version}-%{release}
 Outlines provides tools for controlling language model generation with regular
 expressions, JSON schemas, and context-free grammars.
 
+%prep
+%setup -q -n %{srcname}-%{version}
+# The distribution does not package setuptools-scm, so drop it from the build
+# backend requirements together with the dynamic version below.
+sed -i -e 's|^requires = \["setuptools>=45", "setuptools_scm\\[toml\]>=6.2"\]|requires = ["setuptools>=45"]|' \
+    pyproject.toml
+# Upstream pins an upper bound of Python < 3.14.  This distribution ships 3.14,
+# and the package is pure Python with no version-specific API use, so lift the
+# bound rather than shipping an uninstallable recipe.
+sed -i -e 's/^requires-python = ">=3.10,<3.14"/requires-python = ">=3.10"/' \
+    pyproject.toml
+# The source archive carries no Git metadata and this distribution does not
+# provide setuptools-scm, so the dynamic version would resolve to 0.0.0.
+# Set the release version statically in the wheel metadata instead.
+sed -i -e 's/^dynamic = \["version"\]/version = "%{version}"/' \
+    pyproject.toml
+
 %generate_buildrequires
 %pyproject_buildrequires
+
+%build -p
 
 %check -a
 export PYTHONPATH="%{buildroot}%{python3_sitearch}:%{buildroot}%{python3_sitelib}"
