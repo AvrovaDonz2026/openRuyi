@@ -25,6 +25,10 @@ BuildOption(install):  -l %{srcname}
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
+# The build regenerates the .proto stubs in-tree, so the compiler side of the
+# gRPC toolchain has to be present as well as the runtime.
+BuildRequires:  python3dist(grpcio-tools)
+BuildRequires:  python3dist(protobuf)
 
 # The stubs are generated at build time by the distribution's grpcio-tools,
 # whose protoc emits protobuf 7 code.

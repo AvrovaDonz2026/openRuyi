@@ -25,6 +25,13 @@ BuildOption(install):  -l grpc_health
 
 BuildRequires:  pyproject-rpm-macros
 BuildRequires:  pkgconfig(python3)
+# The generated health service modules import grpc and protobuf at run time, and
+# the import check loads them, so both have to be present while building.
+BuildRequires:  python3dist(grpcio)
+BuildRequires:  python3dist(protobuf)
+
+Requires:       python3dist(grpcio)
+Requires:       python3dist(protobuf)
 
 Provides:       python3-%{srcname} = %{version}-%{release}
 %python_provide python3-%{srcname}
