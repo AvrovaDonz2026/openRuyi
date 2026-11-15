@@ -195,6 +195,12 @@ sed -i \
     -e 's/"llguidance>=1.7.6,<2.0.0"/"llguidance>=%{llguidance_min_version},<2.0.0"/' \
     -e 's/"mistral_common>=1.11.5"/"mistral_common>=%{mistral_common_min_version}"/' \
     python/pyproject.toml
+# py-spy is only ever invoked as a subprocess by the crash-dump helper; no
+# module imports it, so a missing profiler cannot break inference.  Its Rust
+# dependency chain also needs macOS-only crates that the Linux system cargo
+# registry does not carry, so it is not available here.  Drop the requirement
+# rather than pin the whole stack on an unbuildable package.
+sed -i -e '/^  "py-spy",$/d' python/pyproject.toml
 %ifarch riscv64
 sed -i '/intel-openmp.*platform_machine.*x86_64/d' python/pyproject.toml
 %endif
