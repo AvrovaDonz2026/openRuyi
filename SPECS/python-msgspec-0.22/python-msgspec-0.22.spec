@@ -63,14 +63,11 @@ JSON, MessagePack, YAML, and TOML.
 # pulled in by the build backend resolution, hence -R.
 %pyproject_buildrequires -R
 
-%build
+%build -p
 # Without Git metadata setuptools-scm cannot derive a version from the archive.
 export SETUPTOOLS_SCM_PRETEND_VERSION='%{version}'
-%buildsystem_pyproject_build
 
-%install
-%pyproject_install
-%pyproject_save_files %{pypi_name}
+%install -a
 
 %files -f %{pyproject_files}
 %doc README.md
